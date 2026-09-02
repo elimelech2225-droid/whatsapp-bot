@@ -24,6 +24,22 @@ def verify_webhook():
         return challenge or "", 200
 
     return "Verification failed", 403
+PRICES = {
+    ("ירושלים", "תל אביב"): 240,
+    ("בית שמש", "תל אביב"): 220,
+    ("ירושלים", "ראשון לציון"): 200,
+    ("ירושלים", "בת ים"): 200,
+    ("ירושלים", "נס ציונה"): 200,
+    ("ירושלים", "עמנואל"): 350,
+    ("ירושלים", "נתניה"): 350,
+    ("ירושלים", "בית שמש"): 150,
+    ("ירושלים", "ביתר"): 120,
+    ("ירושלים", "ראש העין"): 220,
+    ("ירושלים", "אלעד"): 220,
+    ("ירושלים", "אשקלון"): 300,
+    ("ירושלים", "אשדוד"): 220,
+    ("בית שמש", "אשקלון"): 250,
+}
 
 @app.post("/webhook")
 def receive_webhook():
@@ -43,13 +59,16 @@ def receive_webhook():
                 origin = origin.strip()
                 destination = destination.strip()
 
-                send_message(
-                    sender,
-                    f"קיבלתי בקשת משלוח:\n"
-                    f"מוצא: {origin}\n"
-                    f"יעד: {destination}\n\n"
-                    f"עכשיו נבדוק את המחיר לפי המחירון."
-                )
+            price = PRICES.get((origin, destination)) or PRICES.get((destination, origin))
+            price_text = f"{price} ₪" if price else "עדיין אין מחיר למסלול הזה"
+    
+            send_message(
+        sender,
+        f"קיבלתי בקשת משלוח:\n"
+        f"מוצא: {origin}\n"
+        f"יעד: {destination}\n"
+        f"מחיר: {price_text}"
+    )    
             else:
                 send_message(
                     sender,
