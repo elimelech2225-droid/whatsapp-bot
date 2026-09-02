@@ -25,7 +25,6 @@ def verify_webhook():
 
     return "Verification failed", 403
 
-
 @app.post("/webhook")
 def receive_webhook():
     data = request.get_json(silent=True) or {}
@@ -34,8 +33,8 @@ def receive_webhook():
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]
         sender = message["from"]
 
-                if message.get("type") == "text":
-                text = message["text"]["body"].strip()
+        if message.get("type") == "text":
+            text = message["text"]["body"].strip()
 
             if text.startswith("משלוח מ") and " ל" in text:
                 route = text.replace("משלוח מ", "", 1)
@@ -55,11 +54,12 @@ def receive_webhook():
                 send_message(
                     sender,
                     "כדי להזמין משלוח, רשום למשל:\nמשלוח מירושלים לתל אביב"
-                )        
+                )
+
     except (KeyError, IndexError, TypeError):
         pass
 
-    return "OK", 200
+    return "OK", 200    
 
 
 def send_message(to, text):
