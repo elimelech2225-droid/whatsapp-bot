@@ -34,7 +34,7 @@ def receive_webhook():
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]
         sender = message["from"]
 
-        if message.get("type") == "text":
+            if message.get("type") == "text":
                 text = message["text"]["body"].strip()
 
             if text.startswith("משלוח מ") and " ל" in text:
