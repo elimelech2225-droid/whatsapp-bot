@@ -96,8 +96,9 @@ def send_message(to, text):
         "text": {"body": text},
     }
 
-    requests.post(url, headers=headers, json=payload, timeout=20)
-
+    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    print("META STATUS:", response.status_code)
+    print("META RESPONSE:", response.text)
 @app.route("/privacy", methods=["GET"])
 def privacy():
     return """
