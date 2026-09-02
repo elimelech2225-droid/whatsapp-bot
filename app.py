@@ -60,6 +60,14 @@ def send_message(to, text):
 
     requests.post(url, headers=headers, json=payload, timeout=20)
 
-
+@app.route("/privacy", methods=["GET"])
+def privacy():
+    return """
+    <h1>Privacy Policy</h1>
+    <p>AB deliverise bot uses WhatsApp to receive and respond to customer messages.</p>
+    <p>We do not sell or share users' personal information with third parties.</p>
+    <p>Information is used only to provide the messaging service requested by the user.</p>
+    <p>For privacy questions, please contact the business directly.</p>
+    """, 200
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
