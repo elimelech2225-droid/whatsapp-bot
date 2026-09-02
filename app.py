@@ -59,16 +59,16 @@ def receive_webhook():
                 origin = origin.strip()
                 destination = destination.strip()
 
-            price = PRICES.get((origin, destination)) or PRICES.get((destination, origin))
-            price_text = f"{price} ₪" if price else "עדיין אין מחיר למסלול הזה"
-    
-            send_message(
-        sender,
-        f"קיבלתי בקשת משלוח:\n"
-        f"מוצא: {origin}\n"
-        f"יעד: {destination}\n"
-        f"מחיר: {price_text}"
-    )    
+                price = PRICES.get((origin, destination)) or PRICES.get((destination, origin))
+                price_text = f"{price} ₪" if price else "עדיין אין מחיר למסלול הזה"
+        
+                send_message(
+            sender,
+            f"קיבלתי בקשת משלוח:\n"
+            f"מוצא: {origin}\n"
+            f"יעד: {destination}\n"
+            f"מחיר: {price_text}"
+        )    
             else:
                 send_message(
                     sender,
