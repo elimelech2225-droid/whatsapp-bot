@@ -35,8 +35,27 @@ def receive_webhook():
         sender = message["from"]
 
         if message.get("type") == "text":
-            text = message["text"]["body"]
-            send_message(sender, f"קיבלתי את ההודעה שלך: {text}")
+                text = message["text"]["body"].strip()
+
+            if text.startswith("משלוח מ") and " ל" in text:
+                route = text.replace("משלוח מ", "", 1)
+                origin, destination = route.split(" ל", 1)
+
+                origin = origin.strip()
+                destination = destination.strip()
+
+                send_message(
+                    sender,
+                    f"קיבלתי בקשת משלוח:\n"
+                    f"מוצא: {origin}\n"
+                    f"יעד: {destination}\n\n"
+                    f"עכשיו נבדוק את המחיר לפי המחירון."
+                )
+            else:
+                send_message(
+                    sender,
+                    "כדי להזמין משלוח, רשום למשל:\nמשלוח מירושלים לתל אביב"
+                )        
     except (KeyError, IndexError, TypeError):
         pass
 
