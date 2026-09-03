@@ -87,7 +87,12 @@ def receive_webhook():
 
         if message.get("type") == "text":
             text = message["text"]["body"].strip()
-
+        if text.lower() in ["היי", "הי", "שלום", "אהלן", "הלו"]:
+            send_message(
+                sender,
+                "היי 😊 ברוכים הבאים!\nמאיפה לאיפה תרצה את המשלוח?\nלדוגמה: ירושלים לתל אביב"
+            )
+            return "OK", 200
         origin, destination = parse_route(text)
 
         if origin and destination:       
