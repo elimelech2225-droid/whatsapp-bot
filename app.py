@@ -39,11 +39,17 @@ def webhook():
             send_message(
                 phone,
                 "היי 👋\n"
-                "ברוכים הבאים לא.א שליחויות 🚚\n\n"
+                "ברוכים הבאים ל א.א שליחויות 🚚\n\n"
                 "מאיפה לאיפה תרצה לבצע את המשלוח?\n"
                 "לדוגמה: ירושלים לתל אביב"
             )
-
+        else:
+            send_message(
+                phone,
+                f"קיבלתי את המסלול שלך 🚚\n\n"
+                f"📍 המסלול שרשמת: {text}\n\n"
+                "אני מחשב לך את מחיר המשלוח..."
+            )
     except (KeyError, IndexError, TypeError):
         pass
 
