@@ -7,7 +7,8 @@ app = Flask(__name__)
 VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN")
 ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
-
+ADMIN_PHONE = "972553155049"
+SESSIONS = {}
 
 # =========================
 # מחירון
@@ -127,6 +128,7 @@ def webhook():
 
         # הלקוח אישר ורוצה שליח
         elif clean_text in ["כן", "כן תודה", "מעוניין", "מאשר"]:
+            SESSIONS[phone]["status"] = "waiting_for_details"    
             send_message(
                 phone,
                        "מעולה 🚚\n\n"
@@ -136,6 +138,7 @@ def webhook():
                 "📞 מספר הטלפון של איש הקשר בנקודת המסירה\n\n"
                 "אנא שלח את כל הפרטים בהודעה אחת."        
             )
+            
         elif clean_text in ["לא", "לא תודה", "לא מעוניין"]:
             send_message(
                 phone,
@@ -143,6 +146,26 @@ def webhook():
                 "תודה שפנית לא.א שליחויות 🚚\n"
                 "אם תרצה לבצע משלוח אחר, פשוט שלח לי מאיפה לאיפה."
             )
+               elif phone in SESSIONS and SESSIONS[phone].get("status") == "waiting_for_details":
+            order = SESSIONS[phone]
+
+            send_message(
+                ADMIN_PHONE,
+                f"🚚 הזמנה חדשה!\n\n"
+                f"📱 מספר הלקוח: {phone}\n"
+                f"📍 מסלול: {order['origin']} → {order['destination']}\n"
+                f"💰 מחיר: {order['price']} ₪\n\n"
+                f"📦 פרטי האיסוף והמסירה:\n{text}"
+            )
+
+            send_message(
+                phone,
+                "✅ קיבלנו את כל פרטי המשלוח.\n\n"
+                "אנחנו מתחילים לחפש עבורך שליח 🚚\n"
+                "השליח יצור איתך קשר ברגע שיימצא."
+            )
+
+            del SESSIONS[phone]
         # ניסיון לזהות מסלול
         else:
             origin, destination = find_route(text)
@@ -150,6 +173,7 @@ def webhook():
             if origin and destination:
                 price = PRICES.get((origin, destination)) or PRICES.get((destination, origin))
                 if price:
+                    SESSIONS[phone] = {"origin": origin, "destination": destination, "price": price, "status": "quoted"}
                     send_message(
                         phone,
                         f"קיבלתי את המסלול שלך 🚚\n\n"
