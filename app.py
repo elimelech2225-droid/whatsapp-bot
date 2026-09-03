@@ -85,7 +85,7 @@ def webhook():
   
     except (KeyError, IndexError, TypeError):
         pass
-         return "OK", 200   
+return "OK", 200   
 def send_message(phone, text):
     url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
 
