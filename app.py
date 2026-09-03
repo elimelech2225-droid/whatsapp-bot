@@ -166,6 +166,14 @@ def webhook():
             )
 
             del SESSIONS[phone]
+            elif any(word in clean_text for word in ["כמה זמן", "מתי", "איפה", "נו", "עדכון", "יש עדכון", "מה קורה", "מה עם המשלוח", "השליח"]):
+            send_message(
+                phone,
+                "ההזמנה שלך בטיפול 🚚\n\n"
+                "אנחנו מחפשים עבורך שליח כרגע.\n"
+                "ברגע שיימצא שליח מתאים, נעדכן אותך.\n\n"
+                "תודה על הסבלנות 🙏"
+            )
         # ניסיון לזהות מסלול
         else:
             origin, destination = find_route(text)
