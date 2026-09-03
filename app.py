@@ -146,7 +146,7 @@ def webhook():
                 "תודה שפנית לא.א שליחויות 🚚\n"
                 "אם תרצה לבצע משלוח אחר, פשוט שלח לי מאיפה לאיפה."
             )
-               elif phone in SESSIONS and SESSIONS[phone].get("status") == "waiting_for_details":
+        elif phone in SESSIONS and SESSIONS[phone].get("status") == "waiting_for_details":
             order = SESSIONS[phone]
 
             send_message(
