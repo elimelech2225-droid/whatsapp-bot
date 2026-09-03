@@ -140,8 +140,7 @@ def webhook():
             origin, destination = find_route(text)
 
             if origin and destination:
-                price = PRICES.get((origin, destination))
-
+                price = PRICES.get((origin, destination)) or PRICES.get((destination, origin))
                 if price:
                     send_message(
                         phone,
