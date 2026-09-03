@@ -82,9 +82,10 @@ def webhook():
                     "נסה לרשום למשל: ירושלים לתל אביב"
                 )           
            
-    return "OK", 200
-
-
+  
+    except (KeyError, IndexError, TypeError):
+        pass
+         return "OK", 200   
 def send_message(phone, text):
     url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
 
