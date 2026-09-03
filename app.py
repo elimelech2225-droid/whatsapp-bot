@@ -112,13 +112,13 @@ def webhook():
     try:
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]
 
- phone = message["from"]
+        phone = message["from"]
 
-if message.get("type") == "interactive":
+        if message.get("type") == "interactive":
     button_id = message["interactive"]["button_reply"]["id"]
     text = ""
     clean_text = ""
-else:
+        else:
     button_id = None
     text = message["text"]["body"].strip()
     clean_text = text.lower().strip()      
