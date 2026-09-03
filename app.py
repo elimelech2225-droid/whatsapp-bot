@@ -100,13 +100,13 @@ def receive_webhook():
                 )
                 return "OK", 200
 
-if text.lower() in ["לא", "לא תודה", "ביטול", "בטל"]:
-                send_message(
-                    sender,
-                    "הבנתי 😊 ההזמנה לא אושרה.\nאם תרצה לבדוק משלוח אחר, פשוט שלח לי מאיפה לאיפה."
-                )
-                return "OK", 200
-        origin, destination = parse_route(text)
+            if text.lower() in ["לא", "לא תודה", "ביטול", "בטל"]:
+                            send_message(
+                                sender,
+                                "הבנתי 😊 ההזמנה לא אושרה.\nאם תרצה לבדוק משלוח אחר, פשוט שלח לי מאיפה לאיפה."
+                            )
+                            return "OK", 200
+            origin, destination = parse_route(text)
 
         if origin and destination:       
                 origin = origin.strip()
