@@ -248,12 +248,13 @@ def send_message(phone, text):
         }
     }
 
-    requests.post(
+   response = requests.post(
         url,
         headers=headers,
         json=payload,
         timeout=10
     )
+    print("TEXT SEND RESPONSE:", response.status_code, response.text)   
 
 def send_agent_button(phone):
     url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
