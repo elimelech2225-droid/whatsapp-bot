@@ -103,11 +103,14 @@ def receive_webhook():
                 price_text = f"{price} ₪" if price else "עדיין אין מחיר למסלול הזה"
         
                 send_message(
-            sender,
-            f"קיבלתי בקשת משלוח:\n"
-            f"מוצא: {origin}\n"
-            f"יעד: {destination}\n"
-            f"מחיר: {price_text}"
+          sender,
+f"🚚 סיכום ההצעה:\n"
+f"📍 מוצא: {origin}\n
+f"📍 יעד: {destination}\n"
+f"💰 מחיר: {price_text}\n\n"
+f"האם תרצה שנמצא עבורך שליח לביצוע המשלוח?\n"
+f"השב כן ונתחיל לחפש עבורך שליח מיד."
+
         )    
         else:
                 send_message(
