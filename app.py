@@ -112,12 +112,31 @@ def webhook():
     try:
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]
 
-        phone = message["from"]
-        text = message["text"]["body"].strip()
-        clean_text = text.lower().strip()
+ phone = message["from"]
 
-        # הודעת פתיחה
-        if clean_text in ["hi", "hello", "היי", "הי", "שלום"]:
+if message.get("type") == "interactive":
+    button_id = message["interactive"]["button_reply"]["id"]
+    text = ""
+    clean_text = ""
+else:
+    button_id = None
+    text = message["text"]["body"].strip()
+    clean_text = text.lower().strip()      
+        if button_id == "talk_to_agent":
+            send_message(
+                phone,
+                "✅ בקשתך נשלחה לנציג.\n\n"
+                "נציג יחזור אליך בהקדם."
+            )
+
+            send_message(
+                ADMIN_PHONE,
+                f"👤 בקשה לנציג\n\n"
+                f"לקוח מספר: {phone}\n"
+                f"מבקש לדבר עם נציג."
+            )     
+    # הודעת פתיחה
+        elif clean_text in ["hi", "hello", "היי", "הי", "שלום"]:
             send_message(
                 phone,
                 "היי 👋\n\n"
@@ -167,13 +186,7 @@ def webhook():
 
             del SESSIONS[phone]
         elif any(word in clean_text for word in ["כמה זמן", "מתי", "איפה", "נו", "עדכון", "יש עדכון", "מה קורה", "מה עם המשלוח", "השליח"]):
-            send_message(
-                phone,
-                "ההזמנה שלך בטיפול 🚚\n\n"
-                "אנחנו מחפשים עבורך שליח כרגע.\n"
-                "ברגע שיימצא שליח מתאים, נעדכן אותך.\n\n"
-                "תודה על הסבלנות 🙏"
-            )
+            send_agent_button(phone)    
         # ניסיון לזהות מסלול
         else:
             origin, destination = find_route(text)
@@ -241,7 +254,43 @@ def send_message(phone, text):
         timeout=10
     )
 
+def send_agent_button(phone):
+    url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
 
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {
+                "text": "🚚 ההזמנה שלך בטיפול.\n\nאנחנו מחפשים עבורך שליח כרגע.\nברגע שיימצא שליח מתאים, הוא יצור איתך קשר.\nתודה על הסבלנות 🙏"
+            },
+            "action": {
+                "buttons": [
+                    {
+                        "type": "reply",
+                        "reply": {
+                            "id": "talk_to_agent",
+                            "title": "👤 דבר עם נציג"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+    requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=10
+    )
 # =========================
 # הפעלת האפליקציה
 # =========================
