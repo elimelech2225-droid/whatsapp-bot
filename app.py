@@ -40,7 +40,43 @@ PRICES = {
     ("ירושלים", "אשדוד"): 220,
     ("בית שמש", "אשקלון"): 250,
 }
+def parse_route(text):
+    text = text.strip()
 
+    for word in ["משלוח", "צריך", "צריכה", "הזמנה", "דחוף", "בבקשה"]:
+        text = text.replace(word, " ")
+
+    text = text.replace(",", " ")
+    text = " ".join(text.split())
+
+    cities = [
+        "ירושלים",
+        "תל אביב",
+        "בית שמש",
+        "ראשון לציון",
+        "בת ים",
+        "נס ציונה",
+        "עמנואל",
+        "נתניה",
+        "ביתר",
+        "ראש העין",
+        "אלעד",
+        "אשקלון",
+        "אשדוד",
+    ]
+
+    found = []
+
+    for city in cities:
+        if city in text:
+            found.append((text.find(city), city))
+
+    found.sort()
+
+    if len(found) >= 2:
+        return found[0][1], found[1][1]
+
+    return None, None
 @app.post("/webhook")
 def receive_webhook():
     data = request.get_json(silent=True) or {}
@@ -52,10 +88,9 @@ def receive_webhook():
         if message.get("type") == "text":
             text = message["text"]["body"].strip()
 
-            if text.startswith("משלוח מ") and " ל" in text:
-                route = text.replace("משלוח מ", "", 1)
-                origin, destination = route.split(" ל", 1)
+        origin, destination = parse_route(text)
 
+        if origin and destination:       
                 origin = origin.strip()
                 destination = destination.strip()
 
