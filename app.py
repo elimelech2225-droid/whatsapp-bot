@@ -285,12 +285,13 @@ def send_agent_button(phone):
         }
     }
 
-    requests.post(
+    response = requests.post(
         url,
         headers=headers,
         json=payload,
         timeout=10
     )
+print("META RESPONSE:", response.status_code, response.text)    
 # =========================
 # הפעלת האפליקציה
 # =========================
