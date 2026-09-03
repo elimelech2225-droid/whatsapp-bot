@@ -166,7 +166,7 @@ def webhook():
             )
 
             del SESSIONS[phone]
-            elif any(word in clean_text for word in ["כמה זמן", "מתי", "איפה", "נו", "עדכון", "יש עדכון", "מה קורה", "מה עם המשלוח", "השליח"]):
+        elif any(word in clean_text for word in ["כמה זמן", "מתי", "איפה", "נו", "עדכון", "יש עדכון", "מה קורה", "מה עם המשלוח", "השליח"]):
             send_message(
                 phone,
                 "ההזמנה שלך בטיפול 🚚\n\n"
