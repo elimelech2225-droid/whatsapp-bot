@@ -104,7 +104,7 @@ def receive_webhook():
             f"יעד: {destination}\n"
             f"מחיר: {price_text}"
         )    
-        :else
+        else:
                 send_message(
                     sender,
                     "כדי להזמין משלוח, רשום למשל:\nמשלוח מירושלים לתל אביב"
