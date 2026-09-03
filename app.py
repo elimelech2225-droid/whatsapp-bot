@@ -115,13 +115,13 @@ def webhook():
         phone = message["from"]
 
         if message.get("type") == "interactive":
-    button_id = message["interactive"]["button_reply"]["id"]
-    text = ""
-    clean_text = ""
+            button_id = message["interactive"]["button_reply"]["id"]
+            text = ""
+            clean_text = ""
         else:
-    button_id = None
-    text = message["text"]["body"].strip()
-    clean_text = text.lower().strip()      
+            button_id = None
+            text = message["text"]["body"].strip()
+            clean_text = text.lower().strip()      
         if button_id == "talk_to_agent":
             send_message(
                 phone,
