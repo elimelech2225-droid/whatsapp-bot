@@ -96,7 +96,13 @@ def receive_webhook():
             if text.lower() in ["כן", "כן בבקשה", "מאשר", "אישור"]:
                 send_message(
                     sender,
-                    "✅ קיבלנו את ההזמנה שלך!\n\nאנחנו מתחילים לחפש עבורך שליח 🚚\nברגע שנמצא שליח מתאים, נעדכן אותך בשם השליח ונחבר ביניכם כדי שתוכלו להיות בקשר ישיר.\n\nנעדכן אותך בהקדם 😊"
+               (
+    "✅ קיבלנו את ההזמנה שלך!\n\n"
+    "אנחנו מתחילים לחפש עבורך שליח 🚚\n"
+    "ברגע שנמצא שליח מתאים, נעדכן אותך בשם השליח ונחבר ביניכם "
+    "כדי שתוכלו להיות בקשר ישיר.\n\n"
+    "נעדכן אותך בהקדם 😊"
+)
                 )
                 return "OK", 200
 
@@ -108,7 +114,7 @@ def receive_webhook():
                             return "OK", 200
             origin, destination = parse_route(text)
 
-        if origin and destination:       
+            if origin and destination:       
                 origin = origin.strip()
                 destination = destination.strip()
 
@@ -125,7 +131,7 @@ f"האם תרצה שנמצא עבורך שליח לביצוע המשלוח?\n"
 f"השב כן ונתחיל לחפש עבורך שליח מיד."
 
         )    
-        else:
+            else:
                 send_message(
                     sender,
                     "כדי להזמין משלוח, רשום למשל:\nמשלוח מירושלים לתל אביב"
