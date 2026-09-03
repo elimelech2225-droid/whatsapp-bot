@@ -105,7 +105,7 @@ def receive_webhook():
                 send_message(
           sender,
 f"🚚 סיכום ההצעה:\n"
-f"📍 מוצא: {origin}\n
+f"📍 מוצא: {origin}\n"
 f"📍 יעד: {destination}\n"
 f"💰 מחיר: {price_text}\n\n"
 f"האם תרצה שנמצא עבורך שליח לביצוע המשלוח?\n"
