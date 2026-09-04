@@ -4133,12 +4133,14 @@ def handle_approved_user(
         action_id or ""
     )
 
+        
+
     if match:
         show_driver_shipment_actions(
             phone,
             int(match.group(1))
         )
-              return True
+        return True
 
     status_actions = {
         "ship_pickup_way_": SHIP_ON_WAY_PICKUP,
