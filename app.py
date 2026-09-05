@@ -3019,7 +3019,7 @@ def handle_delivery_creation(
 הערות:
 {s.get('temp_notes') or '-'}
 
-לפתוח את המשלוח?""",
+""",
             [
                 (
                     "delivery_confirm_yes",
