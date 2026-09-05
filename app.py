@@ -715,7 +715,7 @@ def create_paperless_receipt(
         ],
         "payments": [payment_data]
     }
-print("PAPERLESS PAYLOAD:", payload)
+    print("PAPERLESS PAYLOAD:", payload)
     try:
         response = requests.put(
             "https://pl-apis-prod-il.azurewebsites.net/api/invoices/create",
