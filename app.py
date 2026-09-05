@@ -701,7 +701,9 @@ def create_paperless_receipt(client_name, phone, amount, payment_method, plan_na
             timeout=30
         )
 
-        response.raise_for_status()
+        if not response.ok:
+        print("Paperless error body:", response.status_code, response.text)
+        return None
         data = response.json()
 
         invoices = data.get("invoices", [])
