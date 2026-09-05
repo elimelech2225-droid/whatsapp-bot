@@ -3926,34 +3926,36 @@ def handle_approved_user(
                 else:
                     city = normalize_city_name(city_text)
 
-                set_driver_current_availability(
-                    phone,
-                    AVAIL_AVAILABLE,
-                    city
-                )
+             set_driver_current_availability(
+                phone,
+                AVAIL_AVAILABLE,
+                city
+            )
+
             open_shipments_for_driver(
                 phone,
                 user
             )
-        if city == "כל הארץ":
-                            send_message(
-                                phone,
-                                """סומן שאתה פנוי בכל הארץ ✅
-        
-        תקבל הצעות למשלוחים מכל הארץ."""
-                            )
-        else:
-                            send_message(
-                                phone,
-                                f"""סומן שאתה פנוי ב{city} ✅
-        
-        מעכשיו תקבל הצעות למשלוחים שיוצאים מ{city}.
-        
-        אם עברת לעיר אחרת, פשוט כתוב:
-        פנוי + שם העיר החדשה"""
-                            )
 
-                return True
+            if city == "כל הארץ":
+                send_message(
+                    phone,
+                    """🟩 סומן שאתה פנוי בכל הארץ
+
+תקבל הצעות למשלוחים מכל הארץ."""
+                )
+            else:
+                send_message(
+                    phone,
+                    f"""🟩 סומן שאתה פנוי ב{city}
+
+מעכשיו תקבל הצעות למשלוחים שיוצאים מ{city}.
+
+אם עברת לעיר אחרת, פשוט כתוב:
+פנוי + שם העיר החדשה"""
+                )
+
+            return True              
     # פנייה לנציג
     if state == "support_message":
         save_support_request(
