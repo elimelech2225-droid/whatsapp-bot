@@ -658,10 +658,18 @@ def create_paperless_receipt(
 
     if "bit" in method or "ביט" in method:
         payment_data = {
-            "iType": 5,
-            "dAmount": float(amount),
-            "iApp": 1
-        }
+    "iType": 5,
+    "dAmount": float(amount),
+    "iApp": 1,
+    "dtDue": None,
+    "iPayments": 0,
+    "sBank": None,
+    "sBranch": None,
+    "sAccount": None,
+    "sCheck": None,
+    "iCreditType": None,
+    "sCardSuffix": None
+}
     elif "paybox" in method or "פייבוקס" in method:
         payment_data = {
             "iType": 5,
