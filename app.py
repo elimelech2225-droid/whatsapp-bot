@@ -1602,15 +1602,19 @@ def handle_registration(phone, text, action_id):
             temp_vehicle_number=number
         )
 
-        send_message(
-                else:
-            areas = (
-                ", ".join(
-                    row["city"]
-                    for row in rows
-                )
-                or "-"
-            )
+         send_message(
+            phone,
+            """באילו ערים אתה פנוי לבצע משלוחים?
+
+אפשר לרשום כמה ערים עם פסיקים.
+
+לדוגמה:
+ירושלים, בית שמש, תל אביב
+
+אם אתה עובד בכל הארץ, כתוב:
+כל הארץ"""
+        )
+        return True       
 
         extra = (
             "\nסוג רכב: "
