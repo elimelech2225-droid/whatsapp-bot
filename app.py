@@ -3909,6 +3909,7 @@ def handle_approved_user(
                     r"^אני\s+פנוי(?:ה)?\s+(.+)$",
                     r"^זמין(?:ה)?\s+(.+)$",
                     r"^אני\s+זמין(?:ה)?\s+(.+)$",
+                    r"^פ\s+(.+)$",
                 ] 
 
         for pattern in available_patterns:
