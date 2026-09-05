@@ -3904,7 +3904,7 @@ def handle_approved_user(
 
                 return True
 
-                       available_patterns = [
+        available_patterns = [
                     r"^פנוי(?:ה)?\s+(.+)$",
                     r"^אני\s+פנוי(?:ה)?\s+(.+)$",
                     r"^זמין(?:ה)?\s+(.+)$",
