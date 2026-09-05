@@ -1161,8 +1161,7 @@ trial_expiry
 
             clear_session(phone)
 
-            return get_user(phone)
-
+            return dict(row) if row else None
 # =========================================================
 # הודעת הרשמה למנהל
 # =========================================================
