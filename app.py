@@ -3931,7 +3931,10 @@ def handle_approved_user(
                     AVAIL_AVAILABLE,
                     city
                 )
-
+            open_shipments_for_driver(
+                phone,
+                user
+            )
                 if city == "כל הארץ":
                     send_message(
                         phone,
