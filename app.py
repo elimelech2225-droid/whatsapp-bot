@@ -707,7 +707,7 @@ def create_paperless_receipt(
             "sName": client_name,
             "sEmail": None,
             "sMobile": phone,
-            "sAddress": None,
+            "sAddress": "Test Address",
             "sExternalID": None,
             "bIsFixed": True,
             "bIsEng": False
