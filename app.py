@@ -1821,10 +1821,9 @@ def get_driver_for_shipment(shipment):
     )
 
 
-def driver_matches_shipment(
-    driver_id,
-    origin_city
-):
+def driver_matches_shipment(driver_id, origin_city):
+    origin_city = normalize_city_name(origin_city)
+
     with db() as conn:
         profile = conn.execute(
             """
@@ -1835,34 +1834,27 @@ def driver_matches_shipment(
             (driver_id,)
         ).fetchone()
 
-        if not profile:
-            return False
+    if not profile:
+        return False
 
-        if (
-            profile["availability_status"]
-            != AVAIL_AVAILABLE
-        ):
-            return False
+    if profile["availability_status"] != AVAIL_AVAILABLE:
+        return False
 
-        if profile["all_country"]:
-            return True
+    current_city = (
+        profile["current_city"]
+        or ""
+    ).strip()
 
-        row = conn.execute(
-            """
-            SELECT 1
-            FROM driver_service_areas
-            WHERE driver_id=?
-            AND is_active=1
-            AND city=?
-            """,
-            (
-                driver_id,
-                origin_city
-            )
-        ).fetchone()
+    if profile["all_country"] == 1:
+        return True
 
-    return bool(row)
+    if current_city == "כל הארץ":
+        return True
 
+    if not current_city:
+        return False
+
+    return normalize_city_name(current_city) == origin_city
 
 def notify_drivers_about_shipment(
     shipment_id
