@@ -1031,7 +1031,7 @@ def driver_guide_text():
 def create_pending_user(phone, session):
     role = session.get("temp_role", "")
     trial_start = now_ts()
-trial_expiry = trial_start + (30 * 24 * 60 * 60)
+    trial_expiry = trial_start + (30 * 24 * 60 * 60)
 
 with db() as conn:
         conn.execute("""
@@ -1156,10 +1156,9 @@ trial_expiry
                         now_ts()
                     ))
 
-    clear_session(phone)
+            clear_session(phone)
 
-    return get_user(phone)
-
+            return get_user(phone)
 
 # =========================================================
 # הודעת הרשמה למנהל
