@@ -4,7 +4,7 @@ import re
 import time
 import sqlite3
 import requests
-
+import traceback
 app = Flask(__name__)
 
 # =========================================================
@@ -4982,6 +4982,7 @@ def webhook():
             "WEBHOOK ERROR:",
             repr(exc)
         )
+        traceback.print_exc()
 
         try:
             send_message(
