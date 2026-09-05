@@ -693,37 +693,50 @@ def create_paperless_receipt(
         }
 
     payload = {
-        "type": {
-            "iType": 3,
-            "bIsPreview": False,
-            "sRemark": None,
-            "sExtraTitle": None,
-            "sBasedOnDocID": None,
-            "sUniqueID": None
-        },
-        "client": {
-            "sPaperlessID": None,
-            "sNumber": None,
-            "sName": client_name,
-            "sEmail": None,
-            "sMobile": phone,
-            "sAddress": "Test Address",
-            "sExternalID": None,
-            "bIsFixed": True,
-            "bIsEng": False
-        },
-        "items": [
-            {
-                "sProductID": None,
-                "sProductName": f"מנוי חודשי - {plan_name}",
-                "dCount": 1,
-                "dPrice": float(amount),
-                "bVAT0": IS_VAT_EXEMPT
-            }
-        ],
-        "payments": [payment_data]
-    }
-    print("PAPERLESS PAYLOAD:", payload)
+    "type": {
+        "iType": 3,
+        "bIsPreview": False,
+        "sRemark": None,
+        "sExtraTitle": None,
+        "sBasedOnDocID": None,
+        "sUniqueID": None
+    },
+    "client": {
+        "sPaperlessID": None,
+        "sNumber": None,
+        "sName": "972547839362",
+        "sEmail": None,
+        "sMobile": "972547839362",
+        "sAddress": "123 Test Street, Test City",
+        "sExternalID": None,
+        "bIsFixed": True,
+        "bIsEng": False
+    },
+    "items": [
+        {
+            "sProductID": None,
+            "sProductName": "מנוי חודשי - CUSTOMER_50",
+            "dCount": 1,
+            "dPrice": 50,
+            "bVAT0": True
+        }
+    ],
+    "payments": [
+        {
+            "iType": 5,
+            "dAmount": 50,
+            "iApp": 1,
+            "dtDue": None,
+            "iPayments": 0,
+            "sBank": None,
+            "sBranch": None,
+            "sAccount": None,
+            "sCheck": None,
+            "iCreditType": None,
+            "sCardSuffix": None
+        }
+    ]
+}
     try:
         response = requests.put(
             "https://pl-apis-prod-il.azurewebsites.net/api/invoices/create",
