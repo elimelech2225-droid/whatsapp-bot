@@ -1589,7 +1589,7 @@ def handle_registration(phone, text, action_id):
         )
         return True
 
-         if state == "driver_vehicle_number":
+    if state == "driver_vehicle_number":
         number = (
             ""
             if text.strip() == "אין"
