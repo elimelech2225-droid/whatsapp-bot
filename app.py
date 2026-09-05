@@ -1158,7 +1158,13 @@ def create_pending_user(phone, session):
                         now_ts()
                     ))
 
-        clear_session(phone)
+        conn.execute(
+    """
+    DELETE FROM sessions
+    WHERE phone=?
+    """,
+    (phone,)
+)
 
         return dict(row) if row else None
 
