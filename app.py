@@ -3701,18 +3701,18 @@ def open_shipments_for_driver(
         )
         return
         for shipment in matches:
-        send_buttons(
-            phone,
-            shipment_text(
-                shipment
-            ),
-            [
-                (
-                    f"take_ship_{shipment['id']}",
-                    "אני לוקח"
+            send_buttons(
+                phone,
+                shipment_text(
+                    shipment
                 ),
-            ]
-        )
+                [
+                    (
+                        f"take_ship_{shipment['id']}",
+                        "אני לוקח"
+                    ),
+                ]
+            )
 
 
 # =========================================================
