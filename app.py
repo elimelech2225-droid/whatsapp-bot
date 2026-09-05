@@ -1589,7 +1589,7 @@ def handle_registration(phone, text, action_id):
         )
         return True
 
-    if state == "driver_vehicle_number":
+     if state == "driver_vehicle_number":
         number = (
             ""
             if text.strip() == "אין"
@@ -1602,9 +1602,9 @@ def handle_registration(phone, text, action_id):
             temp_vehicle_number=number
         )
 
-     send_message(
-        phone,
-        """באילו ערים אתה פנוי לבצע משלוחים?
+        send_message(
+            phone,
+            """באילו ערים אתה פנוי לבצע משלוחים?
 
 אפשר לרשום כמה ערים עם פסיקים.
 
@@ -1613,45 +1613,33 @@ def handle_registration(phone, text, action_id):
 
 אם אתה עובד בכל הארץ, כתוב:
 כל הארץ"""
-    )
-    return True       
+        )
+        return True
 
-        extra = (
-            "\nסוג רכב: "
-            + (user.get("vehicle_type") or "-")
-            + "\nמספר רכב: "
-            + (user.get("vehicle_number") or "-")
-            + "\nאזורי פעילות: "
-            + areas
+    if state == "driver_areas":
+        save_session(
+            phone,
+            state="driver_agreement",
+            temp_service_areas=text.strip()
         )
 
-    return send_buttons(
-        ADMIN_PHONE,
-        f"""בקשת הרשמה חדשה 👤
+        send_buttons(
+            phone,
+            driver_agreement(),
+            [
+                (
+                    "agreement_accept",
+                    "אני מסכים"
+                ),
+                (
+                    "agreement_decline",
+                    "איני מסכים"
+                ),
+            ]
+        )
+        return True   
 
-מזהה משתמש: {user['id']}
-שם: {user['full_name']}
-טלפון: {user['phone_number']}
-סוג חשבון: {'לקוח / שולח' if user['role'] == ROLE_CUSTOMER else 'שליח'}
-עיר: {user['city']}{extra}
-
-האם לאשר את המשתמש?""",
-        [
-            (
-                f"approve_{user['id']}",
-                "אשר הרשמה"
-            ),
-            (
-                f"reject_{user['id']}",
-                "דחה הרשמה"
-            ),
-            (
-                f"block_{user['id']}",
-                "חסום משתמש"
-            ),
-        ]
-    )
-
+    
 
 # =========================================================
 # אישור / דחיית משתמש
