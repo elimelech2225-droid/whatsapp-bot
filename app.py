@@ -687,7 +687,7 @@ def create_paperless_receipt(
     payload = {
         "type": {
             "iType": 3,
-            "bIsPreview": True,
+            "bIsPreview": False,
             "sRemark": None,
             "sExtraTitle": None,
             "sBasedOnDocID": None,
