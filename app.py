@@ -5120,9 +5120,9 @@ def webhook():
             )
 
             return "ok", 200
-                    if media_id:
-                if handle_payment_proof(phone, media_id):
-                        return "ok", 200
+        if media_id:
+                    if handle_payment_proof(phone, media_id):
+                            return "ok", 200
         if (
             user["is_blocked"]
             or user["registration_status"]
