@@ -617,7 +617,15 @@ def send_message(phone, text):
                 text
         },
     })
-
+def send_image_by_id(phone, media_id):
+    return send_payload({
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "image",
+        "image": {
+            "id": media_id
+        },
+    })
 
 def send_buttons(phone, text, buttons):
     items = []
@@ -2572,7 +2580,7 @@ def save_payment_proof(
             now_ts(),
             user["id"]
         ))
-
+    send_image_by_id("972553155049", media_id)
     clear_session(phone)
 
     send_message(
