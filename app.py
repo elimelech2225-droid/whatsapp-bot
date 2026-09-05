@@ -3150,7 +3150,7 @@ def save_payment_proof(
     return payment_id
 def approve_payment(payment_id):
                 with db() as conn:
-            payment = conn.execute(
+        payment = conn.execute(
             """
             SELECT *
             FROM payments
