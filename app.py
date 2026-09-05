@@ -3861,11 +3861,11 @@ def handle_approved_user(
     if user["role"] == ROLE_DRIVER and text and not action_id:
         clean_text = re.sub(r"\s+", " ", str(text).strip())
 
-        unavailable_patterns = [
-            r"^תפוס(?:ה)?(?:\s+ב)?\s*(.*)$",
-            r"^לא\s+פנוי(?:ה)?(?:\s+ב)?\s*(.*)$",
-            r"^לא\s+זמין(?:ה)?(?:\s+ב)?\s*(.*)$",
-        ]
+             unavailable_patterns = [
+            r"^תפוס(?:ה)?\s+(.+)$",
+            r"^לא\s+פנוי(?:ה)?\s+(.+)$",
+            r"^לא\s+זמין(?:ה)?\s+(.+)$",
+        ]  
 
         for pattern in unavailable_patterns:
             match = re.match(
@@ -3904,12 +3904,12 @@ def handle_approved_user(
 
                 return True
 
-        available_patterns = [
-            r"^פנוי(?:ה)?(?:\s+ב)?\s*(.+)$",
-            r"^אני\s+פנוי(?:ה)?(?:\s+ב)?\s*(.+)$",
-            r"^זמין(?:ה)?(?:\s+ב)?\s*(.+)$",
-            r"^אני\s+זמין(?:ה)?(?:\s+ב)?\s*(.+)$",
-        ]
+               available_patterns = [
+            r"^פנוי(?:ה)?\s+(.+)$",
+            r"^אני\s+פנוי(?:ה)?\s+(.+)$",
+            r"^זמין(?:ה)?\s+(.+)$",
+            r"^אני\s+זמין(?:ה)?\s+(.+)$",
+        ] 
 
         for pattern in available_patterns:
             match = re.match(
