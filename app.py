@@ -203,7 +203,9 @@ def init_db():
             temp_plan TEXT DEFAULT '',
             temp_payment_method TEXT DEFAULT '',
             temp_reference_id INTEGER,
-            updated_at INTEGER DEFAULT 0
+            updated_at INTEGER DEFAULT 0,
+  trial_started_at INTEGER DEFAULT 0,
+trial_expires_at INTEGER DEFAULT 0      
         );
 
         CREATE TABLE IF NOT EXISTS driver_profiles (
@@ -325,6 +327,22 @@ def init_db():
             )
         except sqlite3.OperationalError:
             pass
+    try:
+        conn.execute("""
+            ALTER TABLE users
+            ADD COLUMN trial_started_at INTEGER DEFAULT 0
+        """)
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        conn.execute("""
+            ALTER TABLE users
+            ADD COLUMN trial_expires_at INTEGER DEFAULT 0
+        """)
+    except sqlite3.OperationalError:
+        pass
+
 init_db()
 
 
@@ -1012,6 +1030,8 @@ def driver_guide_text():
 
 def create_pending_user(phone, session):
     role = session.get("temp_role", "")
+    trial_start = now_ts()
+trial_expiry = trial_start + (30 * 24 * 60 * 60)
 
     with db() as conn:
         conn.execute("""
@@ -1029,9 +1049,12 @@ def create_pending_user(phone, session):
                 agreement_version,
                 agreement_accepted_at,
                 created_at,
-                updated_at
+                updated_at,
+trial_started_at,
+trial_expires_at
+                
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, '1.0', ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, '1.0', ?, ?, ?, ?, ?)
 
             ON CONFLICT(phone_number)
             DO UPDATE SET
@@ -1058,7 +1081,10 @@ def create_pending_user(phone, session):
             REG_WAITING,
             now_ts(),
             now_ts(),
-            now_ts()
+            now_ts(),
+trial_start,
+trial_expiry
+            
         ))
 
         row = conn.execute(
