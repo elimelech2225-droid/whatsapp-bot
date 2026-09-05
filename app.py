@@ -618,6 +618,104 @@ def send_message(phone, text):
                 text
         },
     })
+def create_paperless_receipt(client_name, phone, amount, payment_method, plan_name):
+    if not PAPERLESS_API_KEY:
+        print("PAPERLESS_API_KEY is missing")
+        return None
+
+    method = str(payment_method or "").lower()
+
+    payment_data = {
+        "iType": 8,
+        "dAmount": float(amount)
+    }
+
+    if "bit" in method or "ביט" in method:
+        payment_data = {
+            "iType": 5,
+            "dAmount": float(amount),
+            "iApp": 1
+        }
+    elif "paybox" in method or "פייבוקס" in method:
+        payment_data = {
+            "iType": 5,
+            "dAmount": float(amount),
+            "iApp": 2
+        }
+    elif "העברה" in method or "transfer" in method:
+        payment_data = {
+            "iType": 2,
+            "dAmount": float(amount)
+        }
+    elif "מזומן" in method or "cash" in method:
+        payment_data = {
+            "iType": 4,
+            "dAmount": float(amount)
+        }
+    elif "אשראי" in method or "credit" in method:
+        payment_data = {
+            "iType": 3,
+            "dAmount": float(amount)
+        }
+
+    payload = {
+        "type": {
+            "iType": 3,
+        "bIsPreview": True,    
+            "sRemark": None,
+            "sExtraTitle": None,
+            "sBasedOnDocID": None,
+            "sUniqueID": None
+        },
+        "client": {
+            "sPaperlessID": None,
+            "sNumber": None,
+            "sName": client_name,
+            "sEmail": None,
+            "sMobile": phone,
+            "sAddress": None,
+            "sExternalID": None,
+            "bIsFixed": True,
+            "bIsEng": False
+        },
+        "items": [
+            {
+                "sProductID": None,
+                "sProductName": f"מנוי חודשי - {plan_name}",
+                "dCount": 1,
+                "dPrice": float(amount),
+                "bVAT0": IS_VAT_EXEMPT
+            }
+        ],
+        "payments": [payment_data]
+    }
+
+    try:
+        response = requests.put(
+            "https://pl-apis-prod-il.azurewebsites.net/api/invoices/create",
+            headers={
+                "X-API-KEY": PAPERLESS_API_KEY,
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=30
+        )
+
+        response.raise_for_status()
+        data = response.json()
+
+        invoices = data.get("invoices", [])
+        if not invoices:
+            print("Paperless returned no invoice:", data)
+            return None
+
+        invoice = invoices[0]
+        return invoice.get("sURL") or invoice.get("sDownloadPageURL")
+
+    except Exception as e:
+        print("Paperless receipt error:", e)
+        return None
+
 def send_image_by_id(phone, media_id):
     return send_payload({
         "messaging_product": "whatsapp",
@@ -2707,7 +2805,13 @@ def approve_payment(payment_id):
             now_ts(),
             now_ts()
         ))
-
+    receipt_url = create_paperless_receipt(
+    user["phone_number"],
+    user["phone_number"],
+    payment["amount"],
+    payment["payment_method"],
+    payment["subscription_plan"]
+)
     send_message(
         user["phone_number"],
         """התשלום אושר ✅
