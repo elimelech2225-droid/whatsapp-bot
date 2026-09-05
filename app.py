@@ -704,10 +704,10 @@ def create_paperless_receipt(
     "client": {
         "sPaperlessID": None,
         "sNumber": None,
-        "sName": "972547839362",
+        "sName": client_name,
         "sEmail": None,
-        "sMobile": "972547839362",
-        "sAddress": "123 Test Street, Test City",
+        "sMobile": phone,
+        "sAddress": None,
         "sExternalID": None,
         "bIsFixed": True,
         "bIsEng": False
@@ -715,27 +715,13 @@ def create_paperless_receipt(
     "items": [
         {
             "sProductID": None,
-            "sProductName": "מנוי חודשי - CUSTOMER_50",
+            "sProductName": f"מנוי חודשי - {plan_name}",
             "dCount": 1,
-            "dPrice": 50,
-            "bVAT0": True
+            "dPrice": float(amount),
+            "bVAT0": IS_VAT_EXEMPT
         }
     ],
-    "payments": [
-        {
-            "iType": 5,
-            "dAmount": 50,
-            "iApp": 1,
-            "dtDue": None,
-            "iPayments": 0,
-            "sBank": None,
-            "sBranch": None,
-            "sAccount": None,
-            "sCheck": None,
-            "iCreditType": None,
-            "sCardSuffix": None
-        }
-    ]
+    "payments": [payment_data]
 }
     try:
         response = requests.put(
