@@ -2071,7 +2071,7 @@ def handle_registration(phone, text, action_id):
 החשבון שלך ממתין כעת לאישור מנהל.
 לאחר שהמנהל יאשר אותך תקבל הודעה אוטומטית."""
         )
-        )
+        
 
         notify_admin_new_registration(
             user
