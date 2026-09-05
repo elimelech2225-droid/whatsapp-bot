@@ -1156,9 +1156,9 @@ trial_expiry
                         now_ts()
                     ))
 
-        clear_session(phone)
+    clear_session(phone)
 
-        return get_user(phone)
+    return get_user(phone)
 
 
 # =========================================================
