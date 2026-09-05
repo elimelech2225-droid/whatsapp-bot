@@ -40,7 +40,85 @@ REG_BLOCKED = "BLOCKED"
 AVAIL_OFFLINE = "OFFLINE"
 AVAIL_AVAILABLE = "AVAILABLE"
 AVAIL_BUSY = "BUSY"
+# =========================================================
+# זיהוי שמות ערים
+# =========================================================
 
+CITY_ALIASES = {
+    "תא": "תל אביב",
+    'ת"א': "תל אביב",
+    "ת״א": "תל אביב",
+    "תלאביב": "תל אביב",
+    "תל-אביב": "תל אביב",
+
+    "ירושליים": "ירושלים",
+    "ירושלים": "ירושלים",
+
+    "ביתשמש": "בית שמש",
+    "בית שמש": "בית שמש",
+
+    "בניברק": "בני ברק",
+    "בני ברק": "בני ברק",
+
+    'פ"ת': "פתח תקווה",
+    "פ״ת": "פתח תקווה",
+    "פתח תקוה": "פתח תקווה",
+    "פתח תקווה": "פתח תקווה",
+
+    "ראשלצ": "ראשון לציון",
+    'ראשל"צ': "ראשון לציון",
+    "ראשון לציון": "ראשון לציון",
+
+    "ראשהעין": "ראש העין",
+    "ראש העין": "ראש העין",
+
+    "אשקלון": "אשקלון",
+    "אשדוד": "אשדוד",
+    "תל אביב": "תל אביב",
+    "רמת גן": "רמת גן",
+    "גבעתיים": "גבעתיים",
+    "חולון": "חולון",
+    "בת ים": "בת ים",
+    "רחובות": "רחובות",
+    "יבנה": "יבנה",
+    "נתניה": "נתניה",
+    "חדרה": "חדרה",
+    "הרצליה": "הרצליה",
+    "רעננה": "רעננה",
+    "כפר סבא": "כפר סבא",
+    "מודיעין": "מודיעין",
+    "אלעד": "אלעד",
+    "עמנואל": "עמנואל",
+    "קריית גת": "קריית גת",
+    "קרית גת": "קריית גת",
+    "באר שבע": "באר שבע",
+    "בארשבע": "באר שבע",
+    "חיפה": "חיפה",
+}
+
+
+def normalize_city_name(text):
+    if not text:
+        return ""
+
+    clean = str(text).strip()
+
+    clean = re.sub(
+        r"\s+",
+        " ",
+        clean
+    )
+
+    if clean in CITY_ALIASES:
+        return CITY_ALIASES[clean]
+
+    lowered = clean.lower()
+
+    for alias, city in CITY_ALIASES.items():
+        if alias.lower() == lowered:
+            return city
+
+    return clean
 SUB_NONE = "NONE"
 SUB_WAITING_PAYMENT = "WAITING_PAYMENT"
 SUB_WAITING_APPROVAL = "WAITING_ADMIN_PAYMENT_APPROVAL"
@@ -130,6 +208,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS driver_profiles (
             user_id INTEGER PRIMARY KEY,
             availability_status TEXT DEFAULT 'OFFLINE',
+            current_city TEXT DEFAULT '',
             all_country INTEGER DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
@@ -236,7 +315,15 @@ def init_db():
         );
         """)
 
-
+        try:
+            conn.execute(
+                """
+                ALTER TABLE driver_profiles
+                ADD COLUMN current_city TEXT DEFAULT ''
+                """
+            )
+        except sqlite3.OperationalError:
+            pass
 init_db()
 
 
@@ -1489,7 +1576,50 @@ def set_driver_availability(phone, status):
 
     return True
 
+def set_driver_current_availability(phone, status, city=""):
+    user = get_user(phone)
 
+    if not user:
+        return False
+
+    if user["role"] != ROLE_DRIVER:
+        return False
+
+    normalized_city = (
+        normalize_city_name(city)
+        if city
+        else ""
+    )
+
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO driver_profiles (
+                user_id,
+                availability_status,
+                current_city,
+                all_country
+            )
+            VALUES (?, ?, ?, ?)
+
+            ON CONFLICT(user_id)
+            DO UPDATE SET
+                availability_status=excluded.availability_status,
+                current_city=excluded.current_city,
+                all_country=excluded.all_country
+            """,
+            (
+                user["id"],
+                status,
+                normalized_city if status == AVAIL_AVAILABLE else "",
+                1 if (
+                    normalized_city == "כל הארץ"
+                    and status == AVAIL_AVAILABLE
+                ) else 0
+            )
+        )
+
+    return True
 def get_driver_areas(user_id):
     with db() as conn:
         profile = conn.execute(
