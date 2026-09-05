@@ -1033,7 +1033,7 @@ def create_pending_user(phone, session):
     trial_start = now_ts()
 trial_expiry = trial_start + (30 * 24 * 60 * 60)
 
-    with db() as conn:
+with db() as conn:
         conn.execute("""
             INSERT INTO users (
                 phone_number,
