@@ -15,7 +15,7 @@ VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "")
 ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
 PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
 PAPERLESS_API_KEY = os.environ.get("PAPERLESS_API_KEY", "")
-
+IS_VAT_EXEMPT = True
 # מספר המנהל קבוע ישירות בקוד
 ADMIN_PHONE = "972553155049"
 
