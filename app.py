@@ -1203,7 +1203,7 @@ def notify_admin_new_registration(user):
 
         if profile and profile["all_country"]:
             areas = "כל הארץ"
-                    else:
+        else:
             areas = (
                 ", ".join(
                     row["city"]
