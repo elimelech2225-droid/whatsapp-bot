@@ -607,7 +607,7 @@ def send_payload(payload):
                     "application/json",
             },
             json=payload,
-            timeout=20
+            timeout=(5, 10)
         )
 
         print(
