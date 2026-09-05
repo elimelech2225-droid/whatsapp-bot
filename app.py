@@ -3862,7 +3862,103 @@ def handle_approved_user(
         "state",
         ""
     )
+    # =====================================================
+    # זמינות שליח לפי עיר - פנוי / תפוס
+    # =====================================================
 
+    if user["role"] == ROLE_DRIVER and text and not action_id:
+        clean_text = re.sub(r"\s+", " ", str(text).strip())
+
+        unavailable_patterns = [
+            r"^תפוס(?:ה)?(?:\s+ב)?\s*(.*)$",
+            r"^לא\s+פנוי(?:ה)?(?:\s+ב)?\s*(.*)$",
+            r"^לא\s+זמין(?:ה)?(?:\s+ב)?\s*(.*)$",
+        ]
+
+        for pattern in unavailable_patterns:
+            match = re.match(
+                pattern,
+                clean_text,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+                city_text = match.group(1).strip()
+
+                set_driver_current_availability(
+                    phone,
+                    AVAIL_OFFLINE,
+                    ""
+                )
+
+                if city_text:
+                    city = normalize_city_name(city_text)
+
+                    send_message(
+                        phone,
+                        f"""סומן שאתה לא פנוי כרגע ב{city} ✅
+
+לא תקבל הצעות חדשות עד שתכתוב:
+פנוי + שם עיר"""
+                    )
+                else:
+                    send_message(
+                        phone,
+                        """סומן שאתה לא פנוי כרגע ✅
+
+לא תקבל הצעות חדשות עד שתכתוב:
+פנוי + שם עיר"""
+                    )
+
+                return True
+
+        available_patterns = [
+            r"^פנוי(?:ה)?(?:\s+ב)?\s*(.+)$",
+            r"^אני\s+פנוי(?:ה)?(?:\s+ב)?\s*(.+)$",
+            r"^זמין(?:ה)?(?:\s+ב)?\s*(.+)$",
+            r"^אני\s+זמין(?:ה)?(?:\s+ב)?\s*(.+)$",
+        ]
+
+        for pattern in available_patterns:
+            match = re.match(
+                pattern,
+                clean_text,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+                city_text = match.group(1).strip()
+
+                if city_text in ("כל הארץ", "בכל הארץ"):
+                    city = "כל הארץ"
+                else:
+                    city = normalize_city_name(city_text)
+
+                set_driver_current_availability(
+                    phone,
+                    AVAIL_AVAILABLE,
+                    city
+                )
+
+                if city == "כל הארץ":
+                    send_message(
+                        phone,
+                        """סומן שאתה פנוי בכל הארץ ✅
+
+תקבל הצעות למשלוחים מכל הארץ."""
+                    )
+                else:
+                    send_message(
+                        phone,
+                        f"""סומן שאתה פנוי ב{city} ✅
+
+מעכשיו תקבל הצעות למשלוחים שיוצאים מ{city}.
+
+אם עברת לעיר אחרת, פשוט כתוב:
+פנוי + שם העיר החדשה"""
+                    )
+
+                return True
     # פנייה לנציג
     if state == "support_message":
         save_support_request(
