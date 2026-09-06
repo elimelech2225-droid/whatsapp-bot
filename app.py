@@ -100,7 +100,63 @@ CITY_ALIASES = {
     "חיפה": "חיפה",
 }
 
+PRICE_LIST = {
+    tuple(sorted(["ירושלים", "ירושלים"])): 100,
 
+    tuple(sorted(["ירושלים", "בית שמש"])): 150,
+    tuple(sorted(["ירושלים", "תל אביב"])): 250,
+    tuple(sorted(["ירושלים", "בני ברק"])): 230,
+    tuple(sorted(["ירושלים", "רמת גן"])): 230,
+    tuple(sorted(["ירושלים", "פתח תקווה"])): 230,
+    tuple(sorted(["ירושלים", "קרית אונו"])): 230,
+    tuple(sorted(["ירושלים", "חמד"])): 230,
+    tuple(sorted(["ירושלים", "ביתר"])): 130,
+    tuple(sorted(["ירושלים", "אלון שבות"])): 130,
+    tuple(sorted(["ירושלים", "אפרת"])): 130,
+    tuple(sorted(["ירושלים", "צור הדסה"])): 150,
+    tuple(sorted(["ירושלים", "טלסטון"])): 120,
+    tuple(sorted(["ירושלים", "עמנואל"])): 350,
+    tuple(sorted(["ירושלים", "אריאל"])): 350,
+    tuple(sorted(["ירושלים", "רבבה"])): 350,
+    tuple(sorted(["ירושלים", "קרני שומרון"])): 380,
+    tuple(sorted(["ירושלים", "נתניה"])): 350,
+    tuple(sorted(["ירושלים", "הרצליה"])): 300,
+    tuple(sorted(["ירושלים", "הוד השרון"])): 280,
+    tuple(sorted(["ירושלים", "רמת השרון"])): 280,
+    tuple(sorted(["ירושלים", "רעננה"])): 300,
+    tuple(sorted(["ירושלים", "כפר סבא"])): 300,
+    tuple(sorted(["ירושלים", "ראשון לציון"])): 220,
+    tuple(sorted(["ירושלים", "בת ים"])): 220,
+    tuple(sorted(["ירושלים", "חולון"])): 220,
+    tuple(sorted(["ירושלים", "מודיעין"])): 150,
+    tuple(sorted(["ירושלים", "מודיעין עילית"])): 170,
+    tuple(sorted(["ירושלים", "חדרה"])): 400,
+    tuple(sorted(["ירושלים", "לוד"])): 220,
+    tuple(sorted(["ירושלים", "רמלה"])): 220,
+    tuple(sorted(["ירושלים", "באר יעקב"])): 220,
+    tuple(sorted(["ירושלים", "נס ציונה"])): 220,
+    tuple(sorted(["ירושלים", "חיפה"])): 650,
+    tuple(sorted(["ירושלים", "טבריה"])): 750,
+    tuple(sorted(["ירושלים", "מירון"])): 750,
+    tuple(sorted(["ירושלים", "אשקלון"])): 280,
+    tuple(sorted(["ירושלים", "אשדוד"])): 230,
+    tuple(sorted(["ירושלים", "גדרה"])): 220,
+    tuple(sorted(["ירושלים", "באר שבע"])): 400,
+    tuple(sorted(["ירושלים", "אלקנה"])): 300,
+    tuple(sorted(["ירושלים", "כפר קאסם"])): 280,
+    tuple(sorted(["ירושלים", "אדם"])): 150,
+    tuple(sorted(["ירושלים", "כוכב יעקב"])): 150,
+    tuple(sorted(["ירושלים", "תל ציון"])): 150,
+    tuple(sorted(["ירושלים", "שער בנימין"])): 150,
+    tuple(sorted(["ירושלים", "יד בנימין"])): 220,
+    tuple(sorted(["ירושלים", "בית אל"])): 200,
+    tuple(sorted(["ירושלים", "שילה"])): 300,
+    tuple(sorted(["ירושלים", "עלי"])): 300,
+    tuple(sorted(["ירושלים", "אלון מורה"])): 400,
+    tuple(sorted(["ירושלים", "איתמר"])): 400,
+    tuple(sorted(["ירושלים", "תפוח"])): 400,
+    tuple(sorted(["ירושלים", "הר ברכה"])): 400,
+}
 def normalize_city_name(text):
     if not text:
         return ""
@@ -3552,6 +3608,16 @@ def handle_delivery_creation(
         )
 
         s = get_session(phone)
+        origin_city = normalize_city_name(s.get("temp_origin", ""))
+        destination_city = normalize_city_name(s.get("temp_destination", ""))
+
+        route_key = tuple(sorted([origin_city, destination_city]))
+        delivery_price = PRICE_LIST.get(route_key)
+
+        if delivery_price is not None:
+            price_text = f"{delivery_price} ₪"
+        else:
+            price_text = "מחיר ייקבע ידנית"
 
         send_buttons(
             phone,
@@ -3562,6 +3628,8 @@ def handle_delivery_creation(
 
 לאן:
 {s.get('temp_destination', '')}
+מחיר:
+{price_text}
 
 כתובת איסוף:
 {s.get('temp_pickup_address', '')}
