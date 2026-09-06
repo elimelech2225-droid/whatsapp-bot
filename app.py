@@ -3269,7 +3269,7 @@ else:
     message
 )
 
-   return True
+return True
         
 
 def reject_payment(payment_id):
