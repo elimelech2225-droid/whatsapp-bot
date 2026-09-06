@@ -3260,16 +3260,17 @@ def approve_payment(payment_id):
 
 המנוי שלך הופעל בהצלחה"""
 
-if receipt_url:
-    message += f"\n\n🧾 הקבלה שלך:\n{receipt_url}"
-else:
-    message += "\n\n🧾 הקבלה הופקה, אך קישור הקבלה לא התקבל כרגע."
-   send_message(
-    user["phone_number"],
-    message
-)
+        if receipt_url:
+            message += f"\n\n🧾 הקבלה שלך:\n{receipt_url}"
+        else:
+            message += "\n\n🧾 הקבלה הופקה, אך קישור הקבלה לא התקבל כרגע."
 
-return True
+        send_message(
+            user["phone_number"],
+            message
+        )
+
+        return True
         
 
 def reject_payment(payment_id):
