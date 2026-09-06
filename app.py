@@ -3256,13 +3256,21 @@ def approve_payment(payment_id):
         payment["payment_method"],
         payment["subscription_plan"]
     )
+    message = """✅ התשלום אושר
 
-    send_message(
-        user["phone_number"],
-        """התשלום אושר ✅
+המנוי שלך הופעל בהצלחה"""
 
-המנוי שלך הופעל בהצלחה."""
-    )
+if receipt_url:
+    message += f"\n\n🧾 הקבלה שלך:\n{receipt_url}"
+else:
+    message += "\n\n🧾 הקבלה הופקה, אך קישור הקבלה לא התקבל כרגע."
+
+send_message(
+    user["phone_number"],
+    message
+)
+
+    
 
     return True    
 
