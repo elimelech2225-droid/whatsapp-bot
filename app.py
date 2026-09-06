@@ -4457,7 +4457,9 @@ def handle_approved_user(
         "state",
         ""
     )
-
+    if user["role"] == ROLE_CUSTOMER and state.startswith("delivery_") and text and not action_id:
+        if handle_delivery_creation(phone, text):
+            return True
     if user["role"] == ROLE_DRIVER and text and not action_id:
         clean_text = re.sub(r"\s+", " ", str(text).strip())
 
