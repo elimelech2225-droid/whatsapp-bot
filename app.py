@@ -4457,8 +4457,63 @@ def handle_approved_user(
         "state",
         ""
     )
-    if user["role"] == ROLE_CUSTOMER and state.startswith("delivery_") and text and not action_id:
-        if handle_delivery_creation(phone, text):
+        # יצירת משלוח
+    if state.startswith("delivery_"):
+        if action_id == "delivery_confirm_yes":
+            session = get_session(phone)
+
+            shipment_id = create_shipment(
+                user,
+                session
+            )
+
+            clear_session(phone)
+
+            send_message(
+                phone,
+                f"""המשלוח נפתח בהצלחה ✅
+
+מספר משלוח:
+#{shipment_id}
+
+המערכת מחפשת כעת שליח מתאים."""
+            )
+
+            send_message(
+                ADMIN_PHONE,
+                f"""משלוח חדש נפתח 📦
+
+משלוח #{shipment_id}
+
+לקוח:
+{user['full_name']}
+
+טלפון:
+{user['phone_number']}"""
+            )
+
+            notify_drivers_about_shipment(
+                shipment_id
+            )
+
+            return True
+
+        if action_id == "delivery_confirm_no":
+            clear_session(phone)
+
+            send_message(
+                phone,
+                "פתיחת המשלוח בוטלה."
+            )
+
+            show_customer_menu(phone)
+
+            return True
+
+        if handle_delivery_creation(
+            phone,
+            text
+        ):
             return True
     if user["role"] == ROLE_DRIVER and text and not action_id:
         clean_text = re.sub(r"\s+", " ", str(text).strip())
