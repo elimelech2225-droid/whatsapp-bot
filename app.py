@@ -2413,6 +2413,25 @@ def shipment_text(shipment):
 הערות:
 {shipment['notes'] or '-'}"""
 
+def shipment_preview_text(shipment):
+    origin_city = normalize_city_name(shipment["origin_city"])
+    destination_city = normalize_city_name(shipment["destination_city"])
+
+    route_key = tuple(sorted([origin_city, destination_city]))
+    delivery_price = PRICE_LIST.get(route_key)
+
+    if delivery_price is not None:
+        price_text = f"{delivery_price} ₪"
+    else:
+        price_text = "מחיר ייקבע ידנית"
+
+    return f"""📦 משלוח חדש
+
+📍 מאיפה: {shipment["origin_city"]}
+🏠 כתובת איסוף: {shipment["pickup_address"]}
+🎯 לאן: {shipment["destination_city"]}
+💰 מחיר: {price_text}"""
+
 
 def get_customer_for_shipment(shipment):
     return get_user_by_id(
@@ -3791,13 +3810,13 @@ def open_shipments_for_driver(
         for shipment in matches:
             send_buttons(
                 phone,
-                shipment_text(
+                shipment_preview_text(
                     shipment
                 ),
                 [
                     (
                         f"take_ship_{shipment['id']}",
-                        "אני לוקח"
+                        "קבל משלוח"
                     ),
                 ]
             )
