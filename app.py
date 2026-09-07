@@ -3439,11 +3439,11 @@ def save_support_request(
     clear_session(phone)
 
     send_message(
-        phone,
-        """הפנייה שלך נשלחה לנציג ✅
+    phone,
+    """✅ פנייתך התקבלה בהצלחה.
 
-המנהל קיבל את פרטי הפנייה."""
-    )
+ההודעה הועברה למנהל המערכת והוא יחזור אליך בהקדם האפשרי."""
+)
 
     send_message(
         ADMIN_PHONE,
@@ -4457,6 +4457,10 @@ def handle_approved_user(
         "state",
         ""
     )
+    if state == "support_message" and text and not action_id:
+        save_support_request(phone, text)
+        return True
+    
         # יצירת משלוח
     if state.startswith("delivery_"):
         if action_id == "delivery_confirm_yes":
