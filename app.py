@@ -2526,7 +2526,7 @@ def notify_drivers_about_shipment(
 
         send_buttons(
             driver["phone_number"],
-            shipment_preview_text(shipment)
+            shipment_preview_text(shipment),
             [
                 (
                     f"take_ship_{shipment_id}",
