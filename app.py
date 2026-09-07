@@ -2425,13 +2425,16 @@ def shipment_preview_text(shipment):
     else:
         price_text = "מחיר ייקבע ידנית"
 
-    return f"""📦 משלוח חדש
+    return f"""📦 *משלוח חדש*
+━━━━━━━━━━━━━━
 
-📍 מאיפה: {shipment["origin_city"]}
-🏠 כתובת איסוף: {shipment["pickup_address"]}
-🎯 לאן: {shipment["destination_city"]}
-💰 מחיר: {price_text}"""
+📍 *מאיפה:* {shipment["origin_city"]}
+🏠 *כתובת איסוף:* {shipment["pickup_address"]}
 
+🎯 *לאן:* {shipment["destination_city"]}
+
+💰 *מחיר:* {price_text}
+━━━━━━━━━━━━━━"""
 
 def get_customer_for_shipment(shipment):
     return get_user_by_id(
