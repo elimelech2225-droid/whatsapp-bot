@@ -2526,16 +2526,13 @@ def notify_drivers_about_shipment(
 
         send_buttons(
             driver["phone_number"],
-            shipment_text(shipment),
+            shipment_preview_text(shipment)
             [
                 (
                     f"take_ship_{shipment_id}",
-                    "אני לוקח"
+                    "קבל משלוח"
                 ),
-                (
-                    f"skip_ship_{shipment_id}",
-                    "דלג"
-                ),
+                
             ]
         )
 
