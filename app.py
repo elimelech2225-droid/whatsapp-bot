@@ -5265,7 +5265,9 @@ def handle_approved_user(
         text
         or ""
     ).strip().lower()
-
+if user["role"] == ROLE_CUSTOMER and clean in {"נ", "נסיעה"}:
+    start_new_delivery(phone)
+    return True
     if clean in {
         "שלום",
         "היי",
