@@ -2431,7 +2431,7 @@ def shipment_preview_text(shipment):
     origin_city = normalize_city_name(shipment["origin_city"])
     destination_city = normalize_city_name(shipment["destination_city"])
 
-        price_text = f"{shipment['price']} ₪"
+    price_text = f"{shipment['price']} ₪"
 
     return f"""📦 *משלוח חדש*
 ━━━━━━━━━━━━━━
