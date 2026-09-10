@@ -3548,7 +3548,7 @@ def handle_delivery_creation(
                 )
                 return True
     
-            if state == "auction_eta":
+        if state == "auction_eta":
             eta_text = text.strip()
     
             if not eta_text.isdigit():
