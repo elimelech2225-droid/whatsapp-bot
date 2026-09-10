@@ -3575,7 +3575,7 @@ def handle_delivery_creation(
         return True
     
         if state == "auction_pickup_address":
-        pickup_address = text.strip()
+            pickup_address = text.strip()
 
         if not pickup_address:
             send_message(
