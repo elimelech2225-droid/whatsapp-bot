@@ -3502,12 +3502,12 @@ def start_new_delivery(phone):
         state="auction_details"
     )
 
-        send_message(
-        phone,
-        """📦 פרסום משלוח חדש
+    send_message(
+    phone,
+    """📦 פרסום משלוח חדש
 
 הדבק עכשיו את פרטי המשלוח בדיוק כפי שאתה רוצה לפרסם אותם."""
-    )
+)
 
 def handle_delivery_creation(
     phone,
