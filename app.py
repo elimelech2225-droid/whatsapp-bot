@@ -3596,9 +3596,9 @@ def handle_delivery_creation(
         )
         return True
         if state == "auction_customer_phone":
-        customer_phone = normalize_phone(text)
+            customer_phone = normalize_phone(text)
 
-        if not customer_phone:
+            if not customer_phone:
             send_message(
                 phone,
                 "נא לרשום מספר טלפון תקין."
