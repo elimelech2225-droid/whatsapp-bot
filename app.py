@@ -4945,7 +4945,7 @@ def handle_approved_user(
             )
             return True
 
-        if action_id == "auction_cancel":
+    if action_id == "auction_cancel":
         clear_session(phone)
         send_message(
             phone,
