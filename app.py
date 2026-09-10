@@ -4997,44 +4997,44 @@ def handle_approved_user(
 
         return True
         if action_id.startswith("interest_ship_"):
-        try:
-            shipment_id = int(
-                action_id.replace("interest_ship_", "", 1)
+            try:
+                shipment_id = int(
+                    action_id.replace("interest_ship_", "", 1)
+                )
+            except ValueError:
+                send_message(
+                    phone,
+                    "לא הצלחתי לזהות את המשלוח."
+                )
+                return True
+    
+            shipment = get_shipment(shipment_id)
+    
+            if not shipment or shipment["status"] != SHIP_OPEN:
+                send_message(
+                    phone,
+                    "המשלוח הזה כבר לא זמין."
+                )
+                return True
+    
+            if shipment["customer_id"] == user["id"]:
+                send_message(
+                    phone,
+                    "לא ניתן לבקש משלוח שפרסמת בעצמך."
+                )
+                return True
+    
+            save_session(
+                phone,
+                state="auction_eta",
+                temp_reference_id=shipment_id
             )
-        except ValueError:
+    
             send_message(
                 phone,
-                "לא הצלחתי לזהות את המשלוח."
+                "תוך כמה דקות אתה יכול להגיע לנקודת האיסוף? רשום מספר בלבד. לדוגמה: 7"
             )
             return True
-
-        shipment = get_shipment(shipment_id)
-
-        if not shipment or shipment["status"] != SHIP_OPEN:
-            send_message(
-                phone,
-                "המשלוח הזה כבר לא זמין."
-            )
-            return True
-
-        if shipment["customer_id"] == user["id"]:
-            send_message(
-                phone,
-                "לא ניתן לבקש משלוח שפרסמת בעצמך."
-            )
-            return True
-
-        save_session(
-            phone,
-            state="auction_eta",
-            temp_reference_id=shipment_id
-        )
-
-        send_message(
-            phone,
-            "תוך כמה דקות אתה יכול להגיע לנקודת האיסוף? רשום מספר בלבד. לדוגמה: 7"
-        )
-        return True
     # שליח
     if user["role"] == ROLE_DRIVER:
         if action_id == "driver_available":
