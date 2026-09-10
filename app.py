@@ -305,6 +305,7 @@ def init_db():
             recipient_phone TEXT DEFAULT '',
             notes TEXT DEFAULT '',
             created_at INTEGER DEFAULT 0,
+            price INTEGER DEFAULT 0,
             accepted_at INTEGER DEFAULT 0,
             delivered_at INTEGER DEFAULT 0,
             updated_at INTEGER DEFAULT 0
@@ -412,7 +413,13 @@ def init_db():
             """)
         except sqlite3.OperationalError:
             pass
-
+        try:
+            conn.execute("""
+                ALTER TABLE shipments
+                ADD COLUMN price INTEGER DEFAULT 0
+            """)
+        except sqlite3.OperationalError:
+            pass
 
 init_db()
 
