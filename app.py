@@ -229,6 +229,7 @@ def init_db():
             email TEXT DEFAULT '',
             city TEXT DEFAULT '',
             vehicle_type TEXT DEFAULT '',
+            vehicle_year TEXT DEFAULT '',
             vehicle_number TEXT DEFAULT '',
             registration_status TEXT DEFAULT 'REGISTRATION_IN_PROGRESS',
             agreement_accepted INTEGER DEFAULT 0,
@@ -397,7 +398,13 @@ def init_db():
             """)
         except sqlite3.OperationalError:
             pass
-
+        try:
+            conn.execute("""
+                ALTER TABLE users
+                ADD COLUMN vehicle_year TEXT DEFAULT ''
+            """)
+        except sqlite3.OperationalError:
+            pass
         try:
             conn.execute("""
                 ALTER TABLE users
