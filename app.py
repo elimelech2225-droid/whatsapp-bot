@@ -3629,71 +3629,71 @@ def handle_delivery_creation(
             )
             return True
         if state == "auction_eta":
-        eta_text = text.strip()
-
-        if not eta_text.isdigit():
-            send_message(
-                phone,
-                "נא לרשום זמן הגעה במספר דקות בלבד. לדוגמה: 7"
-            )
-            return True
-
-        shipment_id = session.get("temp_reference_id")
-        shipment = get_shipment(shipment_id)
-
-        if not shipment or shipment["status"] != SHIP_OPEN:
-            clear_session(phone)
-            send_message(
-                phone,
-                "המשלוח הזה כבר לא זמין."
-            )
-            return True
-
-        publisher = get_customer_for_shipment(shipment)
-        driver = get_user(phone)
-
-        with db() as conn:
-            row = conn.execute(
-                """
-                SELECT COUNT(*) AS completed_count
-                FROM shipments
-                WHERE driver_id=?
-                AND status=?
-                """,
-                (
-                    driver["id"],
-                    SHIP_DELIVERED
+            eta_text = text.strip()
+    
+            if not eta_text.isdigit():
+                send_message(
+                    phone,
+                    "נא לרשום זמן הגעה במספר דקות בלבד. לדוגמה: 7"
                 )
-            ).fetchone()
-
-        completed_count = row["completed_count"] if row else 0
-
-        if publisher:
+                return True
+    
+            shipment_id = session.get("temp_reference_id")
+            shipment = get_shipment(shipment_id)
+    
+            if not shipment or shipment["status"] != SHIP_OPEN:
+                clear_session(phone)
+                send_message(
+                    phone,
+                    "המשלוח הזה כבר לא זמין."
+                )
+                return True
+    
+            publisher = get_customer_for_shipment(shipment)
+            driver = get_user(phone)
+    
+            with db() as conn:
+                row = conn.execute(
+                    """
+                    SELECT COUNT(*) AS completed_count
+                    FROM shipments
+                    WHERE driver_id=?
+                    AND status=?
+                    """,
+                    (
+                        driver["id"],
+                        SHIP_DELIVERED
+                    )
+                ).fetchone()
+    
+            completed_count = row["completed_count"] if row else 0
+    
+            if publisher:
+                send_message(
+                    publisher["phone_number"],
+                    f"""🚗 נהג מעוניין במשלוח #{shipment_id}
+    
+    📍 {shipment["origin_city"]} → {shipment["destination_city"]}
+    📞 טלפון נהג: {driver["phone_number"]}
+    🚘 סוג רכב: {driver.get("vehicle_type", "")}
+    📅 שנת רכב: {driver.get("vehicle_year", "")}
+    ✅ משלוחים שהושלמו: {completed_count}
+    ⏱️ זמן הגעה לאיסוף: {eta_text} דקות"""
+                )
+    
+            clear_session(phone)
+    
             send_message(
-                publisher["phone_number"],
-                f"""🚗 נהג מעוניין במשלוח #{shipment_id}
-
-📍 {shipment["origin_city"]} → {shipment["destination_city"]}
-📞 טלפון נהג: {driver["phone_number"]}
-🚘 סוג רכב: {driver.get("vehicle_type", "")}
-📅 שנת רכב: {driver.get("vehicle_year", "")}
-✅ משלוחים שהושלמו: {completed_count}
-⏱️ זמן הגעה לאיסוף: {eta_text} דקות"""
+                phone,
+                "✅ בקשתך נשלחה למפרסם המשלוח. אם הוא ירצה למסור לך את המשלוח, הוא יפנה אליך."
             )
-
-        clear_session(phone)
-
-        send_message(
-            phone,
-            "✅ בקשתך נשלחה למפרסם המשלוח. אם הוא ירצה למסור לך את המשלוח, הוא יפנה אליך."
-        )
-        return True
-    if state == "delivery_origin":
-        save_session(
-            phone,
-            state="delivery_destination",
-            temp_origin=text.strip()
-        )
+            return True
+        if state == "delivery_origin":
+            save_session(
+                phone,
+                state="delivery_destination",
+                temp_origin=text.strip()
+            )
 
         send_message(
             phone,
