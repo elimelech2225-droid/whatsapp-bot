@@ -3547,35 +3547,7 @@ def handle_delivery_creation(
                     ]
                 )
                 return True
-        if state == "auction_details":
-        details = text.strip()
-
-        if not details:
-            send_message(
-                phone,
-                "נא להדביק את פרטי המשלוח."
-            )
-            return True
-
-        save_session(
-            phone,
-            state="auction_confirm",
-            temp_details=details
-        )
-
-        send_buttons(
-            phone,
-            f"""📦 בדיקת המשלוח לפני פרסום
-
-{details}
-
-📞 מספר הטלפון של הלקוח שמור במערכת ולא יוצג לנהגים.""",
-            [
-                ("auction_publish", "פרסם משלוח"),
-                ("auction_cancel", "ביטול")
-            ]
-        )
-        return True
+    
         if state == "auction_eta":
             eta_text = text.strip()
     
