@@ -3595,7 +3595,7 @@ def handle_delivery_creation(
             "מה מספר הטלפון של הלקוח? המספר יישמר במערכת ולא יוצג לנהגים."
         )
         return True
-            if state == "auction_customer_phone":
+        if state == "auction_customer_phone":
         customer_phone = normalize_phone(text)
 
         if not customer_phone:
