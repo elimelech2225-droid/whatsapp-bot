@@ -3522,7 +3522,7 @@ def handle_delivery_creation(
     )
     if state == "auction_route":
         route_text = text.strip()
-                if "-" not in route_text:
+        if "-" not in route_text:
             send_message(
                 phone,
                 "נא לרשום מאיפה ולאיפה עם מקף. לדוגמה: ירושלים - תל אביב"
