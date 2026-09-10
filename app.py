@@ -3521,32 +3521,32 @@ def handle_delivery_creation(
     if state == "auction_details":
                 details = text.strip()
 
-        if not details:
-            send_message(
-                phone,
-                "נא להדביק את פרטי המשלוח."
-            )
-            return True
-
-        save_session(
-            phone,
-            state="auction_confirm",
-            temp_details=details
-        )
-
-        send_buttons(
-            phone,
-            f"""📦 בדיקת המשלוח לפני פרסום
-
-{details}
-
-מספר הטלפון של הלקוח יוצג לך, אבל יוסתר מהנהגים.""",
-            [
-                ("auction_publish", "פרסם משלוח"),
-                ("auction_cancel", "ביטול")
-            ]
-        )
-        return True
+                if not details:
+                    send_message(
+                        phone,
+                        "נא להדביק את פרטי המשלוח."
+                    )
+                    return True
+        
+                save_session(
+                    phone,
+                    state="auction_confirm",
+                    temp_details=details
+                )
+        
+                send_buttons(
+                    phone,
+                    f"""📦 בדיקת המשלוח לפני פרסום
+        
+        {details}
+        
+        מספר הטלפון של הלקוח יוצג לך, אבל יוסתר מהנהגים.""",
+                    [
+                        ("auction_publish", "פרסם משלוח"),
+                        ("auction_cancel", "ביטול")
+                    ]
+                )
+                return True
         if state == "auction_details":
         details = text.strip()
 
