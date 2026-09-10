@@ -3499,16 +3499,14 @@ def save_support_request(
 def start_new_delivery(phone):
     save_session(
         phone,
-        state="auction_route"
+        state="auction_details"
     )
 
-    send_message(
+        send_message(
         phone,
         """📦 פרסום משלוח חדש
 
-שלח מאיפה לאיפה בשורה אחת.
-לדוגמה:
-ירושלים תל אביב"""
+הדבק עכשיו את פרטי המשלוח בדיוק כפי שאתה רוצה לפרסם אותם."""
     )
 
 def handle_delivery_creation(
@@ -3520,114 +3518,64 @@ def handle_delivery_creation(
         "state",
         ""
     )
-    if state == "auction_route":
-        route_text = text.strip()
-        if "-" not in route_text:
+    if state == "auction_details":
+                details = text.strip()
+
+        if not details:
             send_message(
                 phone,
-                "נא לרשום מאיפה ולאיפה עם מקף. לדוגמה: ירושלים - תל אביב"
-            )
-            return True
-
-        origin, destination = route_text.split("-", 1)
-        origin = origin.strip()
-        destination = destination.strip()
-
-        if not origin or not destination:
-            send_message(
-                phone,
-                "נא לרשום מאיפה ולאיפה. לדוגמה: ירושלים - תל אביב"
+                "נא להדביק את פרטי המשלוח."
             )
             return True
 
         save_session(
             phone,
-            state="auction_price",
-            temp_origin=origin,
-            temp_destination=destination
+            state="auction_confirm",
+            temp_details=details
         )
 
-        send_message(
+        send_buttons(
             phone,
-            "מה המחיר למשלוח? רשום מספר בלבד. לדוגמה: 250"
+            f"""📦 בדיקת המשלוח לפני פרסום
+
+{details}
+
+מספר הטלפון של הלקוח יוצג לך, אבל יוסתר מהנהגים.""",
+            [
+                ("auction_publish", "פרסם משלוח"),
+                ("auction_cancel", "ביטול")
+            ]
         )
         return True
-    if state == "auction_price":
-        price_text = text.strip()
+        if state == "auction_details":
+        details = text.strip()
 
-        if not price_text.isdigit():
+        if not details:
             send_message(
                 phone,
-                "נא לרשום מחיר במספר בלבד. לדוגמה: 250"
+                "נא להדביק את פרטי המשלוח."
             )
             return True
 
         save_session(
             phone,
-            state="auction_pickup_address",
-            temp_price=int(price_text)
+            state="auction_confirm",
+            temp_details=details
         )
 
-        send_message(
+        send_buttons(
             phone,
-            "מה כתובת האיסוף? לדוגמה: הנביאים 10"
+            f"""📦 בדיקת המשלוח לפני פרסום
+
+{details}
+
+📞 מספר הטלפון של הלקוח שמור במערכת ולא יוצג לנהגים.""",
+            [
+                ("auction_publish", "פרסם משלוח"),
+                ("auction_cancel", "ביטול")
+            ]
         )
         return True
-    
-        if state == "auction_pickup_address":
-            pickup_address = text.strip()
-
-        if not pickup_address:
-            send_message(
-                phone,
-                "נא לרשום כתובת איסוף."
-            )
-            return True
-
-        save_session(
-            phone,
-            state="auction_customer_phone",
-            temp_pickup_address=pickup_address
-        )
-
-        send_message(
-            phone,
-            "מה מספר הטלפון של הלקוח? המספר יישמר במערכת ולא יוצג לנהגים."
-        )
-        return True
-        if state == "auction_customer_phone":
-            customer_phone = normalize_phone(text)
-
-            if not customer_phone:
-                send_message(
-                    phone,
-                    "נא לרשום מספר טלפון תקין."
-                )
-                return True
-
-            save_session(
-                phone,
-                state="auction_confirm",
-                temp_customer_phone=customer_phone
-            )
-    
-            session = get_session(phone)
-    
-            send_buttons(
-                phone,
-                f"""📦 בדיקת המשלוח לפני פרסום
-    
-    📍 {session.get('temp_origin', '')} → {session.get('temp_destination', '')}
-    🏠 איסוף: {session.get('temp_pickup_address', '')}
-    💰 מחיר: {session.get('temp_price', 0)} ₪
-    
-    מספר הלקוח שמור ולא יוצג לנהגים.""",
-                [
-                    ("auction_publish", "פרסם משלוח"),
-                    ("auction_cancel", "ביטול")
-                ]
-            )
-            return True
         if state == "auction_eta":
             eta_text = text.strip()
     
