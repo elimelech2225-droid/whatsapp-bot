@@ -2431,13 +2431,7 @@ def shipment_preview_text(shipment):
     origin_city = normalize_city_name(shipment["origin_city"])
     destination_city = normalize_city_name(shipment["destination_city"])
 
-    route_key = tuple(sorted([origin_city, destination_city]))
-    delivery_price = PRICE_LIST.get(route_key)
-
-    if delivery_price is not None:
-        price_text = f"{delivery_price} ₪"
-    else:
-        price_text = "מחיר ייקבע ידנית"
+        price_text = f"{shipment['price']} ₪"
 
     return f"""📦 *משלוח חדש*
 ━━━━━━━━━━━━━━
@@ -2546,8 +2540,8 @@ def notify_drivers_about_shipment(
             shipment_preview_text(shipment),
             [
                 (
-                    f"take_ship_{shipment_id}",
-                    "קבל משלוח"
+                    f"interest_ship_{shipment_id}",
+                    "אני מעוניין"
                 ),
                 
             ]
@@ -3505,16 +3499,17 @@ def save_support_request(
 def start_new_delivery(phone):
     save_session(
         phone,
-        state="delivery_origin"
+        state="auction_route"
     )
 
     send_message(
         phone,
-        """פתיחת משלוח חדש 📦
+        """📦 פרסום משלוח חדש
 
-מאיזו עיר צריך לאסוף את המשלוח?"""
+שלח מאיפה לאיפה בשורה אחת.
+לדוגמה:
+ירושלים תל אביב"""
     )
-
 
 def handle_delivery_creation(
     phone,
@@ -3525,7 +3520,174 @@ def handle_delivery_creation(
         "state",
         ""
     )
+    if state == "auction_route":
+        route_text = text.strip()
+                if "-" not in route_text:
+            send_message(
+                phone,
+                "נא לרשום מאיפה ולאיפה עם מקף. לדוגמה: ירושלים - תל אביב"
+            )
+            return True
 
+        origin, destination = route_text.split("-", 1)
+        origin = origin.strip()
+        destination = destination.strip()
+
+        if not origin or not destination:
+            send_message(
+                phone,
+                "נא לרשום מאיפה ולאיפה. לדוגמה: ירושלים - תל אביב"
+            )
+            return True
+
+        save_session(
+            phone,
+            state="auction_price",
+            temp_origin=origin,
+            temp_destination=destination
+        )
+
+        send_message(
+            phone,
+            "מה המחיר למשלוח? רשום מספר בלבד. לדוגמה: 250"
+        )
+        return True
+    if state == "auction_price":
+        price_text = text.strip()
+
+        if not price_text.isdigit():
+            send_message(
+                phone,
+                "נא לרשום מחיר במספר בלבד. לדוגמה: 250"
+            )
+            return True
+
+        save_session(
+            phone,
+            state="auction_pickup_address",
+            temp_price=int(price_text)
+        )
+
+        send_message(
+            phone,
+            "מה כתובת האיסוף? לדוגמה: הנביאים 10"
+        )
+        return True
+    
+        if state == "auction_pickup_address":
+        pickup_address = text.strip()
+
+        if not pickup_address:
+            send_message(
+                phone,
+                "נא לרשום כתובת איסוף."
+            )
+            return True
+
+        save_session(
+            phone,
+            state="auction_customer_phone",
+            temp_pickup_address=pickup_address
+        )
+
+        send_message(
+            phone,
+            "מה מספר הטלפון של הלקוח? המספר יישמר במערכת ולא יוצג לנהגים."
+        )
+        return True
+            if state == "auction_customer_phone":
+        customer_phone = normalize_phone(text)
+
+        if not customer_phone:
+            send_message(
+                phone,
+                "נא לרשום מספר טלפון תקין."
+            )
+            return True
+
+        save_session(
+            phone,
+            state="auction_confirm",
+            temp_customer_phone=customer_phone
+        )
+
+        session = get_session(phone)
+
+        send_buttons(
+            phone,
+            f"""📦 בדיקת המשלוח לפני פרסום
+
+📍 {session.get('temp_origin', '')} → {session.get('temp_destination', '')}
+🏠 איסוף: {session.get('temp_pickup_address', '')}
+💰 מחיר: {session.get('temp_price', 0)} ₪
+
+מספר הלקוח שמור ולא יוצג לנהגים.""",
+            [
+                ("auction_publish", "פרסם משלוח"),
+                ("auction_cancel", "ביטול")
+            ]
+        )
+        return True
+        if state == "auction_eta":
+        eta_text = text.strip()
+
+        if not eta_text.isdigit():
+            send_message(
+                phone,
+                "נא לרשום זמן הגעה במספר דקות בלבד. לדוגמה: 7"
+            )
+            return True
+
+        shipment_id = session.get("temp_reference_id")
+        shipment = get_shipment(shipment_id)
+
+        if not shipment or shipment["status"] != SHIP_OPEN:
+            clear_session(phone)
+            send_message(
+                phone,
+                "המשלוח הזה כבר לא זמין."
+            )
+            return True
+
+        publisher = get_customer_for_shipment(shipment)
+        driver = get_user(phone)
+
+        with db() as conn:
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS completed_count
+                FROM shipments
+                WHERE driver_id=?
+                AND status=?
+                """,
+                (
+                    driver["id"],
+                    SHIP_DELIVERED
+                )
+            ).fetchone()
+
+        completed_count = row["completed_count"] if row else 0
+
+        if publisher:
+            send_message(
+                publisher["phone_number"],
+                f"""🚗 נהג מעוניין במשלוח #{shipment_id}
+
+📍 {shipment["origin_city"]} → {shipment["destination_city"]}
+📞 טלפון נהג: {driver["phone_number"]}
+🚘 סוג רכב: {driver.get("vehicle_type", "")}
+📅 שנת רכב: {driver.get("vehicle_year", "")}
+✅ משלוחים שהושלמו: {completed_count}
+⏱️ זמן הגעה לאיסוף: {eta_text} דקות"""
+            )
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            "✅ בקשתך נשלחה למפרסם המשלוח. אם הוא ירצה למסור לך את המשלוח, הוא יפנה אליך."
+        )
+        return True
     if state == "delivery_origin":
         save_session(
             phone,
@@ -4783,6 +4945,96 @@ def handle_approved_user(
             )
             return True
 
+        if action_id == "auction_cancel":
+        clear_session(phone)
+        send_message(
+            phone,
+            "❌ פרסום המשלוח בוטל."
+        )
+        return True
+
+    if action_id == "auction_publish":
+        session = get_session(phone)
+
+        with db() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO shipments (
+                    customer_id,
+                    status,
+                    origin_city,
+                    destination_city,
+                    pickup_address,
+                    recipient_phone,
+                    price,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user["id"],
+                    SHIP_OPEN,
+                    session.get("temp_origin", ""),
+                    session.get("temp_destination", ""),
+                    session.get("temp_pickup_address", ""),
+                    session.get("temp_customer_phone", ""),
+                    session.get("temp_price", 0),
+                    now_ts(),
+                    now_ts()
+                )
+            )
+            shipment_id = cursor.lastrowid
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            f"✅ משלוח #{shipment_id} פורסם בהצלחה."
+        )
+
+        notify_drivers_about_shipment(shipment_id)
+
+        return True
+        if action_id.startswith("interest_ship_"):
+        try:
+            shipment_id = int(
+                action_id.replace("interest_ship_", "", 1)
+            )
+        except ValueError:
+            send_message(
+                phone,
+                "לא הצלחתי לזהות את המשלוח."
+            )
+            return True
+
+        shipment = get_shipment(shipment_id)
+
+        if not shipment or shipment["status"] != SHIP_OPEN:
+            send_message(
+                phone,
+                "המשלוח הזה כבר לא זמין."
+            )
+            return True
+
+        if shipment["customer_id"] == user["id"]:
+            send_message(
+                phone,
+                "לא ניתן לבקש משלוח שפרסמת בעצמך."
+            )
+            return True
+
+        save_session(
+            phone,
+            state="auction_eta",
+            temp_reference_id=shipment_id
+        )
+
+        send_message(
+            phone,
+            "תוך כמה דקות אתה יכול להגיע לנקודת האיסוף? רשום מספר בלבד. לדוגמה: 7"
+        )
+        return True
     # שליח
     if user["role"] == ROLE_DRIVER:
         if action_id == "driver_available":
