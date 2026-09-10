@@ -5283,12 +5283,7 @@ def handle_approved_user(
 
         return True
 
-    if user["role"] == ROLE_CUSTOMER:
-        show_customer_menu(phone)
-    else:
-        show_driver_menu(phone)
-
-    return True
+    
     # =========================================================
 # קריאת הודעה מ-WhatsApp
 # =========================================================
