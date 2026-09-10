@@ -3599,35 +3599,35 @@ def handle_delivery_creation(
             customer_phone = normalize_phone(text)
 
             if not customer_phone:
-            send_message(
+                send_message(
+                    phone,
+                    "נא לרשום מספר טלפון תקין."
+                )
+                return True
+
+            save_session(
                 phone,
-                "נא לרשום מספר טלפון תקין."
+                state="auction_confirm",
+                temp_customer_phone=customer_phone
+            )
+    
+            session = get_session(phone)
+    
+            send_buttons(
+                phone,
+                f"""📦 בדיקת המשלוח לפני פרסום
+    
+    📍 {session.get('temp_origin', '')} → {session.get('temp_destination', '')}
+    🏠 איסוף: {session.get('temp_pickup_address', '')}
+    💰 מחיר: {session.get('temp_price', 0)} ₪
+    
+    מספר הלקוח שמור ולא יוצג לנהגים.""",
+                [
+                    ("auction_publish", "פרסם משלוח"),
+                    ("auction_cancel", "ביטול")
+                ]
             )
             return True
-
-        save_session(
-            phone,
-            state="auction_confirm",
-            temp_customer_phone=customer_phone
-        )
-
-        session = get_session(phone)
-
-        send_buttons(
-            phone,
-            f"""📦 בדיקת המשלוח לפני פרסום
-
-📍 {session.get('temp_origin', '')} → {session.get('temp_destination', '')}
-🏠 איסוף: {session.get('temp_pickup_address', '')}
-💰 מחיר: {session.get('temp_price', 0)} ₪
-
-מספר הלקוח שמור ולא יוצג לנהגים.""",
-            [
-                ("auction_publish", "פרסם משלוח"),
-                ("auction_cancel", "ביטול")
-            ]
-        )
-        return True
         if state == "auction_eta":
         eta_text = text.strip()
 
