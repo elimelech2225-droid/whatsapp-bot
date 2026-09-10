@@ -3669,17 +3669,23 @@ def handle_delivery_creation(
             completed_count = row["completed_count"] if row else 0
     
             if publisher:
-                send_message(
-                    publisher["phone_number"],
-                    f"""🚗 נהג מעוניין במשלוח #{shipment_id}
-    
-    📍 {shipment["origin_city"]} → {shipment["destination_city"]}
-    📞 טלפון נהג: {driver["phone_number"]}
-    🚘 סוג רכב: {driver.get("vehicle_type", "")}
-    📅 שנת רכב: {driver.get("vehicle_year", "")}
-    ✅ משלוחים שהושלמו: {completed_count}
-    ⏱️ זמן הגעה לאיסוף: {eta_text} דקות"""
-                )
+    send_buttons(
+        publisher["phone_number"],
+        f"""🚚 נהג מעוניין במשלוח #{shipment_id}
+
+📍 {shipment["origin_city"]} ➜ {shipment["destination_city"]}
+📞 טלפון נהג: {driver["phone_number"]}
+🚗 סוג רכב: {driver.get("vehicle_type", "")}
+📅 שנת רכב: {driver.get("vehicle_year", "")}
+📦 משלוחים שהושלמו: {completed_count}
+⏱️ זמן הגעה לאיסוף: {eta_text} דקות""",
+        [
+            (
+                f"auction_choose_{shipment_id}_{driver['id']}",
+                "✅ בחר נהג"
+            )
+        ]
+    )
     
             clear_session(phone)
     
