@@ -3556,7 +3556,7 @@ def handle_delivery_creation(
                     phone,
                     "נא לרשום זמן הגעה במספר דקות בלבד. לדוגמה: 7"
                 )
-                    return True
+                   return True
     
             shipment_id = session.get("temp_reference_id")
             shipment = get_shipment(shipment_id)
