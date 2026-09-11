@@ -3552,11 +3552,11 @@ def handle_delivery_creation(
             eta_text = text.strip()
     
             if not eta_text.isdigit():
-            send_message(
+                   send_message(
                     phone,
                     "נא לרשום זמן הגעה במספר דקות בלבד. לדוגמה: 7"
                 )
-            return True
+                    return True
     
             shipment_id = session.get("temp_reference_id")
             shipment = get_shipment(shipment_id)
