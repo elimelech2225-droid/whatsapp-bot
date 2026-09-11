@@ -3621,7 +3621,7 @@ def handle_delivery_creation(
                 temp_origin=text.strip()
             )
 
-        send_message(
+    send_message(
             phone,
             "לאיזו עיר צריך למסור את המשלוח?"
         )
