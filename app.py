@@ -3614,7 +3614,7 @@ def handle_delivery_creation(
                 "✅ בקשתך נשלחה למפרסם המשלוח. אם הוא ירצה למסור לך את המשלוח, הוא יפנה אליך."
             )
             return True
-        if state == "delivery_origin":
+    if state == "delivery_origin":
             save_session(
                 phone,
                 state="delivery_destination",
