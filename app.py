@@ -4713,6 +4713,7 @@ def handle_approved_user(
 
     if action_id == "auction_publish":
         session = get_session(phone)
+        print("PUBLISH SESSION:", repr(session), flush=True)
 
         with db() as conn:
             cursor = conn.execute(
