@@ -2425,21 +2425,15 @@ def shipment_text(shipment):
 {shipment['notes'] or '-'}"""
 
 def shipment_preview_text(shipment):
-    origin_city = normalize_city_name(shipment["origin_city"])
-    destination_city = normalize_city_name(shipment["destination_city"])
+        details = str(shipment["notes"] or "").strip()
 
-    price_text = f"{shipment['price']} ₪"
+    details = re.sub(
+        r'(?<!\d)(?:(?:\+?972|0)5\d[-\s]?\d{3}[-\s]?\d{4})(?!\d)',
+        "**********",
+        details
+    )
 
-    return f"""📦 *משלוח חדש*
-━━━━━━━━━━━━━━
-
-📍 *מאיפה:* {shipment["origin_city"]}
-🏠 *כתובת איסוף:* {shipment["pickup_address"]}
-
-🎯 *לאן:* {shipment["destination_city"]}
-
-💰 *מחיר:* {price_text}
-━━━━━━━━━━━━━━"""
+    return details
 
 def get_customer_for_shipment(shipment):
     return get_user_by_id(
@@ -4730,10 +4724,11 @@ def handle_approved_user(
                     pickup_address,
                     recipient_phone,
                     price,
+                    notes,
                     created_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user["id"],
@@ -4743,6 +4738,7 @@ def handle_approved_user(
                     session.get("temp_pickup_address", ""),
                     session.get("temp_customer_phone", ""),
                     session.get("temp_price", 0),
+                    session.get("temp_details", ""),
                     now_ts(),
                     now_ts()
                 )
