@@ -4635,7 +4635,7 @@ def handle_approved_user(
 
     if user["role"] == ROLE_CUSTOMER and state.startswith("delivery_"):
         clear_session(phone)
-        show_customer_menu(phone)
+        
         return True
     if handle_delivery_creation(
         phone,
