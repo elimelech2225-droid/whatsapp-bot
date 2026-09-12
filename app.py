@@ -3530,7 +3530,7 @@ def handle_delivery_creation(
                 save_session(
                    phone,
                    state="auction_confirm",
-                   temp_details=details,
+                   temp_notes=details,
                    temp_origin=normalize_city_name(origin_city)
                 )
                 send_buttons(
@@ -4740,7 +4740,7 @@ def handle_approved_user(
                     session.get("temp_pickup_address", ""),
                     session.get("temp_customer_phone", ""),
                     session.get("temp_price", 0),
-                    session.get("temp_details", ""),
+                    session.get("temp_notes", ""),
                     now_ts(),
                     now_ts()
                 )
