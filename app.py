@@ -4757,6 +4757,7 @@ def handle_approved_user(
         notify_drivers_about_shipment(shipment_id)
 
         return True
+        print("INTEREST ACTION:", repr(action_id), flush=True)
         if action_id.startswith("interest_ship_"):
             try:
                 shipment_id = int(
