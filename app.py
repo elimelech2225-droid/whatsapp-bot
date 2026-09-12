@@ -4763,7 +4763,7 @@ def handle_approved_user(
                 shipment_id = int(
                     action_id.replace("interest_ship_", "", 1)
                 )
-            except ValueError:
+        except ValueError:
                 send_message(
                     phone,
                     "לא הצלחתי לזהות את המשלוח."
