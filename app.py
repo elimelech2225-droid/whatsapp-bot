@@ -2425,7 +2425,7 @@ def shipment_text(shipment):
 {shipment['notes'] or '-'}"""
 
 def shipment_preview_text(shipment):
-        details = str(shipment["notes"] or "").strip()
+    details = str(shipment["notes"] or "").strip()
 
     details = re.sub(
         r'(?<!\d)(?:(?:\+?972|0)5\d[-\s]?\d{3}[-\s]?\d{4})(?!\d)',
@@ -2434,6 +2434,7 @@ def shipment_preview_text(shipment):
     )
 
     return details
+        
 
 def get_customer_for_shipment(shipment):
     return get_user_by_id(
