@@ -4757,9 +4757,9 @@ def handle_approved_user(
         notify_drivers_about_shipment(shipment_id)
 
         return True
-        print("INTEREST ACTION:", repr(action_id), flush=True)
-        if action_id.startswith("interest_ship_"):
-            try:
+    print("INTEREST ACTION:", repr(action_id), flush=True)
+    if action_id.startswith("interest_ship_"):
+        try:
                 shipment_id = int(
                     action_id.replace("interest_ship_", "", 1)
                 )
@@ -4770,33 +4770,33 @@ def handle_approved_user(
                 )
                 return True
     
-            shipment = get_shipment(shipment_id)
+        shipment = get_shipment(shipment_id)
     
-            if not shipment or shipment["status"] != SHIP_OPEN:
+        if not shipment or shipment["status"] != SHIP_OPEN:
                 send_message(
                     phone,
                     "המשלוח הזה כבר לא זמין."
                 )
                 return True
     
-            if shipment["customer_id"] == user["id"]:
+        if shipment["customer_id"] == user["id"]:
                 send_message(
                     phone,
                     "לא ניתן לבקש משלוח שפרסמת בעצמך."
                 )
                 return True
     
-            save_session(
+        save_session(
                 phone,
                 state="auction_eta",
                 temp_reference_id=shipment_id
             )
     
-            send_message(
+        send_message(
                 phone,
                 "תוך כמה דקות אתה יכול להגיע לנקודת האיסוף? רשום מספר בלבד. לדוגמה: 7"
             )
-            return True
+        return True
     # שליח
     if user["role"] == ROLE_DRIVER:
         if action_id == "driver_available":
