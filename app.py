@@ -4469,7 +4469,7 @@ def handle_approved_user(
         clear_session(phone)
         
         return True
-    if handle_delivery_creation(
+    if not action_id and handle_delivery_creation(
         phone,
         text
     ):
