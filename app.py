@@ -3626,7 +3626,7 @@ def handle_delivery_creation(
             "לאיזו עיר צריך למסור את המשלוח?"
         )
 
-        return True
+    return True
 
     if state == "delivery_destination":
         save_session(
