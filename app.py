@@ -1006,10 +1006,7 @@ def show_customer_menu(phone):
             {
                 "title": "אפשרויות",
                 "rows": [
-                    {
-                        "id": "customer_new_delivery",
-                        "title": "הזמנת משלוח חדש"
-                    },
+                    
                     {
                         "id": "customer_my_shipments",
                         "title": "המשלוחים שלי"
