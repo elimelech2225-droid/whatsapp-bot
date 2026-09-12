@@ -4633,7 +4633,7 @@ def handle_approved_user(
 
             return True
 
-    if user["role"] == ROLE_CUSTOMER and state.startswith("delivery_"):
+    if state.startswith("delivery_"):
         clear_session(phone)
         
         return True
