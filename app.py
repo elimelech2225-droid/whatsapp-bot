@@ -2426,7 +2426,7 @@ def shipment_text(shipment):
 
 def shipment_preview_text(shipment):
     details = str(shipment["notes"] or "").strip()
-
+    print("PREVIEW NOTES:", repr(details), flush=True)
     details = re.sub(
         r'(?<!\d)(?:(?:\+?972|0)5\d[-\s]?\d{3}[-\s]?\d{4})(?!\d)',
         "**********",
