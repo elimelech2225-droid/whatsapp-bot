@@ -4761,9 +4761,7 @@ def handle_approved_user(
 
     # לקוח
     if user["role"] == ROLE_CUSTOMER:
-        if action_id == "customer_new_delivery":
-            start_new_delivery(phone)
-            return True
+        
 
         if action_id == "customer_my_shipments":
             customer_shipments(
