@@ -5131,9 +5131,9 @@ def extract_incoming(payload):
                 )
 
         elif msg_type == "button":
-    button = msg.get("button", {})
-    action_id = button.get("payload", "")
-    text = button.get("text", "")
+        button = msg.get("button", {})
+        action_id = button.get("payload", "")
+        text = button.get("text", "")
         elif msg_type == "image":
             image = msg.get(
                 "image",
