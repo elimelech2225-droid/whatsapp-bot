@@ -4798,40 +4798,52 @@ def handle_approved_user(
             )
         return True
     if action_id.startswith("auction_choose_"):
-    try:
-        parts = action_id.replace("auction_choose_", "", 1).split("_", 1)
-        shipment_id = int(parts[0])
-        driver_id = int(parts[1])
-    except (ValueError, IndexError):
-        send_message(phone, "❌ לא הצלחתי לזהות את הנהג.")
+        try:
+            parts = action_id.replace("auction_choose_", "", 1).split("_", 1)
+            shipment_id = int(parts[0])
+            driver_id = int(parts[1])
+        except (ValueError, IndexError):
+            send_message(
+                phone,
+                "❌ לא הצלחתי לזהות את הנהג."
+            )
+            return True
+
+        shipment = get_shipment(shipment_id)
+
+        if not shipment or shipment["customer_id"] != user["id"]:
+            send_message(
+                phone,
+                "❌ המשלוח לא נמצא."
+            )
+            return True
+
+        driver = get_user_by_id(driver_id)
+
+        if not driver:
+            send_message(
+                phone,
+                "❌ הנהג לא נמצא."
+            )
+            return True
+
+        success, message = take_shipment(
+            shipment_id,
+            driver["phone_number"]
+        )
+
+        if not success:
+            send_message(
+                phone,
+                f"❌ {message}"
+            )
+            return True
+
+        send_message(
+            phone,
+            f"✅ נהג נבחר בהצלחה למשלוח #{shipment_id}."
+        )
         return True
-    
-    shipment = get_shipment(shipment_id)
-    
-    if not shipment or shipment["customer_id"] != user["id"]:
-        send_message(phone, "❌ המשלוח לא נמצא.")
-        return True
-    
-    driver = get_user_by_id(driver_id)
-    
-    if not driver:
-        send_message(phone, "❌ הנהג לא נמצא.")
-        return True
-    
-    success, message = take_shipment(
-        shipment_id,
-        driver["phone_number"]
-    )
-    
-    if not success:
-        send_message(phone, f"❌ {message}")
-        return True
-    
-    send_message(
-        phone,
-        f"✅ נהג נבחר בהצלחה למשלוח #{shipment_id}."
-    )
-    return True       
     # שליח
     if user["role"] == ROLE_DRIVER:
         if action_id == "driver_available":
