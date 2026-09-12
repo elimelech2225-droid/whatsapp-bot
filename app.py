@@ -3518,6 +3518,7 @@ def handle_delivery_creation(
         "state",
         ""
     )
+    print("DELIVERY_CREATION STATE:", repr(state), flush=True)
     if state == "auction_details":
                 details = text.strip()
 
