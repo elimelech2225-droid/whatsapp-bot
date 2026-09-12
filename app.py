@@ -2525,7 +2525,12 @@ def notify_drivers_about_shipment(
 
     for row in drivers:
         driver = dict(row)
-
+        print(
+            "MATCH DEBUG:",
+            "driver=", driver["phone_number"],
+            "origin_city=", repr(shipment["origin_city"]),
+            flush=True
+        )
         if not driver_matches_shipment(
             driver["id"],
             shipment["origin_city"]
