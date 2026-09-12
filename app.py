@@ -3530,15 +3530,15 @@ def handle_delivery_creation(
                         "נא להדביק את פרטי המשלוח."
                     )
                     return True
-        first_line = details.splitlines()[0].strip()
-        origin_city = first_line.split()[0]
-        save_session(
-        phone,
-        state="auction_confirm",
-        temp_details=details,
-        temp_origin=normalize_city_name(origin_city)
-        )
-        send_buttons(
+                first_line = details.splitlines()[0].strip()
+                origin_city = first_line.split()[0]
+                save_session(
+                   phone,
+                   state="auction_confirm",
+                   temp_details=details,
+                   temp_origin=normalize_city_name(origin_city)
+                )
+                send_buttons(
                     phone,
                     f"""📦 בדיקת המשלוח לפני פרסום
         
