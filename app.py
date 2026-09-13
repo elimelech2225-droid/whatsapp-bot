@@ -2074,19 +2074,18 @@ def handle_registration(phone, text, action_id):
         "vehicle_other": "אחר",
     }
 
-    if action_id in vehicle_map:
-        save_session(
-            phone,
-            state="driver_vehicle_year",
-            temp_vehicle_type=
-                vehicle_map[action_id]
-        )
+            if action_id in vehicle_map:
+            save_session(
+                phone,
+                state="driver_vehicle_year",
+                temp_vehicle_type=vehicle_map[action_id]
+            )
 
-                        send_message(
-        phone,
-            "🚗 מה חברת הרכב ושנת הייצור?\nלדוגמה: טויוטה קורולה 2021"
-        )
-        return True
+            send_message(
+                phone,
+                "🚗 מה חברת הרכב ושנת הייצור?\nלדוגמה: טויוטה קורולה 2021"
+            )
+            return True
     if state == "driver_vehicle_year":
             vehicle_year = text.strip()
 
