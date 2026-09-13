@@ -5329,15 +5329,15 @@ def webhook():
         )
 
         if not user:
-    if handle_registration(
+            if handle_registration(
         phone,
         text,
         action_id
-    ):
-        return "ok", 200
+            ):
+                return "ok", 200
 
-    show_role_choice(phone)
-    return "ok", 200
+            show_role_choice(phone)
+            return "ok", 200
              
             
 
