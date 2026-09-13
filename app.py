@@ -257,6 +257,7 @@ def init_db():
             temp_email TEXT DEFAULT '',
             temp_city TEXT DEFAULT '',
             temp_vehicle_type TEXT DEFAULT '',
+            temp_vehicle_year TEXT DEFAULT '',
             temp_vehicle_number TEXT DEFAULT '',
             temp_service_areas TEXT DEFAULT '',
             temp_origin TEXT DEFAULT '',
@@ -420,7 +421,13 @@ def init_db():
             """)
         except sqlite3.OperationalError:
             pass
-
+        try:
+            conn.execute("""
+                ALTER TABLE sessions
+                ADD COLUMN temp_vehicle_year TEXT DEFAULT ''
+            """)
+        except sqlite3.OperationalError:
+            pass
 init_db()
 
 # =========================================================
@@ -492,6 +499,7 @@ def save_session(phone, **fields):
         "temp_business_name": "",
         "temp_email": "",
         "temp_city": "",
+        "temp_vehicle_year": "",
         "temp_vehicle_type": "",
         "temp_vehicle_number": "",
         "temp_service_areas": "",
