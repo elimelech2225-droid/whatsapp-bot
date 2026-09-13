@@ -2119,31 +2119,13 @@ def handle_registration(phone, text, action_id):
 
             save_session(
                 phone,
-                state="driver_areas",
+                state="driver_agreement",
                 temp_vehicle_number=number
             )
 
-            send_message(
-                    phone,
-            """באילו ערים אתה פנוי לבצע משלוחים?
+            
 
-אפשר לרשום כמה ערים עם פסיקים.
-
-לדוגמה:
-ירושלים, בית שמש, תל אביב
-
-אם אתה עובד בכל הארץ, כתוב:
-כל הארץ"""
-        )
-        return True
-
-    if state == "driver_areas":
-        save_session(
-            phone,
-            state="driver_agreement",
-            temp_service_areas=text.strip()
-        )
-
+    
         send_buttons(
             phone,
             driver_agreement(),
