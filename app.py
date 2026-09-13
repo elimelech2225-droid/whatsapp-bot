@@ -2077,29 +2077,52 @@ def handle_registration(phone, text, action_id):
     if action_id in vehicle_map:
         save_session(
             phone,
-            state="driver_vehicle_number",
+            state="driver_vehicle_year",
             temp_vehicle_type=
                 vehicle_map[action_id]
         )
 
-        send_message(
+                        send_message(
             phone,
-            'מה מספר הרכב? אם לא רוצה למסור כרגע, כתוב "אין".'
+            "🚗 מה חברת הרכב ושנת הייצור?\nלדוגמה: טויוטה קורולה 2021"
         )
         return True
+        if state == "driver_vehicle_year":
+            vehicle_year = text.strip()
 
-    if state == "driver_vehicle_number":
-        number = (
-            ""
-            if text.strip() == "אין"
-            else text.strip()
-        )
+            if not vehicle_year:
+                send_message(
+                    phone,
+                    "נא לרשום את חברת הרכב ושנת הייצור.\nלדוגמה: טויוטה קורולה 2021"
+                )
+                return True
 
-        save_session(
-            phone,
-            state="driver_areas",
-            temp_vehicle_number=number
-        )
+            save_session(
+                phone,
+                state="driver_vehicle_number",
+                temp_vehicle_year=vehicle_year
+            )
+
+            send_message(
+                phone,
+                "🚘 מה מספר הרכב שלך?"
+            )
+            return True
+            if state == "driver_vehicle_number":
+            number = text.strip()
+
+            if not number or number == "אין":
+                send_message(
+                    phone,
+                    "🚘 יש לרשום את מספר הרכב שלך."
+                )
+                return True
+
+            save_session(
+                phone,
+                state="driver_areas",
+                temp_vehicle_number=number
+            )
 
         send_message(
                     phone,
