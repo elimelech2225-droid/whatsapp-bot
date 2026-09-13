@@ -422,9 +422,6 @@ def init_db():
             pass
 
 init_db()
-with db() as conn:
-    conn.execute("DELETE FROM משתמשים")
-    conn.commit()
 
 # =========================================================
 # כלי עזר
