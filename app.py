@@ -2119,12 +2119,13 @@ def handle_registration(phone, text, action_id):
                     "🚘 יש לרשום את מספר הרכב שלך."
                 )
                 return True
-
+            print("BEFORE SAVE", flush=True)
             save_session(
                 phone,
                 state="driver_agreement",
                 temp_vehicle_number=number
             )
+            print("AFTER SAVE", flush=True)
 
             
 
