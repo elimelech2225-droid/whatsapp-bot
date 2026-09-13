@@ -1385,7 +1385,7 @@ def approve_user(user_id):
             user_id,
             now_ts()
         ))
-
+        clear_session(row["phone_number"])
     return get_user_by_id(user_id)
 
 
