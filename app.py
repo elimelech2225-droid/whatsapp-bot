@@ -1859,6 +1859,7 @@ def block_user(user_id):
 def handle_registration(phone, text, action_id):
     session = get_session(phone)
     state = session.get("state", "")
+    print("REG DEBUG:", phone, "STATE=", state, "TEXT=", text, flush=True)
 
     if action_id == "role_customer":
         save_session(
