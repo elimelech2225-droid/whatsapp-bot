@@ -2074,7 +2074,7 @@ def handle_registration(phone, text, action_id):
         "vehicle_other": "אחר",
     }
 
-            if action_id in vehicle_map:
+    if action_id in vehicle_map:
             save_session(
                 phone,
                 state="driver_vehicle_year",
