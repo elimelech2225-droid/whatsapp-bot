@@ -936,7 +936,7 @@ def driver_agreement():
 # =========================================================
 
 def show_role_choice(phone):
-        save_session(
+    save_session(
         phone,
         state="driver_name",
         temp_role=ROLE_DRIVER
@@ -946,7 +946,6 @@ def show_role_choice(phone):
         phone,
         "בבקשה, מה השם המלא שלך?"
     )
-
 def show_admin_menu(phone):
     send_list(
         phone,
