@@ -538,6 +538,7 @@ def save_session(phone, **fields):
                 temp_email,
                 temp_city,
                 temp_vehicle_type,
+                temp_vehicle_year,
                 temp_vehicle_number,
                 temp_service_areas,
                 temp_origin,
@@ -554,8 +555,7 @@ def save_session(phone, **fields):
                 updated_at
             )
             VALUES (
-                ?,?,?,?,?,?,?,?,?,?,?,
-                ?,?,?,?,?,?,?,?,?,?,?
+                ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
             )
 
             ON CONFLICT(phone)
@@ -567,6 +567,7 @@ def save_session(phone, **fields):
                 temp_email=excluded.temp_email,
                 temp_city=excluded.temp_city,
                 temp_vehicle_type=excluded.temp_vehicle_type,
+                temp_vehicle_year=excluded.temp_vehicle_year,
                 temp_vehicle_number=excluded.temp_vehicle_number,
                 temp_service_areas=excluded.temp_service_areas,
                 temp_origin=excluded.temp_origin,
@@ -590,6 +591,7 @@ def save_session(phone, **fields):
             data["temp_email"],
             data["temp_city"],
             data["temp_vehicle_type"],
+            data["temp_vehicle_year"],
             data["temp_vehicle_number"],
             data["temp_service_areas"],
             data["temp_origin"],
