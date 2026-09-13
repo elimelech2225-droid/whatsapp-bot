@@ -429,7 +429,9 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 init_db()
-
+with db() as conn:
+    conn.execute("DELETE FROM users")
+    conn.commit()
 # =========================================================
 # כלי עזר
 # =========================================================
