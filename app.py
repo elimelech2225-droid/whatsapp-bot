@@ -997,37 +997,31 @@ def show_admin_menu(phone):
     )
 
 
-def show_customer_menu(phone):
+def show_dispatcher_menu(phone):
     send_list(
         phone,
-        "תפריט לקוח 📦",
-        "פתיחת תפריט",
+        "📋 תפריט סדרן",
+        "פעולות סדרן",
         [
             {
-                "title": "אפשרויות",
+                "title": "משלוחים",
                 "rows": [
-                    
+                    {
+                        "id": "dispatcher_publish",
+                        "title": "📦 פרסם משלוח"
+                    },
                     {
                         "id": "customer_my_shipments",
-                        "title": "המשלוחים שלי"
+                        "title": "📋 המשלוחים שלי"
                     },
                     {
                         "id": "customer_cancel",
-                        "title": "בקשת ביטול"
-                    },
-                    {
-                        "id": "customer_subscription",
-                        "title": "מנוי ותשלומים"
-                    },
-                    {
-                        "id": "customer_support",
-                        "title": "צור קשר / תמיכה"
-                    },
+                        "title": "❌ ביטול משלוח"
+                    }
                 ]
             }
         ]
     )
-
 
 def show_driver_menu(phone):
     send_list(
