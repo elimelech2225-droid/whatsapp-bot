@@ -5336,11 +5336,7 @@ def webhook():
             ):
                 return "ok", 200
 
-        session = get_session(phone)
-        if not session.get("state"):
-            show_role_choice(phone)
-
-        return "ok", 200
+        
         if media_id:
                     if save_payment_proof(phone, media_id):
                             return "ok", 200
