@@ -3906,7 +3906,7 @@ def handle_admin(
             )
 
             if user["role"] == ROLE_CUSTOMER:
-                show_customer_menu(
+                show_dispatcher_menu(
                     user["phone_number"]
                 )
             else:
@@ -4455,7 +4455,7 @@ def handle_approved_user(
                 "פתיחת המשלוח בוטלה."
             )
 
-            show_customer_menu(phone)
+            show_dispatcher_menu(phone)
 
             return True
 
@@ -5074,7 +5074,7 @@ def handle_approved_user(
         "menu",
     }:
         if user["role"] == ROLE_CUSTOMER:
-            show_customer_menu(phone)
+            show_dispatcher_menu(phone)
         else:
             show_driver_menu(phone)
 
