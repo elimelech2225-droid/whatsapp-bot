@@ -461,7 +461,7 @@ def get_user(phone):
             """,
             (phone,)
         ).fetchone()
-
+    print("GET USER:", phone, "FOUND:", bool(row), flush=True)
     return dict(row) if row else None
 
 
