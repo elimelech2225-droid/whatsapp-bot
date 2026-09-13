@@ -5328,7 +5328,7 @@ def webhook():
             phone
         )
 
-       if not user:
+        if not user:
     if handle_registration(
         phone,
         text,
