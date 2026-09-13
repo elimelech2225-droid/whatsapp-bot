@@ -2083,11 +2083,11 @@ def handle_registration(phone, text, action_id):
         )
 
                         send_message(
-            phone,
+        phone,
             "🚗 מה חברת הרכב ושנת הייצור?\nלדוגמה: טויוטה קורולה 2021"
         )
         return True
-        if state == "driver_vehicle_year":
+    if state == "driver_vehicle_year":
             vehicle_year = text.strip()
 
             if not vehicle_year:
