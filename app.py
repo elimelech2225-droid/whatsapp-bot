@@ -1700,28 +1700,7 @@ def handle_registration(phone, text, action_id):
     
 
     
-    if state == "driver_areas":
-        save_session(
-            phone,
-            state="driver_agreement",
-            temp_service_areas=text.strip()
-        )
-
-        send_buttons(
-            phone,
-            driver_agreement(),
-            [
-                (
-                    "agreement_accept",
-                    "אני מסכים"
-                ),
-                (
-                    "agreement_decline",
-                    "איני מסכים"
-                ),
-            ]
-        )
-        return True
+    
     
 
 # =========================================================
