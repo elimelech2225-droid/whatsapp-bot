@@ -1695,15 +1695,17 @@ def handle_registration(phone, text, action_id):
             "🚘 מה מספר הרכב שלך?"
         )
         return True
-    if state == "driver_vehicle_number":
+    
+
+            if state == "driver_vehicle_number":
         number = text.strip()
 
-if not number or number == "אין":
-    send_message(
-        phone,
-        "🚘 יש לרשום את מספר הרכב שלך."
-    )
-    return True
+        if not number or number == "אין":
+            send_message(
+                phone,
+                "🚘 יש לרשום את מספר הרכב שלך."
+            )
+            return True
 
         save_session(
             phone,
@@ -1718,10 +1720,7 @@ if not number or number == "אין":
 אפשר לרשום כמה ערים עם פסיקים.
 
 לדוגמה:
-ירושלים, בית שמש, תל אביב
-
-אם אתה עובד בכל הארץ, כתוב:
-כל הארץ"""
+ירושלים, בית שמש, תל אביב"""
         )
         return True
 
