@@ -1697,32 +1697,32 @@ def handle_registration(phone, text, action_id):
         return True
     
 
-            if state == "driver_vehicle_number":
-        number = text.strip()
+    if state == "driver_vehicle_number":
+number = text.strip()
 
-        if not number or number == "אין":
-            send_message(
-                phone,
-                "🚘 יש לרשום את מספר הרכב שלך."
-            )
-            return True
+if not number or number == "אין":
+    send_message(
+        phone,
+        "🚘 יש לרשום את מספר הרכב שלך."
+    )
+    return True
 
-        save_session(
-            phone,
-            state="driver_areas",
-            temp_vehicle_number=number
-        )
+save_session(
+    phone,
+    state="driver_areas",
+    temp_vehicle_number=number
+)
 
-        send_message(
-            phone,
-            """באילו ערים אתה פנוי לבצע משלוחים?
+send_message(
+    phone,
+    """באילו ערים אתה פנוי לבצע משלוחים?
 
 אפשר לרשום כמה ערים עם פסיקים.
 
 לדוגמה:
 ירושלים, בית שמש, תל אביב"""
-        )
-        return True
+)
+return True
 
     if state == "driver_areas":
         save_session(
