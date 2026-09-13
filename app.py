@@ -1813,7 +1813,31 @@ def handle_registration(phone, text, action_id):
     session = get_session(phone)
     state = session.get("state", "")
     print("REG DEBUG:", phone, "STATE=", state, "TEXT=", text, flush=True)
+    if state == "driver_vehicle_number":
+        number = text.strip()
 
+        if not number or number == "אין":
+            send_message(
+                phone,
+                "🚗 יש לרשום את מספר הרכב שלך."
+            )
+            return True
+
+        save_session(
+            phone,
+            state="driver_agreement",
+            temp_vehicle_number=number
+        )
+
+        send_buttons(
+            phone,
+            driver_agreement(),
+            [
+                ("agreement_accept", "אני מסכים"),
+                ("agreement_decline", "איני מסכים"),
+            ]
+        )
+        return True
     if action_id == "role_customer":
         save_session(
             phone,
@@ -2063,43 +2087,7 @@ def handle_registration(phone, text, action_id):
                 "🚘 מה מספר הרכב שלך?"
             )
             return True
-            if state == "driver_vehicle_number":
-                number = text.strip()
-
-            if not number or number == "אין":
-                send_message(
-                    phone,
-                    "🚘 יש לרשום את מספר הרכב שלך."
-                )
-                return True
-            print("BEFORE SAVE", flush=True)
-            save_session(
-                phone,
-                state="driver_agreement",
-                temp_vehicle_number=number
-            )
-            print("AFTER SAVE", flush=True)
-
             
-
-    
-            result = send_buttons(
-            phone,
-            driver_agreement(),
-            [
-                (
-                    "agreement_accept",
-                    "אני מסכים"
-                ),
-                (
-                    "agreement_decline",
-                    "איני מסכים"
-                ),
-            ]
-        )
-            print("BUTTON RESULT:", result, flush=True)
-            return True
-
     # -------------------------
     # הסכמים
     # -------------------------
