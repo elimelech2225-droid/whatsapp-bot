@@ -2129,7 +2129,7 @@ def handle_registration(phone, text, action_id):
             
 
     
-            send_buttons(
+            result = send_buttons(
             phone,
             driver_agreement(),
             [
@@ -2143,6 +2143,7 @@ def handle_registration(phone, text, action_id):
                 ),
             ]
         )
+            print("BUTTON RESULT:", result, flush=True)
             return True
 
     # -------------------------
