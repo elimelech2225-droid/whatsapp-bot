@@ -1119,6 +1119,7 @@ def driver_guide_text():
 # =========================================================
 
 def create_pending_user(phone, session):
+    phone = normalize_phone(phone)
     role = ROLE_DRIVER
     trial_start = now_ts()
     trial_expiry = trial_start + (30 * 24 * 60 * 60)
