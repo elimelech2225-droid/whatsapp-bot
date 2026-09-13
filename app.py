@@ -452,7 +452,7 @@ def normalize_phone(value):
 
 def get_user(phone):
         phone = normalize_phone(phone)
-    with db() as conn:
+        with db() as conn:
         row = conn.execute(
             """
             SELECT *
