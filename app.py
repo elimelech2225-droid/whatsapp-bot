@@ -936,30 +936,16 @@ def driver_agreement():
 # =========================================================
 
 def show_role_choice(phone):
-    save_session(
+        save_session(
         phone,
-        state="choose_role"
+        state="driver_name",
+        temp_role=ROLE_DRIVER
     )
 
-    send_buttons(
+    send_message(
         phone,
-        """ברוכים הבאים למערכת המשלוחים 🚚
-
-לפני שמתחילים יש לבחור כיצד ברצונך להירשם.
-
-כל מספר טלפון יכול להיות משויך לסוג חשבון אחד בלבד.""",
-        [
-            (
-                "role_customer",
-                "אני לקוח / שולח"
-            ),
-            (
-                "role_driver",
-                "אני שליח"
-            ),
-        ]
+        "בבקשה, מה השם המלא שלך?"
     )
-
 
 def show_admin_menu(phone):
     send_list(
