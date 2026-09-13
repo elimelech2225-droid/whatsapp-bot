@@ -2108,7 +2108,7 @@ def handle_registration(phone, text, action_id):
             )
             return True
             if state == "driver_vehicle_number":
-            number = text.strip()
+                number = text.strip()
 
             if not number or number == "אין":
                 send_message(
@@ -2123,7 +2123,7 @@ def handle_registration(phone, text, action_id):
                 temp_vehicle_number=number
             )
 
-        send_message(
+            send_message(
                     phone,
             """באילו ערים אתה פנוי לבצע משלוחים?
 
