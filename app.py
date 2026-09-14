@@ -4173,6 +4173,17 @@ def handle_admin(
             ],
         )
         return True
+
+    if action_id == "admin_dispatcher_add":
+    save_session(
+        phone,
+        state="admin_dispatcher_add_phone"
+    )
+    send_message(
+        phone,
+        "📱 שלח את מספר הטלפון של הסדרן שברצונך להוסיף."
+    )
+    return True
     if action_id == "admin_pending_users":
         with db() as conn:
             rows = conn.execute("""
