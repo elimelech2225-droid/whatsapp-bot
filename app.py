@@ -989,6 +989,10 @@ def show_admin_menu(phone):
                         "id": "admin_open_shipments",
                         "title": "משלוחים פעילים"
                     },
+                    {
+                        "id": "admin_dispatchers",
+                        "title": "ניהול סדרנים"
+},
                 ]
             }
         ]
