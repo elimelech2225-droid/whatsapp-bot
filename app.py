@@ -5384,7 +5384,17 @@ def webhook():
                 action_id
             ):
                 return "ok", 200
-
+            session = get_session(phone)
+            if session.get("state") == "admin_dispatcher_add_phone":
+                user = get_user(phone)
+                if user and handle_approved_user(
+        phone,
+        user,
+        text,
+        action_id,
+        media_id
+    ):
+                    return "ok", 200
             show_admin_menu(
                 phone
             )
