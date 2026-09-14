@@ -5385,17 +5385,44 @@ def webhook():
             ):
                 return "ok", 200
             session = get_session(phone)
-            print("ADMIN STATE DEBUG:", session.get("state"), "TEXT:", text, flush=True)
             if session.get("state") == "admin_dispatcher_add_phone":
-                user = get_user(phone)
-                if user and handle_approved_user(
-        phone,
-        user,
-        text,
-        action_id,
-        media_id
-    ):
-                    return "ok", 200
+                dispatcher_phone = normalize_phone(text)
+    
+                with db() as conn:
+                    conn.execute(
+                        """
+                        INSERT INTO users (
+                            phone_number,
+                            role,
+                            registration_status,
+                            is_blocked,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, 0, ?, ?)
+                        ON CONFLICT(phone_number)
+                        DO UPDATE SET
+                            role=excluded.role,
+                            registration_status=excluded.registration_status,
+                            is_blocked=0,
+                            updated_at=excluded.updated_at
+                        """,
+                        (
+                            dispatcher_phone,
+                            ROLE_DISPATCHER,
+                            REG_APPROVED,
+                            now_ts(),
+                            now_ts()
+                        )
+                    )
+    
+                clear_session(phone)
+    
+                send_message(
+                    phone,
+                    f"✅ המספר {dispatcher_phone} הוגדר כסדרן בהצלחה."
+                )
+                return "ok", 200
             show_admin_menu(
                 phone
             )
