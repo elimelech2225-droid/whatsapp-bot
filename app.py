@@ -4416,8 +4416,50 @@ def handle_approved_user(
         "state",
         ""
     )
-    if state == "support_message" and text and not action_id:
-        save_support_request(phone, text)
+    if state == "admin_dispatcher_add_phone" and text and not action_id:
+        dispatcher_phone = normalize_phone(text)
+    
+        if not dispatcher_phone:
+            send_message(
+                phone,
+                "❌ מספר הטלפון לא תקין. שלח שוב מספר טלפון."
+            )
+            return True
+    
+        with db() as conn:
+            conn.execute(
+                """
+                INSERT INTO users (
+                    phone_number,
+                    role,
+                    registration_status,
+                    is_blocked,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, 0, ?, ?)
+                ON CONFLICT(phone_number)
+                DO UPDATE SET
+                    role=excluded.role,
+                    registration_status=excluded.registration_status,
+                    is_blocked=0,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    dispatcher_phone,
+                    ROLE_DISPATCHER,
+                    REG_APPROVED,
+                    now_ts(),
+                    now_ts()
+                )
+            )
+    
+        clear_session(phone)
+    
+        send_message(
+            phone,
+            f"✅ המספר {dispatcher_phone} הוגדר כסדרן בהצלחה."
+        )
         return True
     
         # יצירת משלוח
