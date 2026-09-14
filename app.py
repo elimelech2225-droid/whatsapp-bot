@@ -4162,17 +4162,17 @@ def handle_admin(
             )
 
         return True
-if action_id == "admin_dispatchers":
-    send_buttons(
-        ADMIN_PHONE,
-        "👥 ניהול סדרנים",
-        [
-            ("admin_dispatcher_add", "➕ הוסף סדרן"),
-            ("admin_dispatcher_remove", "➖ הסר סדרן"),
-            ("admin_dispatcher_list", "📋 רשימת סדרנים"),
-        ],
-    )
-    return True
+    if action_id == "admin_dispatchers":
+        send_buttons(
+            ADMIN_PHONE,
+            "👥 ניהול סדרנים",
+            [
+                ("admin_dispatcher_add", "➕ הוסף סדרן"),
+                ("admin_dispatcher_remove", "➖ הסר סדרן"),
+                ("admin_dispatcher_list", "📋 רשימת סדרנים"),
+            ],
+        )
+        return True
     if action_id == "admin_pending_users":
         with db() as conn:
             rows = conn.execute("""
