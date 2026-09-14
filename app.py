@@ -5385,6 +5385,7 @@ def webhook():
             ):
                 return "ok", 200
             session = get_session(phone)
+            print("ADMIN STATE DEBUG:", session.get("state"), "TEXT:", text, flush=True)
             if session.get("state") == "admin_dispatcher_add_phone":
                 user = get_user(phone)
                 if user and handle_approved_user(
