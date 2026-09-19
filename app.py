@@ -4160,69 +4160,69 @@ def handle_admin(
             )
 
         return True
-    if action_id == "admin_dispatchers":
-    send_buttons(
-        phone,
-        "👥 ניהול סדרנים",
-        [
-            ("admin_dispatcher_add", "➕ הוסף סדרן"),
-            ("admin_dispatcher_remove", "➖ הסר סדרן"),
-            ("admin_dispatcher_list", "📋 רשימת סדרנים"),
-        ],
-    )
-    return True
-
-if action_id == "admin_dispatcher_add":
-    save_session(
-        phone,
-        state="admin_dispatcher_add_phone"
-    )
-    send_message(
-        phone,
-        "➕ שלח את מספר הטלפון של הסדרן שברצונך להוסיף."
-    )
-    return True
-
-if action_id == "admin_dispatcher_remove":
-    save_session(
-        phone,
-        state="admin_dispatcher_remove_phone"
-    )
-    send_message(
-        phone,
-        "➖ שלח את מספר הטלפון של הסדרן שברצונך להסיר."
-    )
-    return True
-
-if action_id == "admin_dispatcher_list":
-    with db() as conn:
-        rows = conn.execute(
-            """
-            SELECT phone_number
-            FROM users
-            WHERE role=?
-            ORDER BY phone_number ASC
-            """,
-            (ROLE_DISPATCHER,)
-        ).fetchall()
-
-    if not rows:
-        send_message(
+        if action_id == "admin_dispatchers":
+        send_buttons(
             phone,
-            "📋 אין כרגע סדרנים במערכת."
+            "👥 ניהול סדרנים",
+            [
+                ("admin_dispatcher_add", "➕ הוסף סדרן"),
+                ("admin_dispatcher_remove", "➖ הסר סדרן"),
+                ("admin_dispatcher_list", "📋 רשימת סדרנים"),
+            ],
         )
         return True
 
-    dispatcher_numbers = [
-        dict(row)["phone_number"]
-        for row in rows
-    ]
+    if action_id == "admin_dispatcher_add":
+        save_session(
+            phone,
+            state="admin_dispatcher_add_phone"
+        )
+        send_message(
+            phone,
+            "➕ שלח את מספר הטלפון של הסדרן שברצונך להוסיף."
+        )
+        return True
 
-    send_message(
-        phone,
-        "📋 רשימת הסדרנים:\n\n" + "\n".join(dispatcher_numbers)
-    )
-    return True
+    if action_id == "admin_dispatcher_remove":
+        save_session(
+            phone,
+            state="admin_dispatcher_remove_phone"
+        )
+        send_message(
+            phone,
+            "➖ שלח את מספר הטלפון של הסדרן שברצונך להסיר."
+        )
+        return True
+
+    if action_id == "admin_dispatcher_list":
+        with db() as conn:
+            rows = conn.execute(
+                """
+                SELECT phone_number
+                FROM users
+                WHERE role=?
+                ORDER BY phone_number ASC
+                """,
+                (ROLE_DISPATCHER,)
+            ).fetchall()
+
+        if not rows:
+            send_message(
+                phone,
+                "📋 אין כרגע סדרנים במערכת."
+            )
+            return True
+
+        dispatcher_numbers = [
+            dict(row)["phone_number"]
+            for row in rows
+        ]
+
+        send_message(
+            phone,
+            "📋 רשימת הסדרנים:\n\n" + "\n".join(dispatcher_numbers)
+        )
+        return True
     if action_id == "admin_pending_users":
         with db() as conn:
             rows = conn.execute("""
