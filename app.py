@@ -4102,6 +4102,17 @@ def handle_admin(
                 )
 
         return True
+        if action_id == "admin_dispatchers":
+        send_buttons(
+            phone,
+            "👥 ניהול סדרנים",
+            [
+                ("admin_dispatcher_add", "➕ הוסף סדרן"),
+                ("admin_dispatcher_remove", "➖ הסר סדרן"),
+                ("admin_dispatcher_list", "📋 רשימת סדרנים"),
+            ],
+        )
+        return True
     # =====================================================
     # שחרור שליח ממשלוח
     # =====================================================
@@ -4160,17 +4171,7 @@ def handle_admin(
             )
 
         return True
-        if action_id == "admin_dispatchers":
-            send_buttons(
-            phone,
-            "👥 ניהול סדרנים",
-            [
-                ("admin_dispatcher_add", "➕ הוסף סדרן"),
-                ("admin_dispatcher_remove", "➖ הסר סדרן"),
-                ("admin_dispatcher_list", "📋 רשימת סדרנים"),
-            ],
-        )
-        return True
+        
 
     if action_id == "admin_dispatcher_add":
         save_session(
