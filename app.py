@@ -4455,7 +4455,7 @@ def handle_approved_user(
         "state",
         ""
     )
-       if state == "admin_dispatcher_add_phone" and text and not action_id:
+    if state == "admin_dispatcher_add_phone" and text and not action_id:
         dispatcher_phone = normalize_phone(text)
 
         if not dispatcher_phone:
