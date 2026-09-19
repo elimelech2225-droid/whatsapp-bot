@@ -4455,16 +4455,16 @@ def handle_approved_user(
         "state",
         ""
     )
-    if state == "admin_dispatcher_add_phone" and text and not action_id:
+       if state == "admin_dispatcher_add_phone" and text and not action_id:
         dispatcher_phone = normalize_phone(text)
-    
+
         if not dispatcher_phone:
             send_message(
                 phone,
                 "❌ מספר הטלפון לא תקין. שלח שוב מספר טלפון."
             )
             return True
-    
+
         with db() as conn:
             conn.execute(
                 """
@@ -4492,18 +4492,79 @@ def handle_approved_user(
                     now_ts()
                 )
             )
-    
+            conn.commit()
+
         clear_session(phone)
-    
+
         send_message(
             phone,
             f"✅ המספר {dispatcher_phone} הוגדר כסדרן בהצלחה."
         )
-        print("NEW DISPATCHER PHONE:", dispatcher_phone, flush=True)
+
         send_message(
-    dispatcher_phone,
-    "✅ הוגדרת כסדרן במערכת.\nשלח 'תפריט' כדי לפתוח את תפריט הסדרן."
-)
+            dispatcher_phone,
+            "✅ הוגדרת כסדרן במערכת.\nשלח 'תפריט' כדי לפתוח את תפריט הסדרן."
+        )
+
+        return True
+
+    if state == "admin_dispatcher_remove_phone" and text and not action_id:
+        dispatcher_phone = normalize_phone(text)
+
+        if not dispatcher_phone:
+            send_message(
+                phone,
+                "❌ מספר הטלפון לא תקין. שלח שוב מספר טלפון."
+            )
+            return True
+
+        with db() as conn:
+            row = conn.execute(
+                """
+                SELECT *
+                FROM users
+                WHERE phone_number=? AND role=?
+                """,
+                (
+                    dispatcher_phone,
+                    ROLE_DISPATCHER
+                )
+            ).fetchone()
+
+            if not row:
+                send_message(
+                    phone,
+                    "❌ המספר הזה אינו מוגדר כסדרן."
+                )
+                return True
+
+            conn.execute(
+                """
+                UPDATE users
+                SET role=?,
+                    updated_at=?
+                WHERE phone_number=?
+                """,
+                (
+                    ROLE_DRIVER,
+                    now_ts(),
+                    dispatcher_phone
+                )
+            )
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            f"✅ המספר {dispatcher_phone} הוסר מתפקיד סדרן."
+        )
+
+        send_message(
+            dispatcher_phone,
+            "ℹ️ הרשאת הסדרן שלך הוסרה. החשבון שלך חזר לתפקיד שליח."
+        )
+
         return True
     
         # יצירת משלוח
