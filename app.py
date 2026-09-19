@@ -4458,6 +4458,10 @@ def handle_approved_user(
             phone,
             f"✅ המספר {dispatcher_phone} הוגדר כסדרן בהצלחה."
         )
+        send_message(
+    dispatcher_phone,
+    "✅ הוגדרת כסדרן במערכת.\nשלח 'תפריט' כדי לפתוח את תפריט הסדרן."
+)
         return True
     
         # יצירת משלוח
