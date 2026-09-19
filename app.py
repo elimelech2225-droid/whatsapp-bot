@@ -4525,7 +4525,7 @@ def handle_approved_user(
         text
     ):
         return True
-    if user["role"] == ROLE_DRIVER and text and not action_id:
+    if user["role"] in (ROLE_DRIVER, ROLE_DISPATCHER) and text and not action_id:
         clean_text = re.sub(r"\s+", " ", str(text).strip())
 
         unavailable_patterns = [
