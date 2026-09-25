@@ -6176,33 +6176,66 @@ def select_driver_for_shipment(
         conn.commit()
 
 
+        customer_phone = normalize_phone(
+        phone
+    )
+
+    driver_phone = normalize_phone(
+        driver.get(
+            "phone",
+            ""
+        )
+    )
+
+    driver_chat_url = (
+        f"https://wa.me/{driver_phone}"
+        f"?text=שלום%20אני%20המזמין%20של%20משלוח%20"
+        f"%23{shipment_id}%20דרך%20שליחובוט"
+    )
+
+
+    # הודעה למזמין
     send_message(
         phone,
 
         f"""
-✅ השליח נבחר בהצלחה.
+✅ השליח נבחר בהצלחה!
 
-משלוח #{shipment_id}
+📦 משלוח #{shipment_id}
 
-🚚 שליח:
+🚚 השליח שנבחר:
 {driver.get("full_name") or "-"}
 
-📱 טלפון:
-{driver.get("phone") or "-"}
+📱 מספר השליח:
+{driver_phone}
 
-⏱️ זמן הגעה שהשליח מסר:
+⏱️ זמן הגעה:
 {interest.get("eta_minutes", 0)} דקות
+
+💬 לפנייה ישירה לשליח בוואטסאפ:
+{driver_chat_url}
+
+ניתן ללחוץ על הקישור ולפתוח צ'אט פרטי עם השליח.
 """.strip()
     )
 
 
+    # הודעה לשליח שנבחר
     send_message(
-        driver["phone"],
+        driver_phone,
 
         f"""
-🎉 נבחרת לבצע משלוח #{shipment_id}.
+🎉 נבחרת למשלוח #{shipment_id}!
 
 המזמין בחר בך לביצוע המשלוח.
+
+👤 המזמין:
+{customer.get("full_name") or "-"}
+
+📱 מספר המזמין:
+{customer_phone}
+
+המזמין יכול ליצור איתך קשר ישירות בוואטסאפ.
 
 📍 איסוף:
 {shipment["origin_city"]}
@@ -6226,11 +6259,8 @@ def select_driver_for_shipment(
 
 📱 טלפון נמען:
 {shipment["recipient_phone"]}
-
-פרטי המשלוח נשלחו אליך כאן באופן פרטי.
 """.strip()
     )
-
 
     return True
 
