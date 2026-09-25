@@ -2506,3 +2506,1906 @@ def show_menu_for_user(
     show_role_choice(
         phone
     )
+# =========================================================
+# הרשמת משתמשים
+# =========================================================
+
+def create_or_update_user(
+    phone,
+    role,
+    full_name,
+    business_name="",
+    city="",
+    vehicle_type="",
+    vehicle_year="",
+    vehicle_number="",
+    registration_status=REG_ACTIVE
+):
+
+    phone = normalize_phone(
+        phone
+    )
+
+    current_time = now_ts()
+
+    trial_started_at = 0
+    trial_expires_at = 0
+
+
+    # תקופת ניסיון ניתנת רק לשליח
+    if role == ROLE_DRIVER:
+
+        trial_days = int(
+            get_setting(
+                "trial_days",
+                "60"
+            )
+        )
+
+        trial_started_at = (
+            current_time
+        )
+
+        trial_expires_at = (
+            current_time
+            + (
+                trial_days
+                * 86400
+            )
+        )
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            INSERT INTO users (
+                phone,
+                role,
+                full_name,
+                business_name,
+                city,
+                vehicle_type,
+                vehicle_year,
+                vehicle_number,
+                registration_status,
+                agreement_accepted,
+                agreement_accepted_at,
+                trial_started_at,
+                trial_expires_at,
+                created_at,
+                updated_at
+            )
+
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                1, ?, ?, ?, ?, ?
+            )
+
+            ON CONFLICT(phone)
+            DO UPDATE SET
+
+                role=excluded.role,
+
+                full_name=excluded.full_name,
+
+                business_name=excluded.business_name,
+
+                city=excluded.city,
+
+                vehicle_type=excluded.vehicle_type,
+
+                vehicle_year=excluded.vehicle_year,
+
+                vehicle_number=excluded.vehicle_number,
+
+                registration_status=
+                    excluded.registration_status,
+
+                agreement_accepted=1,
+
+                agreement_accepted_at=
+                    excluded.agreement_accepted_at,
+
+                trial_started_at=
+                    CASE
+                        WHEN users.trial_started_at > 0
+                        THEN users.trial_started_at
+                        ELSE excluded.trial_started_at
+                    END,
+
+                trial_expires_at=
+                    CASE
+                        WHEN users.trial_expires_at > 0
+                        THEN users.trial_expires_at
+                        ELSE excluded.trial_expires_at
+                    END,
+
+                updated_at=
+                    excluded.updated_at
+            """,
+
+            (
+                phone,
+                role,
+                full_name,
+                business_name,
+                city,
+                vehicle_type,
+                vehicle_year,
+                vehicle_number,
+                registration_status,
+                current_time,
+                trial_started_at,
+                trial_expires_at,
+                current_time,
+                current_time
+            )
+        )
+
+        conn.commit()
+
+
+    clear_session(
+        phone
+    )
+
+    return get_user(
+        phone
+    )
+
+
+# =========================================================
+# שליחת בקשת אישור שליח למנהל
+# =========================================================
+
+def notify_admin_new_driver(
+    user
+):
+
+    if not user:
+        return
+
+
+    send_buttons(
+        ADMIN_PHONE,
+
+        f"""
+👤 בקשת הרשמה חדשה לשליח
+
+שם: {user.get("full_name") or "-"}
+טלפון: {user.get("phone") or "-"}
+עיר: {user.get("city") or "-"}
+
+🚗 סוג רכב:
+{user.get("vehicle_type") or "-"}
+
+📅 שנת רכב:
+{user.get("vehicle_year") or "-"}
+
+🔢 מספר רכב:
+{user.get("vehicle_number") or "-"}
+
+לאשר את השליח?
+""".strip(),
+
+        [
+            (
+                f"admin_approve_driver_"
+                f"{user['id']}",
+
+                "✅ אשר"
+            ),
+
+            (
+                f"admin_reject_driver_"
+                f"{user['id']}",
+
+                "❌ דחה"
+            ),
+
+            (
+                f"admin_block_driver_"
+                f"{user['id']}",
+
+                "🚫 חסום"
+            ),
+        ]
+    )
+
+
+# =========================================================
+# התחלת הרשמת מזמין
+# =========================================================
+
+def start_customer_registration(
+    phone
+):
+
+    save_session(
+        phone,
+
+        "customer_name",
+
+        {
+            "role":
+                ROLE_CUSTOMER
+        }
+    )
+
+
+    send_message(
+        phone,
+
+        (
+            "📦 הרשמת מזמין משלוח\n\n"
+            "מה השם המלא שלך?"
+        )
+    )
+
+
+# =========================================================
+# התחלת הרשמת שליח
+# =========================================================
+
+def start_driver_registration(
+    phone
+):
+
+    save_session(
+        phone,
+
+        "driver_name",
+
+        {
+            "role":
+                ROLE_DRIVER
+        }
+    )
+
+
+    send_message(
+        phone,
+
+        (
+            "🚚 הרשמת שליח\n\n"
+            "מה השם המלא שלך?"
+        )
+    )
+
+
+# =========================================================
+# טיפול בתהליך הרשמה
+# =========================================================
+
+def handle_registration(
+    phone,
+    text,
+    action_id
+):
+
+    current_session = get_session(
+        phone
+    )
+
+    state = current_session.get(
+        "state",
+        ""
+    )
+
+    data = current_session.get(
+        "data",
+        {}
+    )
+
+
+    # =====================================================
+    # בחירת סוג חשבון
+    # =====================================================
+
+    if (
+        action_id
+        == "register_customer"
+    ):
+
+        start_customer_registration(
+            phone
+        )
+
+        return True
+
+
+    if (
+        action_id
+        == "register_driver"
+    ):
+
+        start_driver_registration(
+            phone
+        )
+
+        return True
+
+
+    # =====================================================
+    # הרשמת מזמין
+    # =====================================================
+
+    if state == "customer_name":
+
+        name = (
+            text
+            or ""
+        ).strip()
+
+
+        if len(name) < 2:
+
+            send_message(
+                phone,
+                (
+                    "נא לשלוח שם מלא תקין."
+                )
+            )
+
+            return True
+
+
+        data["full_name"] = name
+
+
+        save_session(
+            phone,
+
+            "customer_business",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "🏢 מה שם העסק?\n\n"
+                "אם אין עסק, כתוב:\n"
+                "אין"
+            )
+        )
+
+        return True
+
+
+    if state == "customer_business":
+
+        business_name = (
+            text
+            or ""
+        ).strip()
+
+
+        if business_name == "אין":
+
+            business_name = ""
+
+
+        data[
+            "business_name"
+        ] = business_name
+
+
+        save_session(
+            phone,
+
+            "customer_city",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "📍 באיזו עיר אתה נמצא?"
+            )
+        )
+
+        return True
+
+
+    if state == "customer_city":
+
+        city = (
+            text
+            or ""
+        ).strip()
+
+
+        if not city:
+
+            send_message(
+                phone,
+                "נא לשלוח שם עיר."
+            )
+
+            return True
+
+
+        data["city"] = city
+
+
+        save_session(
+            phone,
+
+            "customer_agreement",
+
+            data
+        )
+
+
+        send_buttons(
+            phone,
+
+            customer_agreement(),
+
+            [
+                (
+                    "customer_agree",
+                    "✅ אני מסכים"
+                ),
+
+                (
+                    "registration_cancel",
+                    "❌ ביטול"
+                ),
+            ]
+        )
+
+        return True
+
+
+    if (
+        state
+        == "customer_agreement"
+    ):
+
+        if (
+            action_id
+            == "registration_cancel"
+        ):
+
+            clear_session(
+                phone
+            )
+
+            show_role_choice(
+                phone
+            )
+
+            return True
+
+
+        if (
+            action_id
+            != "customer_agree"
+        ):
+
+            send_message(
+                phone,
+                (
+                    "כדי לסיים את ההרשמה "
+                    "יש לאשר את תנאי השימוש."
+                )
+            )
+
+            return True
+
+
+        user = create_or_update_user(
+
+            phone=
+                phone,
+
+            role=
+                ROLE_CUSTOMER,
+
+            full_name=
+                data.get(
+                    "full_name",
+                    ""
+                ),
+
+            business_name=
+                data.get(
+                    "business_name",
+                    ""
+                ),
+
+            city=
+                data.get(
+                    "city",
+                    ""
+                ),
+
+            registration_status=
+                REG_ACTIVE
+        )
+
+
+        send_message(
+            phone,
+
+            f"""
+✅ ההרשמה הושלמה בהצלחה!
+
+ברוך הבא ל{BOT_NAME}.
+
+מעכשיו המספר שלך שמור כמזמין משלוחים.
+אין צורך להירשם מחדש בכל הזמנה.
+""".strip()
+        )
+
+
+        show_customer_menu(
+            phone
+        )
+
+        return True
+
+
+    # =====================================================
+    # הרשמת שליח
+    # =====================================================
+
+    if state == "driver_name":
+
+        name = (
+            text
+            or ""
+        ).strip()
+
+
+        if len(name) < 2:
+
+            send_message(
+                phone,
+                (
+                    "נא לשלוח שם מלא תקין."
+                )
+            )
+
+            return True
+
+
+        data["full_name"] = name
+
+
+        save_session(
+            phone,
+
+            "driver_city",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "📍 באיזו עיר אתה גר?"
+            )
+        )
+
+        return True
+
+
+    if state == "driver_city":
+
+        city = (
+            text
+            or ""
+        ).strip()
+
+
+        if not city:
+
+            send_message(
+                phone,
+                "נא לשלוח שם עיר."
+            )
+
+            return True
+
+
+        data["city"] = city
+
+
+        save_session(
+            phone,
+
+            "driver_vehicle_type",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "🚗 איזה סוג רכב יש לך?\n\n"
+                "לדוגמה:\n"
+                "רכב פרטי\n"
+                "אופנוע\n"
+                "קטנוע\n"
+                "מסחרית"
+            )
+        )
+
+        return True
+
+
+    if (
+        state
+        == "driver_vehicle_type"
+    ):
+
+        vehicle_type = (
+            text
+            or ""
+        ).strip()
+
+
+        if not vehicle_type:
+
+            send_message(
+                phone,
+                (
+                    "נא לשלוח את סוג הרכב."
+                )
+            )
+
+            return True
+
+
+        data[
+            "vehicle_type"
+        ] = vehicle_type
+
+
+        save_session(
+            phone,
+
+            "driver_vehicle_year",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "📅 מה שנת הרכב?\n\n"
+                "לדוגמה:\n"
+                "2022"
+            )
+        )
+
+        return True
+
+
+    if (
+        state
+        == "driver_vehicle_year"
+    ):
+
+        vehicle_year = (
+            text
+            or ""
+        ).strip()
+
+
+        if (
+            not vehicle_year.isdigit()
+            or len(vehicle_year) != 4
+        ):
+
+            send_message(
+                phone,
+                (
+                    "נא לשלוח שנת רכב "
+                    "ב-4 ספרות.\n"
+                    "לדוגמה: 2022"
+                )
+            )
+
+            return True
+
+
+        data[
+            "vehicle_year"
+        ] = vehicle_year
+
+
+        save_session(
+            phone,
+
+            "driver_vehicle_number",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            (
+                "🔢 מה מספר הרכב?"
+            )
+        )
+
+        return True
+
+
+    if (
+        state
+        == "driver_vehicle_number"
+    ):
+
+        vehicle_number = re.sub(
+            r"\s+",
+            "",
+            text
+            or ""
+        )
+
+
+        if len(vehicle_number) < 5:
+
+            send_message(
+                phone,
+                (
+                    "מספר הרכב לא נראה תקין.\n"
+                    "נסה שוב."
+                )
+            )
+
+            return True
+
+
+        data[
+            "vehicle_number"
+        ] = vehicle_number
+
+
+        save_session(
+            phone,
+
+            "driver_agreement",
+
+            data
+        )
+
+
+        send_buttons(
+            phone,
+
+            driver_agreement(),
+
+            [
+                (
+                    "driver_agree",
+                    "✅ אני מסכים"
+                ),
+
+                (
+                    "registration_cancel",
+                    "❌ ביטול"
+                ),
+            ]
+        )
+
+        return True
+
+
+    if (
+        state
+        == "driver_agreement"
+    ):
+
+        if (
+            action_id
+            == "registration_cancel"
+        ):
+
+            clear_session(
+                phone
+            )
+
+            show_role_choice(
+                phone
+            )
+
+            return True
+
+
+        if (
+            action_id
+            != "driver_agree"
+        ):
+
+            send_message(
+                phone,
+
+                (
+                    "כדי להמשיך בהרשמה "
+                    "יש לאשר את התחייבות השליח."
+                )
+            )
+
+            return True
+
+
+        user = create_or_update_user(
+
+            phone=
+                phone,
+
+            role=
+                ROLE_DRIVER,
+
+            full_name=
+                data.get(
+                    "full_name",
+                    ""
+                ),
+
+            city=
+                data.get(
+                    "city",
+                    ""
+                ),
+
+            vehicle_type=
+                data.get(
+                    "vehicle_type",
+                    ""
+                ),
+
+            vehicle_year=
+                data.get(
+                    "vehicle_year",
+                    ""
+                ),
+
+            vehicle_number=
+                data.get(
+                    "vehicle_number",
+                    ""
+                ),
+
+            registration_status=
+                REG_WAITING
+        )
+
+
+        send_message(
+            phone,
+
+            f"""
+✅ הפרטים התקבלו.
+
+ההרשמה שלך כשליח ב{BOT_NAME}
+נשלחה לאישור מנהל.
+
+לאחר האישור תקבל הודעה אוטומטית.
+
+🎁 לאחר האישור תעמוד לרשותך תקופת ניסיון של {get_setting("trial_days", "60")} ימים.
+""".strip()
+        )
+
+
+        notify_admin_new_driver(
+            user
+        )
+
+        return True
+
+
+    return False
+
+
+# =========================================================
+# אישור שליח על ידי מנהל
+# =========================================================
+
+def approve_driver(
+    user_id
+):
+
+    user = get_user_by_id(
+        user_id
+    )
+
+
+    if not user:
+
+        return None
+
+
+    if (
+        user.get("role")
+        != ROLE_DRIVER
+    ):
+
+        return None
+
+
+    current_time = now_ts()
+
+
+    trial_days = int(
+        get_setting(
+            "trial_days",
+            "60"
+        )
+    )
+
+
+    # הניסיון מתחיל ביום האישור בפועל
+    trial_expires_at = (
+        current_time
+        + (
+            trial_days
+            * 86400
+        )
+    )
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                registration_status=?,
+
+                is_blocked=0,
+
+                approved_at=?,
+
+                trial_started_at=?,
+
+                trial_expires_at=?,
+
+                updated_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                REG_ACTIVE,
+                current_time,
+                current_time,
+                trial_expires_at,
+                current_time,
+                user_id
+            )
+        )
+
+        conn.commit()
+
+
+    updated_user = get_user_by_id(
+        user_id
+    )
+
+
+    log_admin_action(
+        "APPROVE_DRIVER",
+
+        target_phone=
+            updated_user.get(
+                "phone",
+                ""
+            ),
+
+        reference_id=
+            user_id
+    )
+
+
+    send_message(
+        updated_user["phone"],
+
+        f"""
+🎉 ההרשמה שלך אושרה!
+
+ברוך הבא כשליח ב{BOT_NAME} 🚚
+
+🎁 קיבלת {trial_days} ימי ניסיון חינם.
+
+תקופת הניסיון בתוקף עד:
+{format_date(trial_expires_at)}
+
+מומלץ לקרוא את "מדריך לשליח" לפני לקיחת המשלוח הראשון.
+""".strip()
+    )
+
+
+    show_driver_menu(
+        updated_user["phone"],
+        updated_user
+    )
+
+
+    return updated_user
+
+
+# =========================================================
+# דחיית שליח
+# =========================================================
+
+def reject_driver(
+    user_id
+):
+
+    user = get_user_by_id(
+        user_id
+    )
+
+
+    if not user:
+
+        return None
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                registration_status=?,
+
+                rejected_at=?,
+
+                updated_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                REG_REJECTED,
+                now_ts(),
+                now_ts(),
+                user_id
+            )
+        )
+
+        conn.commit()
+
+
+    updated_user = get_user_by_id(
+        user_id
+    )
+
+
+    log_admin_action(
+        "REJECT_DRIVER",
+
+        target_phone=
+            updated_user.get(
+                "phone",
+                ""
+            ),
+
+        reference_id=
+            user_id
+    )
+
+
+    send_message(
+        updated_user["phone"],
+
+        f"""
+❌ בקשת ההרשמה שלך כשליח ב{BOT_NAME}
+לא אושרה כרגע.
+
+אם לדעתך מדובר בטעות,
+ניתן לפנות לנציג.
+""".strip()
+    )
+
+
+    return updated_user
+
+
+# =========================================================
+# חסימת משתמש
+# =========================================================
+
+def block_user_by_phone(
+    target_phone
+):
+
+    target_phone = normalize_phone(
+        target_phone
+    )
+
+
+    user = get_user(
+        target_phone
+    )
+
+
+    if not user:
+
+        return False
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                is_blocked=1,
+
+                registration_status=?,
+
+                updated_at=?
+
+            WHERE phone=?
+            """,
+
+            (
+                REG_BLOCKED,
+                now_ts(),
+                target_phone
+            )
+        )
+
+        conn.commit()
+
+
+    log_admin_action(
+        "BLOCK_USER",
+
+        target_phone=
+            target_phone
+    )
+
+
+    send_message(
+        target_phone,
+
+        f"""
+🚫 החשבון שלך ב{BOT_NAME} נחסם.
+
+לפרטים ניתן לפנות לתמיכה.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# הסרת חסימה
+# =========================================================
+
+def unblock_user_by_phone(
+    target_phone
+):
+
+    target_phone = normalize_phone(
+        target_phone
+    )
+
+
+    user = get_user(
+        target_phone
+    )
+
+
+    if not user:
+
+        return False
+
+
+    # אם זה שליח שהיה כבר מאושר בעבר
+    # נחזיר אותו למצב פעיל.
+    new_status = REG_ACTIVE
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                is_blocked=0,
+
+                registration_status=?,
+
+                updated_at=?
+
+            WHERE phone=?
+            """,
+
+            (
+                new_status,
+                now_ts(),
+                target_phone
+            )
+        )
+
+        conn.commit()
+
+
+    log_admin_action(
+        "UNBLOCK_USER",
+
+        target_phone=
+            target_phone
+    )
+
+
+    send_message(
+        target_phone,
+
+        f"""
+🔓 החסימה בחשבון {BOT_NAME} הוסרה.
+
+ניתן לחזור להשתמש במערכת.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# הוספת סדרן
+# =========================================================
+
+def add_dispatcher(
+    target_phone
+):
+
+    target_phone = normalize_phone(
+        target_phone
+    )
+
+
+    if not target_phone:
+
+        return False
+
+
+    # לא ניתן לשנות את המנהל
+    if target_phone == ADMIN_PHONE:
+
+        return False
+
+
+    user = get_user(
+        target_phone
+    )
+
+
+    current_time = now_ts()
+
+
+    # אם המשתמש כבר קיים במערכת
+    if user:
+
+        with db() as conn:
+
+            conn.execute(
+                """
+                UPDATE users
+
+                SET
+                    role=?,
+
+                    registration_status=?,
+
+                    is_blocked=0,
+
+                    updated_at=?
+
+                WHERE phone=?
+                """,
+
+                (
+                    ROLE_DISPATCHER,
+                    REG_ACTIVE,
+                    current_time,
+                    target_phone
+                )
+            )
+
+            conn.commit()
+
+
+    # אם המספר עדיין לא נרשם
+    else:
+
+        with db() as conn:
+
+            conn.execute(
+                """
+                INSERT INTO users (
+                    phone,
+                    role,
+                    full_name,
+                    registration_status,
+                    is_blocked,
+                    agreement_accepted,
+                    approved_at,
+                    created_at,
+                    updated_at
+                )
+
+                VALUES (
+                    ?, ?, '', ?, 0, 1, ?, ?, ?
+                )
+                """,
+
+                (
+                    target_phone,
+                    ROLE_DISPATCHER,
+                    REG_ACTIVE,
+                    current_time,
+                    current_time,
+                    current_time
+                )
+            )
+
+            conn.commit()
+
+
+    log_admin_action(
+        "ADD_DISPATCHER",
+
+        target_phone=
+            target_phone
+    )
+
+
+    send_message(
+        target_phone,
+
+        f"""
+👨‍💼 הוגדרת כסדרן ב{BOT_NAME}.
+
+כסדרן אתה יכול:
+• לפרסם ולנהל משלוחים
+• לפעול גם כשליח
+• להשתמש במערכת ללא תשלום מנוי
+
+שלח "תפריט" כדי להתחיל.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# הסרת סדרן
+# =========================================================
+
+def remove_dispatcher(
+    target_phone
+):
+
+    target_phone = normalize_phone(
+        target_phone
+    )
+
+
+    if not target_phone:
+
+        return False
+
+
+    user = get_user(
+        target_phone
+    )
+
+
+    if not user:
+
+        return False
+
+
+    if (
+        user.get("role")
+        != ROLE_DISPATCHER
+    ):
+
+        return False
+
+
+    # בהסרת סדרן הוא הופך לשליח רגיל.
+    # המנהל יכול לחסום אותו בנפרד אם צריך.
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                role=?,
+
+                registration_status=?,
+
+                updated_at=?
+
+            WHERE phone=?
+            """,
+
+            (
+                ROLE_DRIVER,
+                REG_ACTIVE,
+                now_ts(),
+                target_phone
+            )
+        )
+
+        conn.commit()
+
+
+    log_admin_action(
+        "REMOVE_DISPATCHER",
+
+        target_phone=
+            target_phone
+    )
+
+
+    send_message(
+        target_phone,
+
+        f"""
+ℹ️ הרשאת הסדרן שלך ב{BOT_NAME} הוסרה.
+
+החשבון שלך מוגדר כעת כחשבון שליח רגיל.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# רשימת סדרנים
+# =========================================================
+
+def send_dispatcher_list(
+    phone
+):
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM users
+
+            WHERE role=?
+
+            ORDER BY
+                full_name ASC,
+                id ASC
+            """,
+
+            (
+                ROLE_DISPATCHER,
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            (
+                "📋 אין כרגע סדרנים במערכת."
+            )
+        )
+
+        return
+
+
+    lines = [
+        "📋 רשימת סדרנים",
+        ""
+    ]
+
+
+    for row in rows:
+
+        user = dict(row)
+
+        name = (
+            user.get("full_name")
+            or "ללא שם"
+        )
+
+        number = (
+            user.get("phone")
+            or "-"
+        )
+
+
+        lines.append(
+            f"👨‍💼 {name}"
+        )
+
+        lines.append(
+            f"📱 {number}"
+        )
+
+        lines.append(
+            ""
+        )
+
+
+    send_message(
+        phone,
+        "\n".join(lines)
+    )
+
+
+# =========================================================
+# רשימת חסומים
+# =========================================================
+
+def send_blocked_users(
+    phone
+):
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM users
+
+            WHERE is_blocked=1
+
+            ORDER BY
+                updated_at DESC
+            """
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            "📋 אין כרגע משתמשים חסומים."
+        )
+
+        return
+
+
+    lines = [
+        "🚫 משתמשים חסומים",
+        ""
+    ]
+
+
+    for row in rows:
+
+        user = dict(row)
+
+
+        lines.append(
+            (
+                f"👤 "
+                f"{user.get('full_name') or 'ללא שם'}"
+            )
+        )
+
+
+        lines.append(
+            (
+                f"📱 "
+                f"{user.get('phone') or '-'}"
+            )
+        )
+
+
+        role = user.get(
+            "role",
+            ""
+        )
+
+
+        if role == ROLE_DRIVER:
+
+            role_text = "שליח"
+
+        elif role == ROLE_CUSTOMER:
+
+            role_text = "מזמין"
+
+        elif role == ROLE_DISPATCHER:
+
+            role_text = "סדרן"
+
+        else:
+
+            role_text = role or "-"
+
+
+        lines.append(
+            f"סוג: {role_text}"
+        )
+
+        lines.append(
+            ""
+        )
+
+
+    send_message(
+        phone,
+        "\n".join(lines)
+    )
+
+
+# =========================================================
+# שליחים שממתינים לאישור
+# =========================================================
+
+def show_pending_drivers(
+    phone
+):
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM users
+
+            WHERE
+                role=?
+                AND registration_status=?
+                AND is_blocked=0
+
+            ORDER BY created_at ASC
+
+            LIMIT 20
+            """,
+
+            (
+                ROLE_DRIVER,
+                REG_WAITING
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            "✅ אין כרגע שליחים שממתינים לאישור."
+        )
+
+        return
+
+
+    # כל שליח נשלח בנפרד
+    # כדי שיהיו כפתורי אישור / דחייה / חסימה.
+    for row in rows:
+
+        user = dict(row)
+
+        notify_admin_new_driver(
+            user
+        )
+
+
+# =========================================================
+# סטטיסטיקות מערכת למנהל
+# =========================================================
+
+def send_admin_statistics(
+    phone
+):
+
+    with db() as conn:
+
+        total_users = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+            """
+        ).fetchone()["total"]
+
+
+        total_customers = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+            WHERE role=?
+            """,
+
+            (
+                ROLE_CUSTOMER,
+            )
+        ).fetchone()["total"]
+
+
+        total_drivers = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+            WHERE role=?
+            """,
+
+            (
+                ROLE_DRIVER,
+            )
+        ).fetchone()["total"]
+
+
+        approved_drivers = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+
+            WHERE
+                role=?
+                AND registration_status=?
+                AND is_blocked=0
+            """,
+
+            (
+                ROLE_DRIVER,
+                REG_ACTIVE
+            )
+        ).fetchone()["total"]
+
+
+        pending_drivers = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+
+            WHERE
+                role=?
+                AND registration_status=?
+            """,
+
+            (
+                ROLE_DRIVER,
+                REG_WAITING
+            )
+        ).fetchone()["total"]
+
+
+        dispatchers = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+            WHERE role=?
+            """,
+
+            (
+                ROLE_DISPATCHER,
+            )
+        ).fetchone()["total"]
+
+
+        blocked = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM users
+            WHERE is_blocked=1
+            """
+        ).fetchone()["total"]
+
+
+        open_shipments = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM shipments
+            WHERE status IN (?, ?)
+            """,
+
+            (
+                SHIP_OPEN,
+                SHIP_HAS_INTEREST
+            )
+        ).fetchone()["total"]
+
+
+        assigned_shipments = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM shipments
+            WHERE status=?
+            """,
+
+            (
+                SHIP_ASSIGNED,
+            )
+        ).fetchone()["total"]
+
+
+        completed_shipments = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM shipments
+            WHERE status=?
+            """,
+
+            (
+                SHIP_COMPLETED,
+            )
+        ).fetchone()["total"]
+
+
+        waiting_payments = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM payments
+            WHERE status=?
+            """,
+
+            (
+                PAY_WAITING_ADMIN,
+            )
+        ).fetchone()["total"]
+
+
+        open_support = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM support_requests
+            WHERE status='OPEN'
+            """
+        ).fetchone()["total"]
+
+
+    send_message(
+        phone,
+
+        f"""
+📊 נתוני מערכת - {BOT_NAME}
+
+👥 משתמשים
+סה"כ: {total_users}
+מזמינים: {total_customers}
+שליחים: {total_drivers}
+שליחים מאושרים: {approved_drivers}
+שליחים ממתינים: {pending_drivers}
+סדרנים: {dispatchers}
+חסומים: {blocked}
+
+📦 משלוחים
+פתוחים: {open_shipments}
+שובצו לשליח: {assigned_shipments}
+הושלמו: {completed_shipments}
+
+💳 תשלומים
+ממתינים לאישור: {waiting_payments}
+
+💬 תמיכה
+פניות פתוחות: {open_support}
+""".strip()
+    )
