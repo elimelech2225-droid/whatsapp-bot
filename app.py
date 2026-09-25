@@ -9506,3 +9506,2178 @@ def toggle_maintenance_mode(
         notes=
             value
     )    
+# =========================================================
+# טיפול בפעולות המנהל
+# =========================================================
+
+def handle_admin_action(
+    phone,
+    text,
+    action_id
+):
+
+    if phone != ADMIN_PHONE:
+        return False
+
+    current_session = get_session(
+        phone
+    )
+
+    state = current_session.get(
+        "state",
+        ""
+    )
+
+    # -----------------------------------------
+    # מצבים שבהם המנהל צריך להקליד טקסט
+    # -----------------------------------------
+
+    if (
+        state == "admin_support_reply_text"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_support_reply(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "admin_set_price_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_set_price(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "admin_set_trial_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_set_trial(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "admin_set_bank_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_set_bank(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "admin_set_bit_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_set_bit(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "admin_set_paybox_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_admin_set_paybox(
+            phone,
+            text
+        )
+
+
+    # -----------------------------------------
+    # הוספת סדרן
+    # -----------------------------------------
+
+    if (
+        state == "admin_dispatcher_add_phone"
+        and text
+        and not action_id
+    ):
+
+        target_phone = normalize_phone(
+            text
+        )
+
+        if len(target_phone) < 9:
+
+            send_message(
+                phone,
+                "❌ מספר הטלפון אינו תקין."
+            )
+
+            return True
+
+
+        if add_dispatcher(
+            target_phone
+        ):
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+
+                f"""
+✅ הסדרן נוסף בהצלחה.
+
+📱 {target_phone}
+""".strip()
+            )
+
+            show_dispatcher_management_menu(
+                phone
+            )
+
+        else:
+
+            send_message(
+                phone,
+                "❌ לא ניתן להוסיף את המספר כסדרן."
+            )
+
+        return True
+
+
+    # -----------------------------------------
+    # הסרת סדרן
+    # -----------------------------------------
+
+    if (
+        state == "admin_dispatcher_remove_phone"
+        and text
+        and not action_id
+    ):
+
+        target_phone = normalize_phone(
+            text
+        )
+
+
+        if remove_dispatcher(
+            target_phone
+        ):
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                "✅ הרשאת הסדרן הוסרה."
+            )
+
+            show_dispatcher_management_menu(
+                phone
+            )
+
+        else:
+
+            send_message(
+                phone,
+                "❌ המספר אינו מוגדר כסדרן."
+            )
+
+        return True
+
+
+    # -----------------------------------------
+    # חסימת מספר
+    # -----------------------------------------
+
+    if (
+        state == "admin_block_phone"
+        and text
+        and not action_id
+    ):
+
+        target_phone = normalize_phone(
+            text
+        )
+
+
+        if target_phone == ADMIN_PHONE:
+
+            send_message(
+                phone,
+                "❌ לא ניתן לחסום את מספר המנהל."
+            )
+
+            return True
+
+
+        if block_user_by_phone(
+            target_phone
+        ):
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                f"🚫 המספר {target_phone} נחסם."
+            )
+
+            show_admin_menu(
+                phone
+            )
+
+        else:
+
+            send_message(
+                phone,
+                (
+                    "❌ המשתמש לא נמצא במערכת.\n"
+                    "שלח מספר של משתמש רשום."
+                )
+            )
+
+        return True
+
+
+    # -----------------------------------------
+    # הסרת חסימה
+    # -----------------------------------------
+
+    if (
+        state == "admin_unblock_phone"
+        and text
+        and not action_id
+    ):
+
+        target_phone = normalize_phone(
+            text
+        )
+
+
+        if unblock_user_by_phone(
+            target_phone
+        ):
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                f"🔓 החסימה הוסרה מ-{target_phone}."
+            )
+
+            show_admin_menu(
+                phone
+            )
+
+        else:
+
+            send_message(
+                phone,
+                "❌ המשתמש לא נמצא."
+            )
+
+        return True
+
+
+    # =====================================================
+    # כפתורי תפריט מנהל
+    # =====================================================
+
+    if action_id == "admin_menu":
+
+        clear_session(
+            phone
+        )
+
+        show_admin_menu(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_pending_drivers":
+
+        show_pending_drivers(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_dispatchers":
+
+        show_dispatcher_management_menu(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_dispatcher_add":
+
+        save_session(
+            phone,
+            "admin_dispatcher_add_phone",
+            {}
+        )
+
+        send_message(
+            phone,
+            (
+                "📱 שלח את מספר הטלפון "
+                "שברצונך להוסיף כסדרן."
+            )
+        )
+
+        return True
+
+
+    if action_id == "admin_dispatcher_remove":
+
+        save_session(
+            phone,
+            "admin_dispatcher_remove_phone",
+            {}
+        )
+
+        send_message(
+            phone,
+            (
+                "📱 שלח את מספר הטלפון "
+                "של הסדרן שברצונך להסיר."
+            )
+        )
+
+        return True
+
+
+    if action_id == "admin_dispatcher_list":
+
+        send_dispatcher_list(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_block_user":
+
+        save_session(
+            phone,
+            "admin_block_phone",
+            {}
+        )
+
+        send_message(
+            phone,
+            "🚫 שלח את מספר הטלפון שברצונך לחסום."
+        )
+
+        return True
+
+
+    if action_id == "admin_unblock_user":
+
+        save_session(
+            phone,
+            "admin_unblock_phone",
+            {}
+        )
+
+        send_message(
+            phone,
+            "🔓 שלח את מספר הטלפון שברצונך לפתוח."
+        )
+
+        return True
+
+
+    if action_id == "admin_blocked_list":
+
+        send_blocked_users(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_payments":
+
+        show_pending_payments(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_support":
+
+        show_open_support_requests(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_statistics":
+
+        send_admin_statistics(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_settings":
+
+        show_admin_settings_menu(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_shipments":
+
+        with db() as conn:
+
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM shipments
+
+                WHERE status IN (?, ?, ?)
+
+                ORDER BY created_at DESC
+
+                LIMIT 20
+                """,
+                (
+                    SHIP_OPEN,
+                    SHIP_HAS_INTEREST,
+                    SHIP_ASSIGNED
+                )
+            ).fetchall()
+
+
+        if not rows:
+
+            send_message(
+                phone,
+                "📭 אין כרגע משלוחים פעילים."
+            )
+
+            return True
+
+
+        for row in rows:
+
+            shipment = dict(row)
+
+            send_message(
+                phone,
+
+                f"""
+📦 משלוח #{shipment["id"]}
+
+סטטוס:
+{shipment["status"]}
+
+📍 {shipment["origin_city"]}
+➡️ {shipment["destination_city"]}
+
+💰 {shipment["price"]:g} ₪
+""".strip()
+            )
+
+        return True
+
+
+    # =====================================================
+    # אישור / דחייה / חסימת שליח חדש
+    # =====================================================
+
+    if action_id.startswith(
+        "admin_approve_driver_"
+    ):
+
+        try:
+
+            user_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        if approve_driver(
+            user_id
+        ):
+
+            send_message(
+                phone,
+                "✅ השליח אושר."
+            )
+
+        else:
+
+            send_message(
+                phone,
+                "❌ לא ניתן לאשר את השליח."
+            )
+
+        return True
+
+
+    if action_id.startswith(
+        "admin_reject_driver_"
+    ):
+
+        try:
+
+            user_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        if reject_driver(
+            user_id
+        ):
+
+            send_message(
+                phone,
+                "❌ בקשת השליח נדחתה."
+            )
+
+        return True
+
+
+    if action_id.startswith(
+        "admin_block_driver_"
+    ):
+
+        try:
+
+            user_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        target_user = get_user_by_id(
+            user_id
+        )
+
+
+        if target_user:
+
+            block_user_by_phone(
+                target_user["phone"]
+            )
+
+            send_message(
+                phone,
+                "🚫 המשתמש נחסם."
+            )
+
+        return True
+
+
+    # =====================================================
+    # אישור תשלום
+    # =====================================================
+
+    if action_id.startswith(
+        "admin_payment_approve_"
+    ):
+
+        try:
+
+            payment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        if approve_payment(
+            payment_id
+        ):
+
+            send_message(
+                phone,
+                "✅ התשלום טופל."
+            )
+
+        else:
+
+            send_message(
+                phone,
+                (
+                    "❌ לא ניתן לאשר את התשלום.\n"
+                    "ייתכן שכבר טופל."
+                )
+            )
+
+        return True
+
+
+    if action_id.startswith(
+        "admin_payment_reject_"
+    ):
+
+        try:
+
+            payment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        if reject_payment(
+            payment_id
+        ):
+
+            send_message(
+                phone,
+                "❌ התשלום נדחה."
+            )
+
+        return True
+
+
+    # =====================================================
+    # תמיכה
+    # =====================================================
+
+    if action_id.startswith(
+        "admin_support_reply_"
+    ):
+
+        try:
+
+            support_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        start_admin_support_reply(
+            phone,
+            support_id
+        )
+
+        return True
+
+
+    if action_id.startswith(
+        "admin_support_close_"
+    ):
+
+        try:
+
+            support_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        close_support_request(
+            phone,
+            support_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # הגדרות
+    # =====================================================
+
+    if action_id == "admin_set_price":
+
+        start_admin_set_price(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_set_trial":
+
+        start_admin_set_trial(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_set_bank":
+
+        start_admin_set_bank(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_set_bit":
+
+        start_admin_set_bit(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_set_paybox":
+
+        start_admin_set_paybox(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_toggle_subscription":
+
+        toggle_subscription_system(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_payment_methods":
+
+        show_payment_methods_admin(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "admin_toggle_bank":
+
+        toggle_payment_method(
+            phone,
+            "bank_enabled",
+            "העברה בנקאית"
+        )
+
+        return True
+
+
+    if action_id == "admin_toggle_bit":
+
+        toggle_payment_method(
+            phone,
+            "bit_enabled",
+            "Bit"
+        )
+
+        return True
+
+
+    if action_id == "admin_toggle_paybox":
+
+        toggle_payment_method(
+            phone,
+            "paybox_enabled",
+            "PayBox"
+        )
+
+        return True
+
+
+    if action_id == "admin_maintenance":
+
+        toggle_maintenance_mode(
+            phone
+        )
+
+        return True
+
+
+    return False
+
+
+# =========================================================
+# פעולות משתמש רגיל
+# =========================================================
+
+def handle_user_action(
+    phone,
+    user,
+    text,
+    action_id,
+    media_id=""
+):
+
+    current_session = get_session(
+        phone
+    )
+
+    state = current_session.get(
+        "state",
+        ""
+    )
+
+
+    # =====================================================
+    # תהליכים שממתינים לטקסט / תמונה
+    # =====================================================
+
+    if (
+        state == "payment_waiting_proof"
+    ):
+
+        if media_id:
+
+            return handle_payment_proof(
+                phone,
+                media_id
+            )
+
+        send_message(
+            phone,
+            "📸 נא לשלוח צילום מסך של אישור התשלום."
+        )
+
+        return True
+
+
+    if (
+        state == "support_message"
+        and text
+        and not action_id
+    ):
+
+        return handle_support_message(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "shipment_edit_value"
+        and text
+        and not action_id
+    ):
+
+        return handle_shipment_edit_value(
+            phone,
+            text
+        )
+
+
+    if (
+        state == "driver_interest_eta"
+        and text
+        and not action_id
+    ):
+
+        return handle_driver_interest_eta(
+            phone,
+            text
+        )
+
+
+    if state.startswith(
+        "shipment_"
+    ):
+
+        if handle_new_shipment(
+            phone,
+            text,
+            action_id
+        ):
+
+            return True
+
+
+    # הרשמה
+    if handle_registration(
+        phone,
+        text,
+        action_id
+    ):
+
+        return True
+
+
+    # =====================================================
+    # תפריטים
+    # =====================================================
+
+    if action_id == "customer_menu":
+
+        show_customer_menu(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "driver_menu":
+
+        show_driver_menu(
+            phone,
+            user
+        )
+
+        return True
+
+
+    # =====================================================
+    # מזמין
+    # =====================================================
+
+    if action_id == "customer_new_shipment":
+
+        start_new_shipment(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "customer_my_shipments":
+
+        show_customer_shipments(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "customer_guide":
+
+        send_message(
+            phone,
+            customer_guide()
+        )
+
+        return True
+
+
+    # =====================================================
+    # שליח
+    # =====================================================
+
+    if action_id == "driver_available":
+
+        save_session(
+            phone,
+            "driver_available_city",
+            {}
+        )
+
+        send_message(
+            phone,
+            (
+                "📍 באיזו עיר אתה פנוי?\n\n"
+                "לדוגמה: ירושלים"
+            )
+        )
+
+        return True
+
+
+    if (
+        state == "driver_available_city"
+        and text
+        and not action_id
+    ):
+
+        clear_session(
+            phone
+        )
+
+        set_driver_available(
+            phone,
+            text.strip()
+        )
+
+        return True
+
+
+    if action_id == "driver_open_shipments":
+
+        show_open_shipments_to_driver(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "driver_my_shipments":
+
+        show_driver_shipments(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "driver_guide":
+
+        send_message(
+            phone,
+            driver_guide()
+        )
+
+        return True
+
+
+    if action_id == "driver_subscription":
+
+        show_driver_subscription(
+            phone,
+            user
+        )
+
+        return True
+
+
+    if action_id == "driver_pay_subscription":
+
+        show_driver_payment_methods(
+            phone
+        )
+
+        return True
+
+
+    if action_id == "pay_bank":
+
+        start_subscription_payment(
+            phone,
+            "bank"
+        )
+
+        return True
+
+
+    if action_id == "pay_bit":
+
+        start_subscription_payment(
+            phone,
+            "bit"
+        )
+
+        return True
+
+
+    if action_id == "pay_paybox":
+
+        start_subscription_payment(
+            phone,
+            "paybox"
+        )
+
+        return True
+
+
+    # =====================================================
+    # התעניינות שליח
+    # =====================================================
+
+    if action_id.startswith(
+        "driver_interest_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        start_driver_interest(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # מזמין בוחר שליח
+    # =====================================================
+
+    if action_id.startswith(
+        "customer_select_driver_"
+    ):
+
+        try:
+
+            parts = action_id.split(
+                "_"
+            )
+
+            shipment_id = int(
+                parts[-2]
+            )
+
+            driver_id = int(
+                parts[-1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        select_driver_for_shipment(
+            phone,
+            shipment_id,
+            driver_id
+        )
+
+        return True
+
+
+    if action_id.startswith(
+        "customer_view_interest_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        show_shipment_interests(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # עריכת משלוח
+    # =====================================================
+
+    if action_id.startswith(
+        "customer_edit_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        show_edit_shipment_menu(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    edit_map = {
+        "edit_price_":
+            "price",
+
+        "edit_pickup_":
+                         "pickup_address",
+
+        "edit_dropoff_":
+            "dropoff_address",
+
+        "edit_time_":
+            "pickup_time",
+
+        "edit_package_":
+            "package_description",
+
+        "edit_notes_":
+            "notes",
+    }
+
+
+    for prefix, field in edit_map.items():
+
+        if action_id.startswith(
+            prefix
+        ):
+
+            try:
+
+                shipment_id = int(
+                    action_id.rsplit(
+                        "_",
+                        1
+                    )[1]
+                )
+
+            except Exception:
+
+                return True
+
+
+            start_shipment_edit(
+                phone,
+                shipment_id,
+                field
+            )
+
+            return True
+
+
+    # =====================================================
+    # ביטול משלוח
+    # =====================================================
+
+    if action_id.startswith(
+        "customer_cancel_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        cancel_shipment(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # השלמת משלוח
+    # =====================================================
+
+    if action_id.startswith(
+        "customer_complete_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        complete_shipment(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # דירוג 3–5
+    # =====================================================
+
+    if action_id.startswith(
+        "rate_more_"
+    ):
+
+        try:
+
+            shipment_id = int(
+                action_id.rsplit(
+                    "_",
+                    1
+                )[1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        show_more_rating_options(
+            phone,
+            shipment_id
+        )
+
+        return True
+
+
+    # =====================================================
+    # שמירת דירוג
+    # action:
+    # rate_123_5
+    # =====================================================
+
+    if action_id.startswith(
+        "rate_"
+    ):
+
+        try:
+
+            parts = action_id.split(
+                "_"
+            )
+
+            shipment_id = int(
+                parts[-2]
+            )
+
+            stars = int(
+                parts[-1]
+            )
+
+        except Exception:
+
+            return True
+
+
+        save_driver_rating(
+            phone,
+            shipment_id,
+            stars
+        )
+
+        return True
+
+
+    # =====================================================
+    # תמיכה
+    # =====================================================
+
+    if action_id == "support_new":
+
+        start_support_request(
+            phone
+        )
+
+        return True
+
+
+    support_categories = {
+
+        "support_cat_shipment":
+            "בעיה במשלוח",
+
+        "support_cat_user":
+            "בעיה עם משתמש",
+
+        "support_cat_payment":
+            "תשלום / מנוי",
+
+        "support_cat_account":
+            "חשבון",
+
+        "support_cat_other":
+            "אחר",
+    }
+
+
+    if action_id in support_categories:
+
+        support_category_selected(
+            phone,
+            support_categories[
+                action_id
+            ]
+        )
+
+        return True
+
+
+    return False
+
+
+# =========================================================
+# חילוץ מידע מהודעת WhatsApp
+# =========================================================
+
+def extract_whatsapp_message(
+    incoming
+):
+
+    phone = ""
+    text = ""
+    action_id = ""
+    media_id = ""
+    message_id = ""
+
+
+    try:
+
+        entry = incoming.get(
+            "entry",
+            []
+        )[0]
+
+
+        change = entry.get(
+            "changes",
+            []
+        )[0]
+
+
+        value = change.get(
+            "value",
+            {}
+        )
+
+
+        messages = value.get(
+            "messages",
+            []
+        )
+
+
+        if not messages:
+
+            return {
+                "phone": "",
+                "text": "",
+                "action_id": "",
+                "media_id": "",
+                "message_id": "",
+            }
+
+
+        message = messages[0]
+
+
+        phone = normalize_phone(
+            message.get(
+                "from",
+                ""
+            )
+        )
+
+
+        message_id = message.get(
+            "id",
+            ""
+        )
+
+
+        message_type = message.get(
+            "type",
+            ""
+        )
+
+
+        # -----------------------------------------
+        # הודעת טקסט
+        # -----------------------------------------
+
+        if message_type == "text":
+
+            text = (
+                message.get(
+                    "text",
+                    {}
+                ).get(
+                    "body",
+                    ""
+                )
+                or ""
+            ).strip()
+
+
+        # -----------------------------------------
+        # תמונה
+        # -----------------------------------------
+
+        elif message_type == "image":
+
+            media_id = (
+                message.get(
+                    "image",
+                    {}
+                ).get(
+                    "id",
+                    ""
+                )
+                or ""
+            )
+
+
+            text = (
+                message.get(
+                    "image",
+                    {}
+                ).get(
+                    "caption",
+                    ""
+                )
+                or ""
+            ).strip()
+
+
+        # -----------------------------------------
+        # כפתור / רשימה
+        # -----------------------------------------
+
+        elif message_type == "interactive":
+
+            interactive = message.get(
+                "interactive",
+                {}
+            )
+
+
+            interactive_type = interactive.get(
+                "type",
+                ""
+            )
+
+
+            if interactive_type == "button_reply":
+
+                reply = interactive.get(
+                    "button_reply",
+                    {}
+                )
+
+                action_id = reply.get(
+                    "id",
+                    ""
+                )
+
+                text = reply.get(
+                    "title",
+                    ""
+                )
+
+
+            elif interactive_type == "list_reply":
+
+                reply = interactive.get(
+                    "list_reply",
+                    {}
+                )
+
+                action_id = reply.get(
+                    "id",
+                    ""
+                )
+
+                text = reply.get(
+                    "title",
+                    ""
+                )
+
+
+        # -----------------------------------------
+        # תמיכה גם בכפתור מהסוג הישן
+        # -----------------------------------------
+
+        elif message_type == "button":
+
+            button = message.get(
+                "button",
+                {}
+            )
+
+            action_id = (
+                button.get(
+                    "payload",
+                    ""
+                )
+                or ""
+            )
+
+            text = (
+                button.get(
+                    "text",
+                    ""
+                )
+                or ""
+            )
+
+
+    except Exception:
+
+        traceback.print_exc()
+
+
+    return {
+        "phone":
+            phone,
+
+        "text":
+            text,
+
+        "action_id":
+            action_id,
+
+        "media_id":
+            media_id,
+
+        "message_id":
+            message_id,
+    }
+
+
+# =========================================================
+# GET - אימות Webhook של Meta
+# =========================================================
+
+@app.route(
+    "/webhook",
+    methods=["GET"]
+)
+def verify_webhook():
+
+    mode = request.args.get(
+        "hub.mode"
+    )
+
+    token = request.args.get(
+        "hub.verify_token"
+    )
+
+    challenge = request.args.get(
+        "hub.challenge"
+    )
+
+
+    if (
+        mode == "subscribe"
+        and token == VERIFY_TOKEN
+    ):
+
+        return (
+            challenge,
+            200
+        )
+
+
+    return (
+        "Verification failed",
+        403
+    )
+
+
+# =========================================================
+# POST - קבלת הודעות WhatsApp
+# =========================================================
+
+@app.route(
+    "/webhook",
+    methods=["POST"]
+)
+def webhook():
+
+    incoming = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    parsed = extract_whatsapp_message(
+        incoming
+    )
+
+
+    phone = parsed.get(
+        "phone",
+        ""
+    )
+
+    text = parsed.get(
+        "text",
+        ""
+    )
+
+    action_id = parsed.get(
+        "action_id",
+        ""
+    )
+
+    media_id = parsed.get(
+        "media_id",
+        ""
+    )
+
+    message_id = parsed.get(
+        "message_id",
+        ""
+    )
+
+
+    # אירועי סטטוס של WhatsApp
+    # לא דורשים טיפול.
+    if not phone:
+
+        return (
+            "ok",
+            200
+        )
+
+
+    if is_duplicate_message(
+        message_id
+    ):
+
+        return (
+            "ok",
+            200
+        )
+
+
+    try:
+
+        # -----------------------------------------
+        # המנהל מטופל ראשון
+        # -----------------------------------------
+
+        if phone == ADMIN_PHONE:
+
+            if handle_admin_action(
+                phone,
+                text,
+                action_id
+            ):
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+            # אם המנהל שולח "תפריט"
+            if (
+                text.strip()
+                in (
+                    "תפריט",
+                    "מנהל",
+                    "היי",
+                    "הי",
+                    "שלום"
+                )
+                and not action_id
+            ):
+
+                clear_session(
+                    phone
+                )
+
+                show_admin_menu(
+                    phone
+                )
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+            show_admin_menu(
+                phone
+            )
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # מצב תחזוקה
+        # -----------------------------------------
+
+        if (
+            get_setting(
+                "maintenance_mode",
+                "0"
+            )
+            == "1"
+        ):
+
+            send_message(
+                phone,
+
+                f"""
+🛠️ {BOT_NAME} נמצא כרגע בתחזוקה.
+
+אנא נסה שוב מאוחר יותר.
+""".strip()
+            )
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # משתמש חסום
+        # -----------------------------------------
+
+        user = get_user(
+            phone
+        )
+
+
+        if (
+            user
+            and int(
+                user.get(
+                    "is_blocked"
+                )
+                or 0
+            )
+            == 1
+        ):
+
+            send_message(
+                phone,
+
+                (
+                    "🚫 החשבון שלך חסום במערכת."
+                )
+            )
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # "פנוי ירושלים" / "פ ירושלים"
+        # -----------------------------------------
+
+        city = parse_available_city(
+            text
+        )
+
+
+        if city:
+
+            if not user:
+
+                show_role_choice(
+                    phone
+                )
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+            if (
+                user.get("role")
+                not in (
+                    ROLE_DRIVER,
+                    ROLE_DISPATCHER
+                )
+            ):
+
+                send_message(
+                    phone,
+
+                    (
+                        "פקודת 'פנוי' מיועדת "
+                        "לשליחים ולסדרנים."
+                    )
+                )
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+            set_driver_available(
+                phone,
+                city
+            )
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # משתמש חדש או תהליך הרשמה קיים
+        # -----------------------------------------
+
+        current_session = get_session(
+            phone
+        )
+
+
+        if (
+            not user
+            or current_session.get(
+                "state",
+                ""
+            ).startswith(
+                (
+                    "choose_role",
+                    "customer_",
+                    "driver_"
+                )
+            )
+        ):
+
+            if handle_registration(
+                phone,
+                text,
+                action_id
+            ):
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+            if not user:
+
+                show_role_choice(
+                    phone
+                )
+
+                return (
+                    "ok",
+                    200
+                )
+
+
+        # -----------------------------------------
+        # פעולות משתמש
+        # -----------------------------------------
+
+        if handle_user_action(
+            phone,
+            user,
+            text,
+            action_id,
+            media_id
+        ):
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # מילים לפתיחת תפריט
+        # -----------------------------------------
+
+        if (
+            text.strip()
+            in (
+                "תפריט",
+                "היי",
+                "הי",
+                "שלום",
+                "התחל",
+                "start",
+                "menu"
+            )
+            and not action_id
+        ):
+
+            clear_session(
+                phone
+            )
+
+            show_menu_for_user(
+                phone,
+                user
+            )
+
+            return (
+                "ok",
+                200
+            )
+
+
+        # -----------------------------------------
+        # ברירת מחדל
+        # -----------------------------------------
+
+        show_menu_for_user(
+            phone,
+            user
+        )
+
+
+    except Exception as exc:
+
+        print(
+            "WEBHOOK ERROR:",
+            repr(exc),
+            flush=True
+        )
+
+        traceback.print_exc()
+
+
+        try:
+
+            send_message(
+                ADMIN_PHONE,
+
+                f"""
+⚠️ שגיאה ב-{BOT_NAME}
+
+סוג:
+{type(exc).__name__}
+
+שגיאה:
+{str(exc)[:500]}
+""".strip()
+            )
+
+        except Exception:
+
+            pass
+
+
+    return (
+        "ok",
+        200
+    )
+
+
+# =========================================================
+# בדיקת שרת
+# =========================================================
+
+@app.route(
+    "/",
+    methods=["GET"]
+)
+def home():
+
+    return (
+        f"{BOT_NAME} is running",
+        200
+    )
+
+
+# =========================================================
+# הפעלת השרת
+# =========================================================
+
+if __name__ == "__main__":
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            "10000"
+        )
+    )
+
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
