@@ -449,8 +449,6 @@ def init_db():
 
 
 # יצירת הטבלאות בעליית השרת
-if os.path.exists(DB_PATH):
-    os.remove(DB_PATH)
 
 init_db()
 
