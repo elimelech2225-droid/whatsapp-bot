@@ -7450,3 +7450,2059 @@ def set_driver_available(
     )
 
     return True            
+# =========================================================
+# מנויים ותשלומים
+# =========================================================
+
+def start_subscription_payment(
+    phone,
+    method
+):
+
+    user = get_user(
+        phone
+    )
+
+    if not user:
+
+        return False
+
+
+    if (
+        user.get("role")
+        != ROLE_DRIVER
+    ):
+
+        send_message(
+            phone,
+            "אפשרות המנוי מיועדת לשליחים."
+        )
+
+        return False
+
+
+    price = float(
+        get_setting(
+            "subscription_price",
+            "50"
+        )
+    )
+
+
+    # -----------------------------------------
+    # העברה בנקאית
+    # -----------------------------------------
+
+    if method == "bank":
+
+        if (
+            get_setting(
+                "bank_enabled",
+                "1"
+            )
+            != "1"
+        ):
+
+            send_message(
+                phone,
+                "העברה בנקאית אינה זמינה כרגע."
+            )
+
+            return True
+
+
+        payment_text = f"""
+🏦 תשלום בהעברה בנקאית
+
+סכום לתשלום:
+{price:g} ₪
+
+פרטי החשבון:
+
+{get_setting("bank_details", "טרם הוגדר")}
+
+לאחר ביצוע ההעברה,
+שלח כאן צילום מסך של אישור התשלום.
+
+⚠️ המנוי יופעל רק לאחר אישור המנהל.
+""".strip()
+
+
+    # -----------------------------------------
+    # Bit
+    # -----------------------------------------
+
+    elif method == "bit":
+
+        if (
+            get_setting(
+                "bit_enabled",
+                "1"
+            )
+            != "1"
+        ):
+
+            send_message(
+                phone,
+                "Bit אינו זמין כרגע."
+            )
+
+            return True
+
+
+        payment_text = f"""
+📱 תשלום באמצעות Bit
+
+סכום לתשלום:
+{price:g} ₪
+
+מספר לתשלום:
+{get_setting("bit_phone", "טרם הוגדר")}
+
+לאחר ביצוע התשלום,
+שלח כאן צילום מסך של אישור התשלום.
+
+⚠️ המנוי יופעל רק לאחר אישור המנהל.
+""".strip()
+
+
+    # -----------------------------------------
+    # PayBox
+    # -----------------------------------------
+
+    elif method == "paybox":
+
+        if (
+            get_setting(
+                "paybox_enabled",
+                "1"
+            )
+            != "1"
+        ):
+
+            send_message(
+                phone,
+                "PayBox אינו זמין כרגע."
+            )
+
+            return True
+
+
+        payment_text = f"""
+📲 תשלום באמצעות PayBox
+
+סכום לתשלום:
+{price:g} ₪
+
+מספר לתשלום:
+{get_setting("paybox_phone", "טרם הוגדר")}
+
+לאחר ביצוע התשלום,
+שלח כאן צילום מסך של אישור התשלום.
+
+⚠️ המנוי יופעל רק לאחר אישור המנהל.
+""".strip()
+
+
+    else:
+
+        return False
+
+
+    with db() as conn:
+
+        cursor = conn.execute(
+            """
+            INSERT INTO payments (
+                user_id,
+                amount,
+                payment_method,
+                status,
+                submitted_at
+            )
+
+            VALUES (?, ?, ?, ?, ?)
+            """,
+
+            (
+                user["id"],
+                price,
+                method,
+                PAY_WAITING_PROOF,
+                now_ts()
+            )
+        )
+
+        payment_id = (
+            cursor.lastrowid
+        )
+
+        conn.commit()
+
+
+    save_session(
+        phone,
+
+        "payment_waiting_proof",
+
+        {
+            "payment_id":
+                payment_id
+        }
+    )
+
+
+    send_message(
+        phone,
+        payment_text
+    )
+
+
+    return True
+
+
+# =========================================================
+# קבלת צילום אסמכתא
+# =========================================================
+
+def handle_payment_proof(
+    phone,
+    media_id
+):
+
+    current_session = get_session(
+        phone
+    )
+
+
+    if (
+        current_session.get("state")
+        != "payment_waiting_proof"
+    ):
+
+        return False
+
+
+    if not media_id:
+
+        send_message(
+            phone,
+
+            (
+                "📸 יש לשלוח צילום מסך "
+                "של אישור התשלום."
+            )
+        )
+
+        return True
+
+
+    payment_id = int(
+        current_session.get(
+            "data",
+            {}
+        ).get(
+            "payment_id",
+            0
+        )
+        or 0
+    )
+
+
+    with db() as conn:
+
+        payment = conn.execute(
+            """
+            SELECT *
+            FROM payments
+            WHERE id=?
+            """,
+
+            (
+                payment_id,
+            )
+        ).fetchone()
+
+
+        if not payment:
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                "בקשת התשלום לא נמצאה."
+            )
+
+            return True
+
+
+        conn.execute(
+            """
+            UPDATE payments
+
+            SET
+                proof_media_id=?,
+                status=?,
+                submitted_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                media_id,
+                PAY_WAITING_ADMIN,
+                now_ts(),
+                payment_id
+            )
+        )
+
+        conn.commit()
+
+
+    clear_session(
+        phone
+    )
+
+
+    user = get_user(
+        phone
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+📸 אישור התשלום התקבל.
+
+בקשת תשלום #{payment_id}
+נשלחה לבדיקת המנהל.
+
+המנוי עדיין לא הופעל.
+
+לאחר שהמנהל יאשר את התשלום,
+המנוי יופעל ויישלח אליך קישור לקבלה.
+""".strip()
+    )
+
+
+    # שולחים למנהל קודם את פרטי הבקשה
+    send_message(
+        ADMIN_PHONE,
+
+        f"""
+💳 תשלום חדש ממתין לאישור
+
+בקשה:
+#{payment_id}
+
+👤 שליח:
+{user.get("full_name") if user else "-"}
+
+📱 טלפון:
+{phone}
+
+💰 סכום:
+{payment["amount"]:g} ₪
+
+💳 אמצעי תשלום:
+{payment["payment_method"]}
+
+האסמכתא מצורפת בהודעה הבאה.
+""".strip()
+    )
+
+
+    # שולחים את התמונה עצמה למנהל
+    send_image_by_id(
+        ADMIN_PHONE,
+        media_id
+    )
+
+
+    send_buttons(
+        ADMIN_PHONE,
+
+        f"תשלום #{payment_id} - מה לבצע?",
+
+        [
+            (
+                f"admin_payment_approve_"
+                f"{payment_id}",
+
+                "✅ אשר תשלום"
+            ),
+
+            (
+                f"admin_payment_reject_"
+                f"{payment_id}",
+
+                "❌ דחה תשלום"
+            ),
+        ]
+    )
+
+
+    return True
+
+
+# =========================================================
+# קבלת פרטי תשלום
+# =========================================================
+
+def get_payment(
+    payment_id
+):
+
+    with db() as conn:
+
+        row = conn.execute(
+            """
+            SELECT *
+            FROM payments
+            WHERE id=?
+            """,
+
+            (
+                payment_id,
+            )
+        ).fetchone()
+
+    return row_to_dict(
+        row
+    )
+
+
+# =========================================================
+# אישור תשלום על ידי המנהל
+# =========================================================
+
+def approve_payment(
+    payment_id
+):
+
+    payment = get_payment(
+        payment_id
+    )
+
+
+    if not payment:
+
+        return False
+
+
+    if (
+        payment.get("status")
+        == PAY_APPROVED
+    ):
+
+        return False
+
+
+    if (
+        payment.get("status")
+        != PAY_WAITING_ADMIN
+    ):
+
+        return False
+
+
+    user = get_user_by_id(
+        payment["user_id"]
+    )
+
+
+    if not user:
+
+        return False
+
+
+    current_time = now_ts()
+
+
+    old_subscription_expiry = int(
+        user.get(
+            "subscription_expires_at"
+        )
+        or 0
+    )
+
+
+    # אם יש מנוי בתוקף - מוסיפים חודש מהסוף שלו.
+    # אחרת - חודש ממועד האישור.
+    if (
+        old_subscription_expiry
+        > current_time
+    ):
+
+        subscription_start = (
+            old_subscription_expiry
+        )
+
+    else:
+
+        subscription_start = (
+            current_time
+        )
+
+
+    # חודש מנוי = 30 יום במערכת
+    new_expiry = (
+        subscription_start
+        + (
+            30
+            * 86400
+        )
+    )
+
+
+    # -----------------------------------------
+    # קודם מפיקים קבלה
+    # ורק לאחר שהמנהל לחץ אישור.
+    # -----------------------------------------
+
+    method = payment.get(
+        "payment_method",
+        ""
+    )
+
+
+    receipt_url = create_paperless_receipt(
+
+        client_name=(
+            user.get("full_name")
+            or "לקוח"
+        ),
+
+        phone=(
+            user.get("phone")
+            or ""
+        ),
+
+        amount=(
+            payment.get("amount")
+            or 0
+        ),
+
+        payment_method=
+            method,
+
+        plan_name=
+            BOT_NAME
+    )
+
+
+    # גם אם Paperless נכשל זמנית,
+    # התשלום שהמנהל אישר עדיין נשמר.
+    # נעדכן את המנהל שאין קישור לקבלה.
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE payments
+
+            SET
+                status=?,
+                receipt_url=?,
+                approved_at=?,
+                approved_by=?
+
+            WHERE id=?
+            """,
+
+            (
+                PAY_APPROVED,
+                receipt_url or "",
+                current_time,
+                ADMIN_PHONE,
+                payment_id
+            )
+        )
+
+
+        conn.execute(
+            """
+            UPDATE users
+
+            SET
+                subscription_expires_at=?,
+                updated_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                new_expiry,
+                current_time,
+                user["id"]
+            )
+        )
+
+        conn.commit()
+
+
+    log_admin_action(
+        "APPROVE_PAYMENT",
+
+        target_phone=
+            user["phone"],
+
+        reference_id=
+            payment_id,
+
+        notes=(
+            f"{payment.get('amount')} "
+            f"{method}"
+        )
+    )
+
+
+    if receipt_url:
+
+        send_message(
+            user["phone"],
+
+            f"""
+✅ התשלום אושר על ידי המנהל.
+
+המנוי שלך ב{BOT_NAME} הופעל בהצלחה.
+
+💰 סכום:
+{payment["amount"]:g} ₪
+
+📅 המנוי בתוקף עד:
+{format_date(new_expiry)}
+
+🧾 הקבלה שלך:
+{receipt_url}
+
+תודה!
+""".strip()
+        )
+
+
+        send_message(
+            ADMIN_PHONE,
+
+            f"""
+✅ תשלום #{payment_id} אושר.
+
+המנוי הופעל עד:
+{format_date(new_expiry)}
+
+🧾 הקבלה הופקה בהצלחה.
+""".strip()
+        )
+
+
+    else:
+
+        send_message(
+            user["phone"],
+
+            f"""
+✅ התשלום אושר על ידי המנהל.
+
+המנוי שלך ב{BOT_NAME} הופעל בהצלחה.
+
+📅 המנוי בתוקף עד:
+{format_date(new_expiry)}
+
+⚠️ כרגע לא ניתן היה להפיק את קישור הקבלה.
+ניתן לפנות לנציג במידת הצורך.
+""".strip()
+        )
+
+
+        send_message(
+            ADMIN_PHONE,
+
+            f"""
+⚠️ תשלום #{payment_id} אושר והמנוי הופעל,
+אבל Paperless לא החזיר קישור לקבלה.
+
+יש לבדוק את החיבור ל-Paperless.
+""".strip()
+        )
+
+
+    return True
+
+
+# =========================================================
+# דחיית תשלום
+# =========================================================
+
+def reject_payment(
+    payment_id
+):
+
+    payment = get_payment(
+        payment_id
+    )
+
+
+    if not payment:
+
+        return False
+
+
+    if (
+        payment.get("status")
+        != PAY_WAITING_ADMIN
+    ):
+
+        return False
+
+
+    user = get_user_by_id(
+        payment["user_id"]
+    )
+
+
+    if not user:
+
+        return False
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE payments
+
+            SET
+                status=?,
+                rejected_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                PAY_REJECTED,
+                now_ts(),
+                payment_id
+            )
+        )
+
+        conn.commit()
+
+
+    log_admin_action(
+        "REJECT_PAYMENT",
+
+        target_phone=
+            user["phone"],
+
+        reference_id=
+            payment_id
+    )
+
+
+    send_message(
+        user["phone"],
+
+        f"""
+❌ אישור התשלום #{payment_id}
+לא אושר על ידי המנהל.
+
+המנוי לא הופעל
+ולא הופקה קבלה.
+
+אם שילמת בפועל,
+ניתן לבצע ניסיון חדש ולשלוח אסמכתא ברורה.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# תשלומים שממתינים לאישור
+# =========================================================
+
+def show_pending_payments(
+    phone
+):
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                payments.*,
+                users.full_name,
+                users.phone
+
+            FROM payments
+
+            JOIN users
+                ON users.id=
+                    payments.user_id
+
+            WHERE payments.status=?
+
+            ORDER BY
+                payments.submitted_at ASC
+
+            LIMIT 20
+            """,
+
+            (
+                PAY_WAITING_ADMIN,
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            "✅ אין תשלומים שממתינים לאישור."
+        )
+
+        return
+
+
+    for row in rows:
+
+        payment = dict(row)
+
+
+        send_message(
+            phone,
+
+            f"""
+💳 תשלום ממתין
+
+בקשה:
+#{payment["id"]}
+
+👤:
+{payment.get("full_name") or "-"}
+
+📱:
+{payment.get("phone") or "-"}
+
+💰:
+{payment["amount"]:g} ₪
+
+אמצעי:
+{payment["payment_method"]}
+""".strip()
+        )
+
+
+        if payment.get(
+            "proof_media_id"
+        ):
+
+            send_image_by_id(
+                phone,
+                payment[
+                    "proof_media_id"
+                ]
+            )
+
+
+        send_buttons(
+            phone,
+
+            f"תשלום #{payment['id']}",
+
+            [
+                (
+                    f"admin_payment_approve_"
+                    f"{payment['id']}",
+
+                    "✅ אשר תשלום"
+                ),
+
+                (
+                    f"admin_payment_reject_"
+                    f"{payment['id']}",
+
+                    "❌ דחה תשלום"
+                ),
+            ]
+        )
+
+
+# =========================================================
+# פנייה לנציג
+# =========================================================
+
+def start_support_request(
+    phone
+):
+
+    save_session(
+        phone,
+
+        "support_category",
+
+        {}
+    )
+
+
+    send_list(
+        phone,
+
+        "💬 פנייה לנציג\n\nבחר נושא:",
+
+        "בחירת נושא",
+
+        [
+            (
+                "support_cat_shipment",
+                "📦 בעיה במשלוח",
+                "משלוח פעיל או שהושלם"
+            ),
+
+            (
+                "support_cat_user",
+                "👤 בעיה עם משתמש",
+                "שליח או מזמין"
+            ),
+
+            (
+                "support_cat_payment",
+                "💳 תשלום / מנוי",
+                "בעיה בתשלום"
+            ),
+
+            (
+                "support_cat_account",
+                "⚙️ חשבון",
+                "בעיה בחשבון"
+            ),
+
+            (
+                "support_cat_other",
+                "💬 אחר",
+                "נושא אחר"
+            ),
+        ]
+    )
+
+
+# =========================================================
+# בחירת קטגוריית תמיכה
+# =========================================================
+
+def support_category_selected(
+    phone,
+    category
+):
+
+    save_session(
+        phone,
+
+        "support_message",
+
+        {
+            "category":
+                category
+        }
+    )
+
+
+    send_message(
+        phone,
+
+        """
+✍️ כתוב עכשיו את ההודעה שברצונך לשלוח לנציג.
+
+מומלץ לציין מספר משלוח אם הפנייה קשורה למשלוח.
+""".strip()
+    )
+
+
+# =========================================================
+# שמירת פנייה לנציג
+# =========================================================
+
+def handle_support_message(
+    phone,
+    text
+):
+
+    current_session = get_session(
+        phone
+    )
+
+
+    if (
+        current_session.get("state")
+        != "support_message"
+    ):
+
+        return False
+
+
+    message = (
+        text
+        or ""
+    ).strip()
+
+
+    if len(message) < 2:
+
+        send_message(
+            phone,
+            "נא לכתוב את תוכן הפנייה."
+        )
+
+        return True
+
+
+    data = current_session.get(
+        "data",
+        {}
+    )
+
+
+    category = data.get(
+        "category",
+        "אחר"
+    )
+
+
+    user = get_user(
+        phone
+    )
+
+
+    role = (
+        user.get("role")
+        if user
+        else ""
+    )
+
+
+    with db() as conn:
+
+        cursor = conn.execute(
+            """
+            INSERT INTO support_requests (
+                user_phone,
+                user_role,
+                category,
+                message,
+                status,
+                created_at
+            )
+
+            VALUES (?, ?, ?, ?, 'OPEN', ?)
+            """,
+
+            (
+                phone,
+                role,
+                category,
+                message,
+                now_ts()
+            )
+        )
+
+        support_id = (
+            cursor.lastrowid
+        )
+
+        conn.commit()
+
+
+    clear_session(
+        phone
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ הפנייה נשלחה לנציג.
+
+מספר פנייה:
+#{support_id}
+
+כאשר המנהל ישיב,
+התשובה תישלח אליך כאן.
+""".strip()
+    )
+
+
+    send_buttons(
+        ADMIN_PHONE,
+
+        f"""
+💬 פנייה חדשה לנציג
+
+מספר:
+#{support_id}
+
+👤:
+{user.get("full_name") if user else "-"}
+
+📱:
+{phone}
+
+סוג משתמש:
+{role or "-"}
+
+נושא:
+{category}
+
+הודעה:
+{message}
+""".strip(),
+
+        [
+            (
+                f"admin_support_reply_"
+                f"{support_id}",
+
+                "✍️ השב"
+            ),
+
+            (
+                f"admin_support_close_"
+                f"{support_id}",
+
+                "✅ סגור פנייה"
+            ),
+        ]
+    )
+
+
+    return True
+# =========================================================
+# ניהול פניות על ידי המנהל
+# =========================================================
+
+def show_open_support_requests(
+    phone
+):
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+
+            WHERE status='OPEN'
+
+            ORDER BY created_at ASC
+
+            LIMIT 20
+            """
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            "✅ אין כרגע פניות פתוחות."
+        )
+
+        return
+
+
+    for row in rows:
+
+        support = dict(row)
+
+
+        send_buttons(
+            phone,
+
+            f"""
+💬 פנייה #{support["id"]}
+
+📱 משתמש:
+{support["user_phone"]}
+
+👤 סוג:
+{support.get("user_role") or "-"}
+
+📌 נושא:
+{support.get("category") or "-"}
+
+✍️ הודעה:
+{support.get("message") or "-"}
+""".strip(),
+
+            [
+                (
+                    f"admin_support_reply_"
+                    f"{support['id']}",
+                    "✍️ השב"
+                ),
+
+                (
+                    f"admin_support_close_"
+                    f"{support['id']}",
+                    "✅ סגור פנייה"
+                ),
+            ]
+        )
+
+
+# =========================================================
+# התחלת תשובה לפנייה
+# =========================================================
+
+def start_admin_support_reply(
+    phone,
+    support_id
+):
+
+    if phone != ADMIN_PHONE:
+
+        return False
+
+
+    with db() as conn:
+
+        support = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+            WHERE id=?
+            """,
+            (
+                support_id,
+            )
+        ).fetchone()
+
+
+    if not support:
+
+        send_message(
+            phone,
+            "הפנייה לא נמצאה."
+        )
+
+        return True
+
+
+    save_session(
+        phone,
+
+        "admin_support_reply_text",
+
+        {
+            "support_id":
+                support_id
+        }
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✍️ תשובה לפנייה #{support_id}
+
+כתוב עכשיו את התשובה שתרצה לשלוח למשתמש.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# שליחת תשובת המנהל למשתמש
+# =========================================================
+
+def handle_admin_support_reply(
+    phone,
+    text
+):
+
+    if phone != ADMIN_PHONE:
+
+        return False
+
+
+    current_session = get_session(
+        phone
+    )
+
+
+    if (
+        current_session.get("state")
+        != "admin_support_reply_text"
+    ):
+
+        return False
+
+
+    reply = (
+        text
+        or ""
+    ).strip()
+
+
+    if not reply:
+
+        send_message(
+            phone,
+            "נא לכתוב תשובה."
+        )
+
+        return True
+
+
+    support_id = int(
+        current_session.get(
+            "data",
+            {}
+        ).get(
+            "support_id",
+            0
+        )
+        or 0
+    )
+
+
+    with db() as conn:
+
+        support = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+            WHERE id=?
+            """,
+            (
+                support_id,
+            )
+        ).fetchone()
+
+
+        if not support:
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                "הפנייה לא נמצאה."
+            )
+
+            return True
+
+
+        conn.execute(
+            """
+            UPDATE support_requests
+
+            SET
+                admin_reply=?,
+                status='ANSWERED',
+                replied_at=?
+
+            WHERE id=?
+            """,
+            (
+                reply,
+                now_ts(),
+                support_id
+            )
+        )
+
+        conn.commit()
+
+
+    clear_session(
+        phone
+    )
+
+
+    send_message(
+        support["user_phone"],
+
+        f"""
+💬 תשובה מתמיכת {BOT_NAME}
+
+פנייה #{support_id}
+
+{reply}
+
+אם הבעיה לא נפתרה,
+ניתן לפתוח פנייה חדשה.
+""".strip()
+    )
+
+
+    send_message(
+        phone,
+        f"✅ התשובה לפנייה #{support_id} נשלחה."
+    )
+
+
+    return True
+
+
+# =========================================================
+# סגירת פנייה
+# =========================================================
+
+def close_support_request(
+    phone,
+    support_id
+):
+
+    if phone != ADMIN_PHONE:
+
+        return False
+
+
+    with db() as conn:
+
+        support = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+            WHERE id=?
+            """,
+            (
+                support_id,
+            )
+        ).fetchone()
+
+
+        if not support:
+
+            send_message(
+                phone,
+                "הפנייה לא נמצאה."
+            )
+
+            return True
+
+
+        conn.execute(
+            """
+            UPDATE support_requests
+
+            SET
+                status='CLOSED',
+                closed_at=?
+
+            WHERE id=?
+            """,
+            (
+                now_ts(),
+                support_id
+            )
+        )
+
+        conn.commit()
+
+
+    send_message(
+        phone,
+        f"✅ פנייה #{support_id} נסגרה."
+    )
+
+
+    return True
+
+
+# =========================================================
+# שינוי מחיר מנוי
+# =========================================================
+
+def start_admin_set_price(
+    phone
+):
+
+    save_session(
+        phone,
+        "admin_set_price_value",
+        {}
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+💰 מחיר המנוי הנוכחי:
+{get_setting("subscription_price", "50")} ₪
+
+שלח את המחיר החודשי החדש במספר בלבד.
+""".strip()
+    )
+
+
+def handle_admin_set_price(
+    phone,
+    text
+):
+
+    try:
+
+        price = float(
+            (
+                text
+                or ""
+            ).replace(
+                ",",
+                "."
+            )
+        )
+
+    except Exception:
+
+        price = 0
+
+
+    if price <= 0:
+
+        send_message(
+            phone,
+            "נא לשלוח מחיר תקין."
+        )
+
+        return True
+
+
+    set_setting(
+        "subscription_price",
+        f"{price:g}"
+    )
+
+
+    clear_session(
+        phone
+    )
+
+
+    log_admin_action(
+        "SET_SUBSCRIPTION_PRICE",
+
+        notes=
+            f"{price:g}"
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ מחיר המנוי עודכן.
+
+מחיר חדש:
+{price:g} ₪ לחודש
+""".strip()
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+    return True
+
+
+# =========================================================
+# שינוי מספר ימי ניסיון
+# =========================================================
+
+def start_admin_set_trial(
+    phone
+):
+
+    save_session(
+        phone,
+        "admin_set_trial_value",
+        {}
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+🎁 מספר ימי הניסיון הנוכחי:
+{get_setting("trial_days", "60")}
+
+שלח מספר ימים חדש.
+""".strip()
+    )
+
+
+def handle_admin_set_trial(
+    phone,
+    text
+):
+
+    try:
+
+        days = int(
+            (
+                text
+                or ""
+            ).strip()
+        )
+
+    except Exception:
+
+        days = 0
+
+
+    if (
+        days < 0
+        or days > 3650
+    ):
+
+        send_message(
+            phone,
+            "נא לשלוח מספר ימים תקין."
+        )
+
+        return True
+
+
+    set_setting(
+        "trial_days",
+        str(days)
+    )
+
+
+    clear_session(
+        phone
+    )
+
+
+    log_admin_action(
+        "SET_TRIAL_DAYS",
+
+        notes=
+            str(days)
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ תקופת הניסיון עודכנה.
+
+שליחים חדשים שיאושרו מעכשיו
+יקבלו {days} ימי ניסיון.
+""".strip()
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+    return True
+
+
+# =========================================================
+# שינוי פרטי בנק
+# =========================================================
+
+def start_admin_set_bank(
+    phone
+):
+
+    save_session(
+        phone,
+        "admin_set_bank_value",
+        {}
+    )
+
+
+    send_message(
+        phone,
+
+        """
+🏦 שלח את פרטי חשבון הבנק כפי שתרצה שיופיעו לשליח.
+
+אפשר לכלול:
+שם בנק
+מספר בנק
+סניף
+חשבון
+שם בעל החשבון
+""".strip()
+    )
+
+
+def handle_admin_set_bank(
+    phone,
+    text
+):
+
+    value = (
+        text
+        or ""
+    ).strip()
+
+
+    if len(value) < 3:
+
+        send_message(
+            phone,
+            "פרטי החשבון קצרים מדי."
+        )
+
+        return True
+
+
+    set_setting(
+        "bank_details",
+        value
+    )
+
+
+    clear_session(
+        phone
+    )
+
+
+    log_admin_action(
+        "SET_BANK_DETAILS"
+    )
+
+
+    send_message(
+        phone,
+        "✅ פרטי חשבון הבנק עודכנו."
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+    return True
+
+
+# =========================================================
+# שינוי מספר Bit
+# =========================================================
+
+def start_admin_set_bit(
+    phone
+):
+
+    save_session(
+        phone,
+        "admin_set_bit_value",
+        {}
+    )
+
+
+    send_message(
+        phone,
+        "📱 שלח את מספר הטלפון החדש לתשלום ב-Bit."
+    )
+
+
+def handle_admin_set_bit(
+    phone,
+    text
+):
+
+    value = normalize_phone(
+        text
+    )
+
+
+    if len(value) < 9:
+
+        send_message(
+            phone,
+            "מספר הטלפון לא נראה תקין."
+        )
+
+        return True
+
+
+    set_setting(
+        "bit_phone",
+        value
+    )
+
+
+    clear_session(
+        phone
+    )
+
+
+    log_admin_action(
+        "SET_BIT_PHONE",
+
+        notes=
+            value
+    )
+
+
+    send_message(
+        phone,
+        "✅ מספר Bit עודכן."
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+    return True
+
+
+# =========================================================
+# שינוי מספר PayBox
+# =========================================================
+
+def start_admin_set_paybox(
+    phone
+):
+
+    save_session(
+        phone,
+        "admin_set_paybox_value",
+        {}
+    )
+
+
+    send_message(
+        phone,
+        "📲 שלח את מספר הטלפון החדש לתשלום ב-PayBox."
+    )
+
+
+def handle_admin_set_paybox(
+    phone,
+    text
+):
+
+    value = normalize_phone(
+        text
+    )
+
+
+    if len(value) < 9:
+
+        send_message(
+            phone,
+            "מספר הטלפון לא נראה תקין."
+        )
+
+        return True
+
+
+    set_setting(
+        "paybox_phone",
+        value
+    )
+
+
+    clear_session(
+        phone
+    )
+
+
+    log_admin_action(
+        "SET_PAYBOX_PHONE",
+
+        notes=
+            value
+    )
+
+
+    send_message(
+        phone,
+        "✅ מספר PayBox עודכן."
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+    return True
+
+
+# =========================================================
+# הפעלה / כיבוי של הגדרה
+# =========================================================
+
+def toggle_setting(
+    key
+):
+
+    current = get_setting(
+        key,
+        "1"
+    )
+
+
+    if current == "1":
+
+        new_value = "0"
+
+    else:
+
+        new_value = "1"
+
+
+    set_setting(
+        key,
+        new_value
+    )
+
+
+    return new_value
+
+
+# =========================================================
+# הפעלה / כיבוי מערכת מנויים
+# =========================================================
+
+def toggle_subscription_system(
+    phone
+):
+
+    value = toggle_setting(
+        "subscription_enabled"
+    )
+
+
+    if value == "1":
+
+        text = (
+            "✅ מערכת המנויים הופעלה."
+        )
+
+    else:
+
+        text = (
+            "🟢 מערכת המנויים כובתה.\n"
+            "שליחים יכולים להשתמש במערכת ללא מנוי."
+        )
+
+
+    log_admin_action(
+        "TOGGLE_SUBSCRIPTIONS",
+
+        notes=
+            value
+    )
+
+
+    send_message(
+        phone,
+        text
+    )
+
+
+    show_admin_settings_menu(
+        phone
+    )
+
+
+# =========================================================
+# הפעלה / כיבוי אמצעי תשלום
+# =========================================================
+
+def toggle_payment_method(
+    phone,
+    key,
+    display_name
+):
+
+    value = toggle_setting(
+        key
+    )
+
+
+    status = (
+        "פעיל"
+        if value == "1"
+        else "כבוי"
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ {display_name}
+
+מצב חדש:
+{status}
+""".strip()
+    )
+
+
+    log_admin_action(
+        "TOGGLE_PAYMENT_METHOD",
+
+        notes=
+            f"{key}={value}"
+    )
+
+
+    show_payment_methods_admin(
+        phone
+    )
+
+
+# =========================================================
+# מצב תחזוקה
+# =========================================================
+
+def toggle_maintenance_mode(
+    phone
+):
+
+    value = toggle_setting(
+        "maintenance_mode"
+    )
+
+
+    if value == "1":
+
+        message = (
+            "🛠️ מצב תחזוקה הופעל."
+        )
+
+    else:
+
+        message = (
+            "✅ מצב תחזוקה כובה."
+        )
+
+
+    send_message(
+        phone,
+        message
+    )
+
+
+    log_admin_action(
+        "TOGGLE_MAINTENANCE",
+
+        notes=
+            value
+    )    
