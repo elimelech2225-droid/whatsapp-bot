@@ -4409,3 +4409,3044 @@ def send_admin_statistics(
 פניות פתוחות: {open_support}
 """.strip()
     )
+# =========================================================
+# משלוחים - פונקציות בסיס
+# =========================================================
+
+def get_shipment(
+    shipment_id
+):
+
+    with db() as conn:
+
+        row = conn.execute(
+            """
+            SELECT *
+            FROM shipments
+            WHERE id=?
+            """,
+            (
+                shipment_id,
+            )
+        ).fetchone()
+
+    return row_to_dict(
+        row
+    )
+
+
+def get_interest(
+    shipment_id,
+    driver_id
+):
+
+    with db() as conn:
+
+        row = conn.execute(
+            """
+            SELECT *
+            FROM shipment_interests
+
+            WHERE
+                shipment_id=?
+                AND driver_id=?
+            """,
+            (
+                shipment_id,
+                driver_id
+            )
+        ).fetchone()
+
+    return row_to_dict(
+        row
+    )
+
+
+# =========================================================
+# התחלת פרסום משלוח
+# =========================================================
+
+def start_new_shipment(
+    phone
+):
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        show_role_choice(
+            phone
+        )
+
+        return
+
+
+    if (
+        user.get("role")
+        not in (
+            ROLE_CUSTOMER,
+            ROLE_DISPATCHER
+        )
+    ):
+
+        send_message(
+            phone,
+            (
+                "אפשרות זו מיועדת "
+                "למזמין או לסדרן."
+            )
+        )
+
+        return
+
+
+    save_session(
+        phone,
+
+        "shipment_origin_city",
+
+        {}
+    )
+
+
+    send_message(
+        phone,
+
+        """
+📦 פרסום משלוח חדש
+
+מאיזו עיר המשלוח יוצא?
+""".strip()
+    )
+
+
+# =========================================================
+# תהליך יצירת משלוח
+# =========================================================
+
+def handle_new_shipment(
+    phone,
+    text,
+    action_id
+):
+
+    current_session = get_session(
+        phone
+    )
+
+    state = current_session.get(
+        "state",
+        ""
+    )
+
+    data = current_session.get(
+        "data",
+        {}
+    )
+
+
+    if state == "shipment_origin_city":
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לשלוח עיר איסוף."
+            )
+
+            return True
+
+
+        data[
+            "origin_city"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_pickup_address",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+📍 מה כתובת האיסוף המלאה?
+
+לדוגמה:
+הרצל 10, ירושלים
+""".strip()
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_pickup_address"
+    ):
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לשלוח כתובת איסוף."
+            )
+
+            return True
+
+
+        data[
+            "pickup_address"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_destination_city",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+            "🏁 לאיזו עיר המשלוח מיועד?"
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_destination_city"
+    ):
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לשלוח עיר יעד."
+            )
+
+            return True
+
+
+        data[
+            "destination_city"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_dropoff_address",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+📍 מה כתובת המסירה המלאה?
+""".strip()
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_dropoff_address"
+    ):
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לשלוח כתובת מסירה."
+            )
+
+            return True
+
+
+        data[
+            "dropoff_address"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_pickup_time",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+🕐 מתי צריך לאסוף את המשלוח?
+
+אפשר לכתוב למשל:
+היום 16:30
+מחר בבוקר
+בהקדם האפשרי
+""".strip()
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_pickup_time"
+    ):
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לציין מועד איסוף."
+            )
+
+            return True
+
+
+        data[
+            "pickup_time"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_package",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+📦 מה יש במשלוח?
+
+נא לתאר בקצרה את החבילה.
+""".strip()
+        )
+
+        return True
+
+
+    if state == "shipment_package":
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לתאר את המשלוח."
+            )
+
+            return True
+
+
+        data[
+            "package_description"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_recipient_name",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+👤 מה שם מקבל המשלוח?
+""".strip()
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_recipient_name"
+    ):
+
+        value = (
+            text
+            or ""
+        ).strip()
+
+
+        if not value:
+
+            send_message(
+                phone,
+                "נא לשלוח שם נמען."
+            )
+
+            return True
+
+
+        data[
+            "recipient_name"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_recipient_phone",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+📱 מה מספר הטלפון של הנמען?
+""".strip()
+        )
+
+        return True
+
+
+    if (
+        state
+        == "shipment_recipient_phone"
+    ):
+
+        value = normalize_phone(
+            text
+        )
+
+
+        if len(value) < 9:
+
+            send_message(
+                phone,
+                (
+                    "מספר הטלפון לא נראה תקין.\n"
+                    "נסה שוב."
+                )
+            )
+
+            return True
+
+
+        data[
+            "recipient_phone"
+        ] = value
+
+
+        save_session(
+            phone,
+
+            "shipment_price",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+💰 כמה אתה מציע לשליח עבור המשלוח?
+
+שלח מספר בלבד.
+
+לדוגמה:
+85
+""".strip()
+        )
+
+        return True
+
+
+    if state == "shipment_price":
+
+        raw_price = (
+            text
+            or ""
+        ).strip()
+
+
+        raw_price = raw_price.replace(
+            ",",
+            "."
+        )
+
+
+        try:
+
+            price = float(
+                raw_price
+            )
+
+        except Exception:
+
+            price = 0
+
+
+        if price <= 0:
+
+            send_message(
+                phone,
+
+                (
+                    "נא לשלוח מחיר תקין.\n"
+                    "לדוגמה: 85"
+                )
+            )
+
+            return True
+
+
+        data["price"] = price
+
+
+        save_session(
+            phone,
+
+            "shipment_notes",
+
+            data
+        )
+
+
+        send_message(
+            phone,
+
+            """
+📝 הערות נוספות?
+
+אם אין, כתוב:
+אין
+""".strip()
+        )
+
+        return True
+
+
+    if state == "shipment_notes":
+
+        notes = (
+            text
+            or ""
+        ).strip()
+
+
+        if notes == "אין":
+
+            notes = ""
+
+
+        data["notes"] = notes
+
+
+        save_session(
+            phone,
+
+            "shipment_confirm",
+
+            data
+        )
+
+
+        send_buttons(
+            phone,
+
+            f"""
+📦 נא לבדוק את פרטי המשלוח:
+
+📍 איסוף:
+{data.get("origin_city", "")}
+{data.get("pickup_address", "")}
+
+🏁 יעד:
+{data.get("destination_city", "")}
+{data.get("dropoff_address", "")}
+
+🕐 איסוף:
+{data.get("pickup_time", "")}
+
+📦 תכולה:
+{data.get("package_description", "")}
+
+👤 נמען:
+{data.get("recipient_name", "")}
+
+📱 טלפון:
+{data.get("recipient_phone", "")}
+
+💰 מחיר מוצע:
+{data.get("price", 0):g} ₪
+
+📝 הערות:
+{data.get("notes") or "-"}
+
+לפרסם את המשלוח?
+""".strip(),
+
+            [
+                (
+                    "shipment_confirm_yes",
+                    "✅ פרסם"
+                ),
+
+                (
+                    "shipment_restart",
+                    "✏️ התחל מחדש"
+                ),
+
+                (
+                    "shipment_cancel_new",
+                    "❌ ביטול"
+                ),
+            ]
+        )
+
+        return True
+
+
+    if state == "shipment_confirm":
+
+        if (
+            action_id
+            == "shipment_restart"
+        ):
+
+            start_new_shipment(
+                phone
+            )
+
+            return True
+
+
+        if (
+            action_id
+            == "shipment_cancel_new"
+        ):
+
+            clear_session(
+                phone
+            )
+
+            send_message(
+                phone,
+                "❌ פרסום המשלוח בוטל."
+            )
+
+            show_menu_for_user(
+                phone
+            )
+
+            return True
+
+
+        if (
+            action_id
+            != "shipment_confirm_yes"
+        ):
+
+            send_message(
+                phone,
+                (
+                    "בחר אחת מהאפשרויות "
+                    "באמצעות הכפתורים."
+                )
+            )
+
+            return True
+
+
+        user = get_user(
+            phone
+        )
+
+
+        if not user:
+
+            clear_session(
+                phone
+            )
+
+            show_role_choice(
+                phone
+            )
+
+            return True
+
+
+        with db() as conn:
+
+            cursor = conn.execute(
+                """
+                INSERT INTO shipments (
+                    customer_id,
+                    created_by_role,
+                    status,
+                    origin_city,
+                    pickup_address,
+                    destination_city,
+                    dropoff_address,
+                    pickup_time,
+                    package_description,
+                    recipient_name,
+                    recipient_phone,
+                    price,
+                    notes,
+                    created_at,
+                    updated_at
+                )
+
+                VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                """,
+
+                (
+                    user["id"],
+                    user["role"],
+                    SHIP_OPEN,
+                    data.get(
+                        "origin_city",
+                        ""
+                    ),
+                    data.get(
+                        "pickup_address",
+                        ""
+                    ),
+                    data.get(
+                        "destination_city",
+                        ""
+                    ),
+                    data.get(
+                        "dropoff_address",
+                        ""
+                    ),
+                    data.get(
+                        "pickup_time",
+                        ""
+                    ),
+                    data.get(
+                        "package_description",
+                        ""
+                    ),
+                    data.get(
+                        "recipient_name",
+                        ""
+                    ),
+                    data.get(
+                        "recipient_phone",
+                        ""
+                    ),
+                    float(
+                        data.get(
+                            "price",
+                            0
+                        )
+                    ),
+                    data.get(
+                        "notes",
+                        ""
+                    ),
+                    now_ts(),
+                    now_ts()
+                )
+            )
+
+            shipment_id = (
+                cursor.lastrowid
+            )
+
+            conn.commit()
+
+
+        clear_session(
+            phone
+        )
+
+
+        send_message(
+            phone,
+
+            f"""
+✅ המשלוח פורסם בהצלחה!
+
+מספר משלוח:
+#{shipment_id}
+
+💰 מחיר מוצע:
+{data.get("price", 0):g} ₪
+
+כאשר שליח יתעניין במשלוח,
+תקבל הודעה.
+""".strip()
+        )
+
+
+        return True
+
+
+    return False
+
+
+# =========================================================
+# טקסט משלוח לשליח
+# =========================================================
+
+def shipment_driver_text(
+    shipment
+):
+
+    return f"""
+📦 משלוח #{shipment["id"]}
+
+📍 איסוף:
+{shipment["origin_city"]}
+{shipment["pickup_address"]}
+
+🏁 יעד:
+{shipment["destination_city"]}
+{shipment["dropoff_address"]}
+
+🕐 מועד:
+{shipment["pickup_time"]}
+
+📦 תכולה:
+{shipment["package_description"]}
+
+💰 מחיר:
+{shipment["price"]:g} ₪
+
+⚠️ לפני לחיצה על "אני מעוניין":
+ודא שבדקת את המסלול, המחיר,
+המועד והזמינות שלך.
+""".strip()
+
+
+# =========================================================
+# הצגת משלוחים זמינים לשליח
+# =========================================================
+
+def show_open_shipments_to_driver(
+    phone,
+    city=""
+):
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        return
+
+
+    if (
+        user.get("role")
+        not in (
+            ROLE_DRIVER,
+            ROLE_DISPATCHER
+        )
+    ):
+
+        return
+
+
+    if not driver_has_access(
+        user
+    ):
+
+        send_buttons(
+            phone,
+
+            """
+⚠️ תקופת הניסיון או המנוי שלך הסתיימה.
+
+כדי לקבל משלוחים חדשים
+יש לחדש את המנוי.
+""".strip(),
+
+            [
+                (
+                    "driver_pay_subscription",
+                    "💳 תשלום מנוי"
+                ),
+
+                (
+                    "support_new",
+                    "💬 נציג"
+                ),
+            ]
+        )
+
+        return
+
+
+    query = """
+        SELECT *
+        FROM shipments
+
+        WHERE status IN (?, ?)
+    """
+
+    params = [
+        SHIP_OPEN,
+        SHIP_HAS_INTEREST
+    ]
+
+
+    if city:
+
+        query += """
+            AND (
+                LOWER(origin_city)
+                LIKE LOWER(?)
+
+                OR
+
+                LOWER(destination_city)
+                LIKE LOWER(?)
+            )
+        """
+
+        pattern = (
+            "%"
+            + city.strip()
+            + "%"
+        )
+
+        params.extend(
+            [
+                pattern,
+                pattern
+            ]
+        )
+
+
+    query += """
+        ORDER BY created_at DESC
+        LIMIT 10
+    """
+
+
+    with db() as conn:
+
+        rows = conn.execute(
+            query,
+            tuple(params)
+        ).fetchall()
+
+
+    if not rows:
+
+        if city:
+
+            send_message(
+                phone,
+
+                (
+                    f"📭 כרגע אין משלוחים פתוחים "
+                    f"ב-{city}."
+                )
+            )
+
+        else:
+
+            send_message(
+                phone,
+                "📭 כרגע אין משלוחים פתוחים."
+            )
+
+        return
+
+
+    for row in rows:
+
+        shipment = dict(row)
+
+
+        existing_interest = (
+            get_interest(
+                shipment["id"],
+                user["id"]
+            )
+        )
+
+
+        if existing_interest:
+
+            continue
+
+
+        send_buttons(
+            phone,
+
+            shipment_driver_text(
+                shipment
+            ),
+
+            [
+                (
+                    f"driver_interest_"
+                    f"{shipment['id']}",
+
+                    "🙋 אני מעוניין"
+                ),
+
+                (
+                    "driver_menu",
+                    "⬅️ תפריט"
+                ),
+            ]
+        )
+
+
+# =========================================================
+# התחלת התעניינות שליח
+# =========================================================
+
+def start_driver_interest(
+    phone,
+    shipment_id
+):
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        return False
+
+
+    if (
+        user.get("role")
+        not in (
+            ROLE_DRIVER,
+            ROLE_DISPATCHER
+        )
+    ):
+
+        return False
+
+
+    if not driver_has_access(
+        user
+    ):
+
+        show_driver_subscription(
+            phone,
+            user
+        )
+
+        return True
+
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+
+        return True
+
+
+    if (
+        shipment.get("status")
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        send_message(
+            phone,
+
+            (
+                "המשלוח כבר אינו "
+                "זמין להתעניינות."
+            )
+        )
+
+        return True
+
+
+    if get_interest(
+        shipment_id,
+        user["id"]
+    ):
+
+        send_message(
+            phone,
+
+            (
+                "כבר סימנת שאתה מעוניין "
+                "במשלוח הזה."
+            )
+        )
+
+        return True
+
+
+    save_session(
+        phone,
+
+        "driver_interest_eta",
+
+        {
+            "shipment_id":
+                shipment_id
+        }
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+🙋 משלוח #{shipment_id}
+
+תוך כמה דקות אתה יכול להגיע לנקודת האיסוף?
+
+שלח מספר בלבד.
+
+לדוגמה:
+20
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# שמירת זמן הגעה ושליחת השליח למזמין
+# =========================================================
+
+def handle_driver_interest_eta(
+    phone,
+    text
+):
+
+    current_session = get_session(
+        phone
+    )
+
+    if (
+        current_session.get("state")
+        != "driver_interest_eta"
+    ):
+
+        return False
+
+
+    data = current_session.get(
+        "data",
+        {}
+    )
+
+
+    shipment_id = int(
+        data.get(
+            "shipment_id",
+            0
+        )
+        or 0
+    )
+
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        clear_session(
+            phone
+        )
+
+        return True
+
+
+    try:
+
+        eta = int(
+            (
+                text
+                or ""
+            ).strip()
+        )
+
+    except Exception:
+
+        eta = 0
+
+
+    if (
+        eta <= 0
+        or eta > 1440
+    ):
+
+        send_message(
+            phone,
+
+            (
+                "נא לשלוח זמן הגעה בדקות.\n"
+                "לדוגמה: 20"
+            )
+        )
+
+        return True
+
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+
+    if (
+        not shipment
+        or shipment.get("status")
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        clear_session(
+            phone
+        )
+
+        send_message(
+            phone,
+
+            (
+                "המשלוח כבר אינו זמין."
+            )
+        )
+
+        return True
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            INSERT INTO shipment_interests (
+                shipment_id,
+                driver_id,
+                eta_minutes,
+                status,
+                created_at,
+                updated_at
+            )
+
+            VALUES (?, ?, ?, ?, ?, ?)
+
+            ON CONFLICT(
+                shipment_id,
+                driver_id
+            )
+            DO UPDATE SET
+
+                eta_minutes=
+                    excluded.eta_minutes,
+
+                status=
+                    excluded.status,
+
+                updated_at=
+                    excluded.updated_at
+            """,
+
+            (
+                shipment_id,
+                user["id"],
+                eta,
+                INTEREST_INTERESTED,
+                now_ts(),
+                now_ts()
+            )
+        )
+
+
+        conn.execute(
+                    """
+            UPDATE shipments
+
+            SET
+                status=?,
+                updated_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                SHIP_HAS_INTEREST,
+                now_ts(),
+                shipment_id
+            )
+        )
+
+        conn.commit()
+
+
+    clear_session(
+        phone
+    )
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ ההתעניינות נשלחה למזמין.
+
+משלוח #{shipment_id}
+
+⏱️ ציינת שתוכל להגיע תוך:
+{eta} דקות
+
+אם המזמין יבחר בך,
+תקבל הודעה אוטומטית.
+""".strip()
+    )
+
+
+    customer = get_user_by_id(
+        shipment["customer_id"]
+    )
+
+
+    if customer:
+
+        rating = get_driver_rating(
+            user["id"]
+        )
+
+        completed = get_driver_completed_count(
+            user["id"]
+        )
+
+
+        if rating["count"] > 0:
+
+            rating_text = (
+                f"⭐ {rating['average']:.1f}/5 "
+                f"({rating['count']} דירוגים)"
+            )
+
+        else:
+
+            rating_text = (
+                "⭐ עדיין אין דירוגים"
+            )
+
+
+        send_buttons(
+            customer["phone"],
+
+            f"""
+🙋 שליח מעוניין במשלוח #{shipment_id}
+
+👤 שם:
+{user.get("full_name") or "-"}
+
+🚗 רכב:
+{user.get("vehicle_type") or "-"}
+{user.get("vehicle_year") or ""}
+
+⏱️ יכול להגיע תוך:
+{eta} דקות
+
+{rating_text}
+
+📦 משלוחים שהושלמו:
+{completed}
+
+💰 המחיר שפרסמת:
+{shipment["price"]:g} ₪
+
+האם לבחור בשליח הזה?
+""".strip(),
+
+            [
+                (
+                    f"customer_select_driver_"
+                    f"{shipment_id}_"
+                    f"{user['id']}",
+                    "✅ בחר שליח"
+                ),
+
+                (
+                    f"customer_view_interest_"
+                    f"{shipment_id}",
+                    "👥 מתעניינים"
+                ),
+
+                (
+                    f"customer_shipment_"
+                    f"{shipment_id}",
+                    "📦 משלוח"
+                ),
+            ]
+        )
+
+
+    return True
+
+
+# =========================================================
+# הצגת כל המתעניינים במשלוח
+# =========================================================
+
+def show_shipment_interests(
+    phone,
+    shipment_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+
+        return
+
+
+    customer = get_user(
+        phone
+    )
+
+
+    if (
+        not customer
+        or (
+            customer["id"] != shipment["customer_id"]
+            and phone != ADMIN_PHONE
+        )
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לצפות במשלוח הזה."
+        )
+
+        return
+
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                shipment_interests.*,
+                users.full_name,
+                users.phone,
+                users.vehicle_type,
+                users.vehicle_year,
+                users.vehicle_number
+
+            FROM shipment_interests
+
+            JOIN users
+                ON users.id =
+                    shipment_interests.driver_id
+
+            WHERE
+                shipment_interests.shipment_id=?
+                AND shipment_interests.status=?
+
+            ORDER BY
+                shipment_interests.eta_minutes ASC,
+                shipment_interests.created_at ASC
+            """,
+
+            (
+                shipment_id,
+                INTEREST_INTERESTED
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            (
+                f"📭 עדיין אין שליחים "
+                f"שמעוניינים במשלוח #{shipment_id}."
+            )
+        )
+
+        return
+
+
+    for row in rows:
+
+        interest = dict(row)
+
+        rating = get_driver_rating(
+            interest["driver_id"]
+        )
+
+        completed = get_driver_completed_count(
+            interest["driver_id"]
+        )
+
+
+        if rating["count"]:
+
+            rating_text = (
+                f"⭐ {rating['average']:.1f}/5 "
+                f"({rating['count']} דירוגים)"
+            )
+
+        else:
+
+            rating_text = (
+                "⭐ עדיין אין דירוגים"
+            )
+
+
+        send_buttons(
+            phone,
+
+            f"""
+🚚 שליח מעוניין
+
+👤 {interest.get("full_name") or "-"}
+
+🚗 {interest.get("vehicle_type") or "-"}
+{interest.get("vehicle_year") or ""}
+
+⏱️ הגעה:
+{interest.get("eta_minutes", 0)} דקות
+
+{rating_text}
+
+📦 משלוחים שהושלמו:
+{completed}
+""".strip(),
+
+            [
+                (
+                    f"customer_select_driver_"
+                    f"{shipment_id}_"
+                    f"{interest['driver_id']}",
+                    "✅ בחר שליח"
+                )
+            ]
+        )
+
+
+# =========================================================
+# בחירת שליח על ידי המזמין
+# =========================================================
+
+def select_driver_for_shipment(
+    phone,
+    shipment_id,
+    driver_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+
+        return False
+
+
+    customer = get_user(
+        phone
+    )
+
+
+    if (
+        not customer
+        or (
+            customer["id"] != shipment["customer_id"]
+            and phone != ADMIN_PHONE
+        )
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לבחור שליח למשלוח הזה."
+        )
+
+        return False
+
+
+    if (
+        shipment.get("status")
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        send_message(
+            phone,
+            (
+                "כבר נבחר שליח למשלוח "
+                "או שהמשלוח אינו פעיל."
+            )
+        )
+
+        return False
+
+
+    driver = get_user_by_id(
+        driver_id
+    )
+
+
+    if not driver:
+
+        send_message(
+            phone,
+            "השליח לא נמצא."
+        )
+
+        return False
+
+
+    interest = get_interest(
+        shipment_id,
+        driver_id
+    )
+
+
+    if not interest:
+
+        send_message(
+            phone,
+            (
+                "השליח הזה אינו מסומן "
+                "כמעוניין במשלוח."
+            )
+        )
+
+        return False
+
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE shipments
+
+            SET
+                assigned_driver_id=?,
+                status=?,
+                assigned_at=?,
+                updated_at=?
+
+            WHERE id=?
+            """,
+
+            (
+                driver_id,
+                SHIP_ASSIGNED,
+                now_ts(),
+                now_ts(),
+                shipment_id
+            )
+        )
+
+
+        conn.execute(
+            """
+            UPDATE shipment_interests
+
+            SET
+                status=?,
+                updated_at=?
+
+            WHERE
+                shipment_id=?
+                AND driver_id=?
+            """,
+
+            (
+                INTEREST_SELECTED,
+                now_ts(),
+                shipment_id,
+                driver_id
+            )
+        )
+
+
+        conn.execute(
+            """
+            UPDATE shipment_interests
+
+            SET
+                status=?,
+                updated_at=?
+
+            WHERE
+                shipment_id=?
+                AND driver_id<>?
+            """,
+
+            (
+                INTEREST_REJECTED,
+                now_ts(),
+                shipment_id,
+                driver_id
+            )
+        )
+
+        conn.commit()
+
+
+    send_message(
+        phone,
+
+        f"""
+✅ השליח נבחר בהצלחה.
+
+משלוח #{shipment_id}
+
+🚚 שליח:
+{driver.get("full_name") or "-"}
+
+📱 טלפון:
+{driver.get("phone") or "-"}
+
+⏱️ זמן הגעה שהשליח מסר:
+{interest.get("eta_minutes", 0)} דקות
+""".strip()
+    )
+
+
+    send_message(
+        driver["phone"],
+
+        f"""
+🎉 נבחרת לבצע משלוח #{shipment_id}.
+
+המזמין בחר בך לביצוע המשלוח.
+
+📍 איסוף:
+{shipment["origin_city"]}
+{shipment["pickup_address"]}
+
+🏁 יעד:
+{shipment["destination_city"]}
+{shipment["dropoff_address"]}
+
+🕐 מועד:
+{shipment["pickup_time"]}
+
+💰 מחיר:
+{shipment["price"]:g} ₪
+
+📦 תכולה:
+{shipment["package_description"]}
+
+👤 נמען:
+{shipment["recipient_name"]}
+
+📱 טלפון נמען:
+{shipment["recipient_phone"]}
+
+פרטי המשלוח נשלחו אליך כאן באופן פרטי.
+""".strip()
+    )
+
+
+    return True
+
+
+# =========================================================
+# המשלוחים שלי - מזמין
+# =========================================================
+
+def show_customer_shipments(
+    phone
+):
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        return
+
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM shipments
+
+            WHERE customer_id=?
+
+            ORDER BY created_at DESC
+
+            LIMIT 10
+            """,
+
+            (
+                user["id"],
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            "📭 עדיין לא פרסמת משלוחים."
+        )
+
+        return
+
+
+    for row in rows:
+
+        shipment = dict(row)
+
+
+        if (
+            shipment["status"]
+            in (
+                SHIP_OPEN,
+                SHIP_HAS_INTEREST
+            )
+        ):
+
+            send_buttons(
+                phone,
+
+                f"""
+📦 משלוח #{shipment["id"]}
+
+🟢 פתוח
+
+📍 {shipment["origin_city"]}
+➡️ {shipment["destination_city"]}
+
+💰 {shipment["price"]:g} ₪
+
+🕐 {shipment["pickup_time"]}
+""".strip(),
+
+                [
+                    (
+                        f"customer_view_interest_"
+                        f"{shipment['id']}",
+                        "👥 מתעניינים"
+                    ),
+
+                    (
+                        f"customer_edit_"
+                        f"{shipment['id']}",
+                        "✏️ עריכה"
+                    ),
+
+                    (
+                        f"customer_cancel_"
+                        f"{shipment['id']}",
+                        "❌ ביטול"
+                    ),
+                ]
+            )
+
+
+        elif shipment["status"] == SHIP_ASSIGNED:
+
+            driver = get_user_by_id(
+                shipment["assigned_driver_id"]
+            )
+
+
+            send_buttons(
+                phone,
+
+                f"""
+📦 משלוח #{shipment["id"]}
+
+🚚 שובץ לשליח
+
+שליח:
+{driver.get("full_name") if driver else "-"}
+
+📱:
+{driver.get("phone") if driver else "-"}
+
+📍 {shipment["origin_city"]}
+➡️ {shipment["destination_city"]}
+
+💰 {shipment["price"]:g} ₪
+""".strip(),
+
+                [
+                    (
+                        f"customer_complete_"
+                        f"{shipment['id']}",
+                        "✅ המשלוח נמסר"
+                    ),
+
+                    (
+                        "support_new",
+                        "💬 נציג"
+                    ),
+                ]
+            )
+
+
+        elif shipment["status"] == SHIP_COMPLETED:
+
+            send_message(
+                phone,
+
+                f"""
+📦 משלוח #{shipment["id"]}
+
+✅ הושלם
+
+📍 {shipment["origin_city"]}
+➡️ {shipment["destination_city"]}
+
+💰 {shipment["price"]:g} ₪
+""".strip()
+            )
+
+
+        elif shipment["status"] == SHIP_CANCELLED:
+
+            send_message(
+                phone,
+                f"📦 משלוח #{shipment['id']}\n\n❌ בוטל"
+            )
+
+
+# =========================================================
+# המשלוחים שלי - שליח
+# =========================================================
+
+def show_driver_shipments(
+    phone
+):
+
+    user = get_user(
+        phone
+    )
+
+
+    if not user:
+
+        return
+
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM shipments
+
+            WHERE
+                assigned_driver_id=?
+                AND status IN (?, ?)
+
+            ORDER BY updated_at DESC
+
+            LIMIT 10
+            """,
+
+            (
+                user["id"],
+                SHIP_ASSIGNED,
+                SHIP_COMPLETED
+            )
+        ).fetchall()
+
+
+    if not rows:
+
+        send_message(
+            phone,
+            (
+                "📭 אין לך כרגע "
+                "משלוחים ששובצת אליהם."
+            )
+        )
+
+        return
+
+
+    for row in rows:
+
+        shipment = dict(row)
+
+
+        if shipment["status"] == SHIP_ASSIGNED:
+
+            send_message(
+                phone,
+
+                f"""
+🚚 משלוח #{shipment["id"]}
+
+📍 איסוף:
+{shipment["origin_city"]}
+{shipment["pickup_address"]}
+
+🏁 יעד:
+{shipment["destination_city"]}
+{shipment["dropoff_address"]}
+
+🕐:
+{shipment["pickup_time"]}
+
+📦:
+{shipment["package_description"]}
+
+👤 נמען:
+{shipment["recipient_name"]}
+
+📱:
+{shipment["recipient_phone"]}
+
+💰:
+{shipment["price"]:g} ₪
+""".strip()
+            )
+
+        else:
+
+            send_message(
+                phone,
+
+                f"""
+🚚 משלוח #{shipment["id"]}
+
+✅ המשלוח הושלם
+
+📍 {shipment["origin_city"]}
+➡️ {shipment["destination_city"]}
+
+💰 {shipment["price"]:g} ₪
+""".strip()
+            )
+# =========================================================
+# עריכת משלוח
+# =========================================================
+
+def show_edit_shipment_menu(
+    phone,
+    shipment_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+        return
+
+    user = get_user(
+        phone
+    )
+
+    if (
+        not user
+        or user["id"] != shipment["customer_id"]
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לערוך את המשלוח הזה."
+        )
+        return
+
+    if (
+        shipment["status"]
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        send_message(
+            phone,
+            (
+                "לא ניתן לערוך את המשלוח "
+                "לאחר בחירת שליח."
+            )
+        )
+        return
+
+    send_list(
+        phone,
+
+        f"""
+✏️ עריכת משלוח #{shipment_id}
+
+בחר מה ברצונך לשנות:
+""".strip(),
+
+        "בחר עריכה",
+
+        [
+            (
+                f"edit_price_{shipment_id}",
+                "💰 שינוי מחיר",
+                f"כעת {shipment['price']:g} ₪"
+            ),
+
+            (
+                f"edit_pickup_{shipment_id}",
+                "📍 כתובת איסוף",
+                "שינוי כתובת האיסוף"
+            ),
+
+            (
+                f"edit_dropoff_{shipment_id}",
+                "🏁 כתובת יעד",
+                "שינוי כתובת המסירה"
+            ),
+
+            (
+                f"edit_time_{shipment_id}",
+                "🕐 מועד איסוף",
+                "שינוי המועד"
+            ),
+
+            (
+                f"edit_package_{shipment_id}",
+                "📦 תיאור משלוח",
+                "שינוי תיאור החבילה"
+            ),
+
+            (
+                f"edit_notes_{shipment_id}",
+                "📝 הערות",
+                "שינוי הערות"
+            ),
+        ]
+    )
+
+
+# =========================================================
+# התחלת עריכת שדה
+# =========================================================
+
+def start_shipment_edit(
+    phone,
+    shipment_id,
+    field
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+        return True
+
+    user = get_user(
+        phone
+    )
+
+    if (
+        not user
+        or user["id"] != shipment["customer_id"]
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לערוך את המשלוח."
+        )
+        return True
+
+    if (
+        shipment["status"]
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        send_message(
+            phone,
+            (
+                "לא ניתן לערוך משלוח "
+                "לאחר בחירת שליח."
+            )
+        )
+        return True
+
+    prompts = {
+        "price":
+            "💰 שלח את המחיר החדש במספר בלבד:",
+
+        "pickup_address":
+            "📍 שלח כתובת איסוף חדשה:",
+
+        "dropoff_address":
+            "🏁 שלח כתובת מסירה חדשה:",
+
+        "pickup_time":
+            "🕐 שלח מועד איסוף חדש:",
+
+        "package_description":
+            "📦 שלח תיאור חדש למשלוח:",
+
+        "notes":
+            "📝 שלח הערות חדשות. אם אין, כתוב: אין",
+    }
+
+    if field not in prompts:
+
+        return False
+
+    save_session(
+        phone,
+        "shipment_edit_value",
+        {
+            "shipment_id":
+                shipment_id,
+
+            "field":
+                field
+        }
+    )
+
+    send_message(
+        phone,
+        prompts[field]
+    )
+
+    return True
+
+
+# =========================================================
+# שמירת העריכה
+# =========================================================
+
+def handle_shipment_edit_value(
+    phone,
+    text
+):
+
+    current_session = get_session(
+        phone
+    )
+
+    if (
+        current_session.get("state")
+        != "shipment_edit_value"
+    ):
+
+        return False
+
+    data = current_session.get(
+        "data",
+        {}
+    )
+
+    shipment_id = int(
+        data.get(
+            "shipment_id",
+            0
+        )
+        or 0
+    )
+
+    field = data.get(
+        "field",
+        ""
+    )
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    user = get_user(
+        phone
+    )
+
+    if (
+        not shipment
+        or not user
+        or user["id"] != shipment["customer_id"]
+    ):
+
+        clear_session(
+            phone
+        )
+
+        send_message(
+            phone,
+            "לא ניתן לבצע את העריכה."
+        )
+
+        return True
+
+    if (
+        shipment["status"]
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        clear_session(
+            phone
+        )
+
+        send_message(
+            phone,
+            "כבר נבחר שליח ולכן העריכה נעולה."
+        )
+
+        return True
+
+    value = (
+        text
+        or ""
+    ).strip()
+
+    allowed_fields = {
+        "price",
+        "pickup_address",
+        "dropoff_address",
+        "pickup_time",
+        "package_description",
+        "notes",
+    }
+
+    if field not in allowed_fields:
+
+        clear_session(
+            phone
+        )
+        return True
+
+    if field == "price":
+
+        try:
+
+            new_value = float(
+                value.replace(
+                    ",",
+                    "."
+                )
+            )
+
+        except Exception:
+
+            new_value = 0
+
+        if new_value <= 0:
+
+            send_message(
+                phone,
+                (
+                    "מחיר לא תקין.\n"
+                    "שלח מספר בלבד, לדוגמה: 85"
+                )
+            )
+
+            return True
+
+    else:
+
+        if (
+            field == "notes"
+            and value == "אין"
+        ):
+
+            new_value = ""
+
+        else:
+
+            new_value = value
+
+        if (
+            not new_value
+            and field != "notes"
+        ):
+
+            send_message(
+                phone,
+                "הערך לא יכול להיות ריק."
+            )
+
+            return True
+
+    # שם העמודה מגיע רק מהרשימה הסגורה למעלה
+    sql = (
+        f"UPDATE shipments "
+        f"SET {field}=?, updated_at=? "
+        f"WHERE id=?"
+    )
+
+    with db() as conn:
+
+        conn.execute(
+            sql,
+            (
+                new_value,
+                now_ts(),
+                shipment_id
+            )
+        )
+
+        conn.commit()
+
+    clear_session(
+        phone
+    )
+
+    send_message(
+        phone,
+        f"✅ משלוח #{shipment_id} עודכן בהצלחה."
+    )
+
+    show_customer_shipments(
+        phone
+    )
+
+    return True
+
+
+# =========================================================
+# ביטול משלוח
+# =========================================================
+
+def cancel_shipment(
+    phone,
+    shipment_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+        return False
+
+    user = get_user(
+        phone
+    )
+
+    if (
+        not user
+        or (
+            user["id"] != shipment["customer_id"]
+            and phone != ADMIN_PHONE
+        )
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לבטל את המשלוח."
+        )
+        return False
+
+    if (
+        shipment["status"]
+        not in (
+            SHIP_OPEN,
+            SHIP_HAS_INTEREST
+        )
+    ):
+
+        send_message(
+            phone,
+            (
+                "לא ניתן לבטל אוטומטית "
+                "לאחר בחירת שליח.\n"
+                "במקרה כזה יש לפנות לנציג."
+            )
+        )
+        return False
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE shipments
+
+            SET
+                status=?,
+                cancelled_at=?,
+                updated_at=?
+
+            WHERE id=?
+            """,
+            (
+                SHIP_CANCELLED,
+                now_ts(),
+                now_ts(),
+                shipment_id
+            )
+        )
+
+        conn.commit()
+
+    send_message(
+        phone,
+        f"❌ משלוח #{shipment_id} בוטל."
+    )
+
+    return True
+
+
+# =========================================================
+# סימון משלוח כהושלם
+# =========================================================
+
+def complete_shipment(
+    phone,
+    shipment_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+        return False
+
+    customer = get_user(
+        phone
+    )
+
+    if (
+        not customer
+        or customer["id"] != shipment["customer_id"]
+    ):
+
+        send_message(
+            phone,
+            "רק המזמין יכול לסיים את המשלוח."
+        )
+        return False
+
+    if (
+        shipment["status"]
+        != SHIP_ASSIGNED
+    ):
+
+        send_message(
+            phone,
+            "המשלוח אינו במצב שמאפשר השלמה."
+        )
+        return False
+
+    driver_id = shipment.get(
+        "assigned_driver_id"
+    )
+
+    if not driver_id:
+
+        send_message(
+            phone,
+            "לא נמצא שליח למשלוח."
+        )
+        return False
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE shipments
+
+            SET
+                status=?,
+                completed_at=?,
+                updated_at=?
+
+            WHERE id=?
+            """,
+            (
+                SHIP_COMPLETED,
+                now_ts(),
+                now_ts(),
+                shipment_id
+            )
+        )
+
+        conn.commit()
+
+    driver = get_user_by_id(
+        driver_id
+    )
+
+    send_message(
+        phone,
+        f"✅ משלוח #{shipment_id} סומן כהושלם."
+    )
+
+    if driver:
+
+        send_message(
+            driver["phone"],
+            f"""
+✅ משלוח #{shipment_id} הושלם.
+
+תודה על ביצוע המשלוח ב{BOT_NAME}.
+""".strip()
+        )
+
+    # דירוג לשליח בלבד
+    send_buttons(
+        phone,
+
+        f"""
+⭐ איך היה השירות של השליח במשלוח #{shipment_id}?
+
+בחר דירוג:
+""".strip(),
+
+        [
+            (
+                f"rate_{shipment_id}_1",
+                "⭐ 1"
+            ),
+
+            (
+                f"rate_{shipment_id}_2",
+                "⭐⭐ 2"
+            ),
+
+            (
+                f"rate_more_{shipment_id}",
+                "⭐⭐⭐ 3–5"
+            ),
+        ]
+    )
+
+    return True
+
+
+# =========================================================
+# הצגת דירוגים 3 עד 5
+# =========================================================
+
+def show_more_rating_options(
+    phone,
+    shipment_id
+):
+
+    send_buttons(
+        phone,
+
+        f"""
+⭐ דירוג משלוח #{shipment_id}
+
+בחר מספר כוכבים:
+""".strip(),
+
+        [
+            (
+                f"rate_{shipment_id}_3",
+                "⭐⭐⭐ 3"
+            ),
+
+            (
+                f"rate_{shipment_id}_4",
+                "⭐⭐⭐⭐ 4"
+            ),
+
+            (
+                f"rate_{shipment_id}_5",
+                "⭐⭐⭐⭐⭐ 5"
+            ),
+        ]
+    )
+
+
+# =========================================================
+# שמירת דירוג שליח
+# =========================================================
+
+def save_driver_rating(
+    phone,
+    shipment_id,
+    stars
+):
+
+    if stars not in (
+        1,
+        2,
+        3,
+        4,
+        5
+    ):
+
+        return False
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+
+        send_message(
+            phone,
+            "המשלוח לא נמצא."
+        )
+        return False
+
+    customer = get_user(
+        phone
+    )
+
+    if (
+        not customer
+        or customer["id"] != shipment["customer_id"]
+    ):
+
+        send_message(
+            phone,
+            "אין הרשאה לדרג את המשלוח הזה."
+        )
+        return False
+
+    if (
+        shipment["status"]
+        != SHIP_COMPLETED
+    ):
+
+        send_message(
+            phone,
+            (
+                "ניתן לדרג שליח רק "
+                "לאחר שהמשלוח הושלם."
+            )
+        )
+        return False
+
+    driver_id = shipment.get(
+        "assigned_driver_id"
+    )
+
+    if not driver_id:
+
+        return False
+
+    with db() as conn:
+
+        existing = conn.execute(
+            """
+            SELECT id
+            FROM driver_ratings
+            WHERE shipment_id=?
+            """,
+            (
+                shipment_id,
+            )
+        ).fetchone()
+
+        if existing:
+
+            send_message(
+                phone,
+                "כבר דירגת את השליח במשלוח הזה."
+            )
+            return False
+
+        conn.execute(
+            """
+            INSERT INTO driver_ratings (
+                shipment_id,
+                driver_id,
+                customer_id,
+                stars,
+                created_at
+            )
+
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                shipment_id,
+                driver_id,
+                customer["id"],
+                stars,
+                now_ts()
+            )
+        )
+
+        conn.commit()
+
+    rating = get_driver_rating(
+        driver_id
+    )
+
+    stars_text = (
+        "⭐" * stars
+    )
+
+    send_message(
+        phone,
+        f"""
+תודה על הדירוג 🙏
+
+{stars_text}
+
+הדירוג נשמר בהצלחה.
+""".strip()
+    )
+
+    driver = get_user_by_id(
+        driver_id
+    )
+
+    if driver:
+
+        send_message(
+            driver["phone"],
+            f"""
+⭐ התקבל דירוג חדש על משלוח #{shipment_id}.
+
+הדירוג:
+{stars_text}
+
+הדירוג הנוכחי שלך:
+⭐ {rating["average"]:.1f}/5
+
+מספר דירוגים:
+{rating["count"]}
+""".strip()
+        )
+
+    return True
+
+
+# =========================================================
+# זיהוי "פנוי עיר" / "פ עיר"
+# =========================================================
+
+def parse_available_city(
+    text
+):
+
+    clean = (
+        text
+        or ""
+    ).strip()
+
+    match = re.match(
+        r"^פנוי\s+(.+)$",
+        clean
+    )
+
+    if match:
+
+        return match.group(
+            1
+        ).strip()
+
+    match = re.match(
+        r"^פ\s+(.+)$",
+        clean
+    )
+
+    if match:
+
+        return match.group(
+            1
+        ).strip()
+
+    return ""
+
+
+# =========================================================
+# שמירת זמינות שליח
+# =========================================================
+
+def set_driver_available(
+    phone,
+    city
+):
+
+    user = get_user(
+        phone
+    )
+
+    if not user:
+
+        return False
+
+    if (
+        user.get("role")
+        not in (
+            ROLE_DRIVER,
+            ROLE_DISPATCHER
+        )
+    ):
+
+        return False
+
+    city = (
+        city
+        or ""
+    ).strip()
+
+    if not city:
+
+        return False
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            INSERT INTO driver_availability (
+                driver_id,
+                city,
+                is_available,
+                updated_at
+            )
+
+            VALUES (?, ?, 1, ?)
+
+            ON CONFLICT(driver_id)
+            DO UPDATE SET
+                city=excluded.city,
+                is_available=1,
+                updated_at=excluded.updated_at
+            """,
+            (
+                user["id"],
+                city,
+                now_ts()
+            )
+        )
+
+        conn.commit()
+
+    send_message(
+        phone,
+        f"""
+🟢 סומנת כפנוי באזור:
+{city}
+
+מחפש עבורך משלוחים זמינים...
+""".strip()
+    )
+
+    show_open_shipments_to_driver(
+        phone,
+        city
+    )
+
+    return True            
