@@ -5351,21 +5351,13 @@ def show_open_shipments_to_driver(
 
 
     if city:
-
-                query += """
-            AND LOWER(origin_city)
-                LIKE LOWER(?)
+        query += """
+            AND LOWER(origin_city) LIKE LOWER(?)
         """
 
-        pattern = (
-            "%"
-            + city.strip()
-            + "%"
-        )
+        pattern = "%" + city.strip() + "%"
 
-                params.append(
-            pattern
-        )
+        params.append(pattern)   
 
 
     query += """
