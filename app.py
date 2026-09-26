@@ -3319,7 +3319,37 @@ def handle_registration(
             return True
 
 
-            
+    if state == "driver_agreement":
+        if action_id == "registration_cancel":
+            clear_session(phone)
+            show_role_choice(phone)
+            return True
+
+        if action_id != "driver_agree":
+            send_message(
+                phone,
+                "כדי להמשיך בהרשמה יש לאשר את הצהרת השליח."
+            )
+            return True
+
+        save_session(
+            phone,
+            "driver_id_photo",
+            data
+        )
+
+        send_message(
+            phone,
+            """📸 צילום תעודת זהות
+
+כדי להמשיך בהרשמה לשליחובוט, יש לשלוח עכשיו צילום ברור של תעודת הזהות שלך.
+
+📌 יש לשלוח את התמונה כתמונה ב-WhatsApp."""
+        )
+
+        return True
+
+    return False            
 
 # =========================================================
 # אישור שליח על ידי מנהל
