@@ -3350,7 +3350,7 @@ send_message(
 📸 יש לשלוח את התמונה כהודעת תמונה ב-WhatsApp."""
 )
 
-return True
+        return True
 user = create_or_update_user(
 
             phone=
