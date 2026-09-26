@@ -3335,22 +3335,7 @@ def handle_registration(
 
             return True
 
-        save_session(
-    phone,
-    "driver_id_photo",
-    data
-)
-
-send_message(
-    phone,
-    """🪪 אימות זהות
-
-כדי להשלים את ההרשמה לשליחובוט, יש לשלוח עכשיו צילום ברור של תעודת הזהות שלך.
-
-📸 יש לשלוח את התמונה כהודעת תמונה ב-WhatsApp."""
-)
-
-        return True
+        
 user = create_or_update_user(
 
             phone=
