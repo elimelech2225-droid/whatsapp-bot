@@ -3414,10 +3414,10 @@ notify_admin_new_driver(
     user
 )
 
-        return True
+return True
 
 
-    return False
+return False
 
 
 # =========================================================
