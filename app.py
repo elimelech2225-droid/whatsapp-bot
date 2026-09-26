@@ -3394,10 +3394,10 @@ user = create_or_update_user(
         )
 
 
-        send_message(
-            phone,
+send_message(
+    phone,
 
-            f"""
+    f"""
 ✅ הפרטים התקבלו.
 
 ההרשמה שלך כשליח ב{BOT_NAME}
@@ -3407,12 +3407,12 @@ user = create_or_update_user(
 
 🎁 לאחר האישור תעמוד לרשותך תקופת ניסיון של {get_setting("trial_days", "60")} ימים.
 """.strip()
-        )
+)
 
 
-        notify_admin_new_driver(
-            user
-        )
+notify_admin_new_driver(
+    user
+)
 
         return True
 
