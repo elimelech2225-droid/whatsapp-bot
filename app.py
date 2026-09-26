@@ -10460,27 +10460,27 @@ def handle_user_action(
                 "📸 יש לשלוח צילום של תעודת הזהות כתמונה ב-WhatsApp."
             )
             return True
-
+    
         data = current_session.get("data", {}) or {}
         data["id_photo_media_id"] = media_id
-
+    
         save_session(
             phone,
             "driver_selfie",
             data
         )
-
+    
         send_message(
             phone,
             """🤳 צילום סלפי
-
-צילום תעודת הזהות התקבל בהצלחה ✅
-
-עכשיו יש לשלוח תמונת סלפי ברורה שלך כתמונה ב-WhatsApp."""
+    
+    צילום תעודת הזהות התקבל בהצלחה ✅
+    
+    עכשיו יש לשלוח תמונת סלפי ברורה שלך כתמונה ב-WhatsApp."""
         )
-
+    
         return True
-
+    
     if state == "driver_selfie":
         if not media_id:
             send_message(
@@ -10488,26 +10488,26 @@ def handle_user_action(
                 "🤳 יש לשלוח תמונת סלפי כתמונה ב-WhatsApp."
             )
             return True
-
+    
         data = current_session.get("data", {}) or {}
         data["selfie_media_id"] = media_id
-
+    
         save_session(
             phone,
             "driver_photos_ready",
             data
         )
-
+    
         send_message(
             phone,
             """✅ התמונות התקבלו בהצלחה.
-
-📄 צילום תעודת הזהות התקבל.
-🤳 תמונת הסלפי התקבלה.
-
-ההרשמה כמעט הושלמה."""
+    
+    📄 צילום תעודת הזהות התקבל.
+    🤳 תמונת הסלפי התקבלה.
+    
+    ההרשמה כמעט הושלמה."""
         )
-
+    
         return True        
     # =====================================================
     # תהליכים שממתינים לטקסט / תמונה
