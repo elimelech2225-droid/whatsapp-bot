@@ -451,7 +451,9 @@ def init_db():
 # יצירת הטבלאות בעליית השרת
 
 init_db()
-
+with db() as conn:
+    conn.execute("DELETE FROM users")
+    conn.commit()
 
 # =========================================================
 # כלי עזר - מספר טלפון
