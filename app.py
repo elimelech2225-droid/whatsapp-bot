@@ -11570,7 +11570,7 @@ def webhook():
         # "פנוי ירושלים" / "פ ירושלים"
         # -----------------------------------------
 
-                if text.strip() == "תפוס" and not action_id:
+        if text.strip() == "תפוס" and not action_id:
             if user and user.get("role") in (ROLE_DRIVER, ROLE_DISPATCHER):
                 set_driver_busy(phone)
                 return ("ok", 200)
