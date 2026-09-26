@@ -11662,7 +11662,7 @@ def webhook():
                     )                    
 
 
-            if not user:
+            if not user and current_session.get("state", "") not in ("driver_id_photo", "driver_selfie"):
 
                 show_role_choice(
                     phone
