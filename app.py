@@ -11574,18 +11574,18 @@ def webhook():
     text.strip() == "תפוס"
     and not action_id
 ):
-    if user and user.get("role") in (
-        ROLE_DRIVER,
-        ROLE_DISPATCHER
-    ):
-        set_driver_busy(
-            phone
-        )
-
-        return (
-            "ok",
-            200
-        )       
+        if user and user.get("role") in (
+            ROLE_DRIVER,
+            ROLE_DISPATCHER
+        ):
+            set_driver_busy(
+                phone
+            )
+    
+            return (
+                "ok",
+                200
+            )       
         city = parse_available_city(
             text
         )
