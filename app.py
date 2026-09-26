@@ -5211,7 +5211,7 @@ def handle_new_shipment(
             conn.commit()
 
 
-                notify_available_drivers(
+        notify_available_drivers(
             shipment_id
         )
         clear_session(
