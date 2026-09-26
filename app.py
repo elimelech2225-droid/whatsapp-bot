@@ -3319,90 +3319,37 @@ def handle_registration(
             return True
 
 
-        if (
-            action_id
-            != "driver_agree"
-        ):
-
-            send_message(
-                phone,
-
-                (
-                    "כדי להמשיך בהרשמה "
-                    "יש לאשר את התחייבות השליח."
-                )
-            )
-
+                if state == "driver_agreement":
+        if action_id == "registration_cancel":
+            clear_session(phone)
+            show_role_choice(phone)
             return True
 
-        
-user = create_or_update_user(
-
-            phone=
+        if action_id != "driver_agree":
+            send_message(
                 phone,
+                "כדי להמשיך בהרשמה יש לאשר את הצהרת השליח."
+            )
+            return True
 
-            role=
-                ROLE_DRIVER,
-
-            full_name=
-                data.get(
-                    "full_name",
-                    ""
-                ),
-
-            city=
-                data.get(
-                    "city",
-                    ""
-                ),
-
-            vehicle_type=
-                data.get(
-                    "vehicle_type",
-                    ""
-                ),
-
-            vehicle_year=
-                data.get(
-                    "vehicle_year",
-                    ""
-                ),
-
-            vehicle_number=
-                data.get(
-                    "vehicle_number",
-                    ""
-                ),
-
-            registration_status=
-                REG_WAITING
+        save_session(
+            phone,
+            "driver_id_photo",
+            data
         )
 
+        send_message(
+            phone,
+            """📷 צילום תעודת זהות
 
-send_message(
-    phone,
+כדי להמשיך בהרשמה לשליחובוט, יש לשלוח עכשיו צילום ברור של תעודת הזהות שלך.
 
-    f"""
-✅ הפרטים התקבלו.
+יש לשלוח את התמונה כהודעת תמונה ב-WhatsApp."""
+        )
 
-ההרשמה שלך כשליח ב{BOT_NAME}
-נשלחה לאישור מנהל.
+        return True
 
-לאחר האישור תקבל הודעה אוטומטית.
-
-🎁 לאחר האישור תעמוד לרשותך תקופת ניסיון של {get_setting("trial_days", "60")} ימים.
-""".strip()
-)
-
-
-notify_admin_new_driver(
-    user
-)
-
-return True
-
-
-return False
+    return False
 
 
 # =========================================================
