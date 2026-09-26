@@ -10453,7 +10453,7 @@ def handle_user_action(
         ""
     )
 
-        if state == "driver_id_photo":
+    if state == "driver_id_photo":
         if not media_id:
             send_message(
                 phone,
@@ -10508,7 +10508,7 @@ def handle_user_action(
 ההרשמה כמעט הושלמה."""
         )
 
-        return True
+        return True        
     # =====================================================
     # תהליכים שממתינים לטקסט / תמונה
     # =====================================================
