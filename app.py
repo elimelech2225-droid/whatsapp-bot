@@ -481,7 +481,75 @@ def normalize_phone(value):
 
     return digits
 
+# ============================================================
+# Google Routes API - חישוב מרחק וזמן נסיעה
+# ============================================================
 
+def get_google_route(origin_address, destination_address):
+    if not GOOGLE_MAPS_API_KEY:
+        raise RuntimeError("GOOGLE_MAPS_API_KEY is missing")
+
+    url = "https://routes.googleapis.com/directions/v2:computeRoutes"
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+        "X-Goog-FieldMask": (
+            "routes.distanceMeters,"
+            "routes.duration,"
+            "routes.staticDuration"
+        ),
+    }
+
+    payload = {
+        "origin": {
+            "address": origin_address
+        },
+        "destination": {
+            "address": destination_address
+        },
+        "travelMode": "DRIVE",
+        "routingPreference": "TRAFFIC_AWARE",
+        "languageCode": "he",
+        "units": "METRIC",
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=15,
+    )
+
+    response.raise_for_status()
+
+    result = response.json()
+    routes = result.get("routes") or []
+
+    if not routes:
+        raise ValueError("Google Routes API did not return a route")
+
+    route = routes[0]
+
+    distance_meters = int(route.get("distanceMeters", 0))
+    distance_km = distance_meters / 1000
+
+    duration_seconds = int(
+        str(route.get("duration", "0s")).replace("s", "")
+    )
+
+    static_duration_seconds = int(
+        str(route.get("staticDuration", "0s")).replace("s", "")
+    )
+
+    return {
+        "distance_meters": distance_meters,
+        "distance_km": round(distance_km, 1),
+        "duration_seconds": duration_seconds,
+        "duration_minutes": round(duration_seconds / 60),
+        "static_duration_seconds": static_duration_seconds,
+        "static_duration_minutes": round(static_duration_seconds / 60),
+    }
 # =========================================================
 # כלי עזר - Row -> dict
 # =========================================================
