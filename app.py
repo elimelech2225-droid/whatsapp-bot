@@ -11650,16 +11650,16 @@ def webhook():
             )
         ):
 
+        if current_session.get("state", "") not in ("driver_id_photo", "driver_selfie"):
             if handle_registration(
                 phone,
                 text,
                 action_id
             ):
-
                 return (
                     "ok",
                     200
-                )
+                )                    
 
 
             if not user:
