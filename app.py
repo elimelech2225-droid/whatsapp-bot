@@ -49,7 +49,10 @@ DB_PATH = os.environ.get(
     "DB_PATH",
     "bot.db"
 )
-
+GOOGLE_MAPS_API_KEY = os.environ.get(
+    "GOOGLE_MAPS_API_KEY",
+    ""
+)
 IS_VAT_EXEMPT = True
 
 
