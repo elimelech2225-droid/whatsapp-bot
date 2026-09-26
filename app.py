@@ -10496,25 +10496,36 @@ def handle_user_action(
             "driver_photos_ready",
             data
         )
-        user = get_user(phone)
+        user = create_or_update_user(
+            phone=phone,
+            role=ROLE_DRIVER,
+            full_name=data.get("full_name", ""),
+            city=data.get("city", ""),
+            vehicle_type=data.get("vehicle_type", ""),
+            vehicle_year=data.get("vehicle_year", ""),
+            vehicle_number=data.get("vehicle_number", ""),
+            registration_status=REG_WAITING
+        )
 
-        if user:
-            id_photo_media_id = data.get("id_photo_media_id", "")
+        id_photo_media_id = data.get(
+            "id_photo_media_id",
+            ""
+        )
 
-            if id_photo_media_id:
-                send_image_by_id(
-                    ADMIN_PHONE,
-                    id_photo_media_id
-                )
-
+        if id_photo_media_id:
             send_image_by_id(
                 ADMIN_PHONE,
-                media_id
+                id_photo_media_id
             )
 
-            notify_admin_new_driver(
-                user
-            )            
+        send_image_by_id(
+            ADMIN_PHONE,
+            media_id
+        )
+
+        notify_admin_new_driver(
+            user
+        )        
         send_message(
             phone,
             """✅ התמונות התקבלו בהצלחה.
