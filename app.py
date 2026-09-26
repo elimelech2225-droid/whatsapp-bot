@@ -10496,7 +10496,15 @@ def handle_user_action(
             "driver_photos_ready",
             data
         )
+        send_message(
+            ADMIN_PHONE,
+            f"""🚚 בקשת הרשמה חדשה של שליח
 
+📱 טלפון: {phone}
+
+📄 צילום תעודת הזהות והסלפי התקבלו.
+מיד יישלחו אליך שתי התמונות."""
+        )
         send_message(
             phone,
             """✅ התמונות התקבלו בהצלחה.
