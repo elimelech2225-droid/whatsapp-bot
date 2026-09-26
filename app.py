@@ -10496,15 +10496,25 @@ def handle_user_action(
             "driver_photos_ready",
             data
         )
-        send_message(
-            ADMIN_PHONE,
-            f"""🚚 בקשת הרשמה חדשה של שליח
+        user = get_user(phone)
 
-📱 טלפון: {phone}
+        if user:
+            id_photo_media_id = data.get("id_photo_media_id", "")
 
-📄 צילום תעודת הזהות והסלפי התקבלו.
-מיד יישלחו אליך שתי התמונות."""
-        )
+            if id_photo_media_id:
+                send_image_by_id(
+                    ADMIN_PHONE,
+                    id_photo_media_id
+                )
+
+            send_image_by_id(
+                ADMIN_PHONE,
+                media_id
+            )
+
+            notify_admin_new_driver(
+                user
+            )            
         send_message(
             phone,
             """✅ התמונות התקבלו בהצלחה.
@@ -10512,7 +10522,8 @@ def handle_user_action(
 📄 צילום תעודת הזהות התקבל.
 🤳 תמונת הסלפי התקבלה.
 
-ההרשמה כמעט הושלמה."""
+⏳ ההרשמה שלך הועברה לבדיקה ואישור מנהל.
+לאחר אישור המנהל תקבל הודעה כאן ב-WhatsApp ותוכל להתחיל להשתמש בשליחובוט."""
         )
 
         return True
