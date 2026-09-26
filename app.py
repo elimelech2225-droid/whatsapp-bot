@@ -3351,7 +3351,7 @@ send_message(
 )
 
 return True
-        user = create_or_update_user(
+user = create_or_update_user(
 
             phone=
                 phone,
