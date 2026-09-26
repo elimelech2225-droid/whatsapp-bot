@@ -10453,7 +10453,7 @@ def handle_user_action(
         ""
     )
 
-        if state == "driver_id_photo":
+    if state == "driver_id_photo":
         if not media_id:
             send_message(
                 phone,
