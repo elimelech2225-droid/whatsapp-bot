@@ -5211,6 +5211,9 @@ def handle_new_shipment(
             conn.commit()
 
 
+                notify_available_drivers(
+            shipment_id
+        )
         clear_session(
             phone
         )
@@ -5349,16 +5352,9 @@ def show_open_shipments_to_driver(
 
     if city:
 
-        query += """
-            AND (
-                LOWER(origin_city)
+                query += """
+            AND LOWER(origin_city)
                 LIKE LOWER(?)
-
-                OR
-
-                LOWER(destination_city)
-                LIKE LOWER(?)
-            )
         """
 
         pattern = (
@@ -5367,11 +5363,8 @@ def show_open_shipments_to_driver(
             + "%"
         )
 
-        params.extend(
-            [
-                pattern,
-                pattern
-            ]
+                params.append(
+            pattern
         )
 
 
@@ -7471,6 +7464,126 @@ def set_driver_available(
 # מנויים ותשלומים
 # =========================================================
 
+# =========================================================
+# סימון שליח כתפוס
+# =========================================================
+
+def set_driver_busy(
+    phone
+):
+
+    user = get_user(
+        phone
+    )
+
+    if not user:
+
+        return False
+
+    if (
+        user.get("role")
+        not in (
+            ROLE_DRIVER,
+            ROLE_DISPATCHER
+        )
+    ):
+
+        return False
+
+    with db() as conn:
+
+        conn.execute(
+            """
+            UPDATE driver_availability
+
+            SET
+                city='',
+                is_available=0,
+                updated_at=?
+
+            WHERE driver_id=?
+            """,
+            (
+                now_ts(),
+                user["id"]
+            )
+        )
+
+        conn.commit()
+
+    send_message(
+        phone,
+        """
+🔴 סומנת כתפוס.
+
+לא יישלחו אליך משלוחים חדשים
+עד שתכתוב שוב לדוגמה:
+
+פ ירושלים
+או
+פנוי ירושלים
+""".strip()
+    )
+
+    return True
+
+# =========================================================
+# שליחת משלוח חדש לשליחים פנויים בעיר האיסוף
+# =========================================================
+
+def notify_available_drivers(
+    shipment_id
+):
+
+    shipment = get_shipment(
+        shipment_id
+    )
+
+    if not shipment:
+        return False
+
+    city = (
+        shipment.get("origin_city")
+        or ""
+    ).strip()
+
+    if not city:
+        return False
+
+    # זמינות תקפה ל-24 שעות
+    cutoff = now_ts() - (24 * 60 * 60)
+
+    with db() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT u.phone
+            FROM driver_availability da
+
+            JOIN users u
+                ON u.id = da.driver_id
+
+            WHERE da.is_available = 1
+              AND da.updated_at >= ?
+              AND LOWER(da.city) = LOWER(?)
+              AND u.is_blocked = 0
+            """,
+            (
+                cutoff,
+                city
+            )
+        ).fetchall()
+
+    for row in rows:
+
+        driver_phone = row["phone"]
+
+        show_open_shipments_to_driver(
+            driver_phone,
+            city
+        )
+
+    return True
 def start_subscription_payment(
     phone,
     method
@@ -11465,6 +11578,24 @@ def webhook():
         # "פנוי ירושלים" / "פ ירושלים"
         # -----------------------------------------
 
+                if (
+            text.strip() == "תפוס"
+            and not action_id
+        ):
+
+            if user and user.get("role") in (
+                ROLE_DRIVER,
+                ROLE_DISPATCHER
+            ):
+
+                set_driver_busy(
+                    phone
+                )
+
+                return (
+                    "ok",
+                    200
+                )
         city = parse_available_city(
             text
         )
