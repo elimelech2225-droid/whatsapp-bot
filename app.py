@@ -5043,7 +5043,7 @@ def handle_new_shipment(phone, text, action_id):
         # ============================================================
     # שלב 1 - קבלת עיר מוצא + עיר יעד
     # ============================================================
-    if state in {
+        if state in {
         "shipment_origin_city",
         "shipment_origin_short",
     }:
@@ -5055,14 +5055,65 @@ def handle_new_shipment(phone, text, action_id):
                 """📍 מאיזו עיר לאיזו עיר?
 
 לדוגמה:
+ירושלים לתל אביב
+בית שמש לתל אביב"""
+            )
+            return True
+
+        # מנרמלים "ל" שמפרידה בין עיר המוצא לעיר היעד
+        normalized_route = re.sub(r"\s+", " ", route_text).strip()
+
+        # קודם מנסים צורה מפורשת: "בית שמש לתל אביב"
+        route_match = re.match(
+            r"^(.+?)\s+ל(.+)$",
+            normalized_route
+        )
+
+        if route_match:
+            origin_city = route_match.group(1).strip()
+            destination_city = route_match.group(2).strip()
+
+        else:
+            # בלי ל' - מנסים את כל נקודות החיתוך האפשריות
+            # ובוחרים את הזוג הראשון ששתי הערים שלו מזוהות במפות
+            words = normalized_route.split()
+            origin_city = ""
+            destination_city = ""
+
+            for i in range(1, len(words)):
+                possible_origin = " ".join(words[:i]).strip()
+                possible_destination = " ".join(words[i:]).strip()
+
+                try:
+                    test_route = get_google_route(
+                        f"{possible_origin}, ישראל",
+                        f"{possible_destination}, ישראל"
+                    )
+
+                    if float(test_route.get("distance_km", 0) or 0) > 0:
+                        origin_city = possible_origin
+                        destination_city = possible_destination
+                        break
+                except Exception:
+                    continue
+
+        if not origin_city or not destination_city:
+            send_message(
+                phone,
+                """⚠️ לא הצלחתי לזהות את שתי הערים.
+
+נסה למשל:
+בית שמש לתל אביב
+
+או:
 ירושלים בית שמש"""
             )
             return True
 
-        # שומרים את מה שהמשתמש כתב בשלב העיר-לעיר
         save(
             "shipment_addresses_both",
-            origin_address=route_text,
+            origin_city=origin_city,
+            destination_city=destination_city,
             route_text=route_text,
         )
 
@@ -5080,7 +5131,6 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         return True
-
     # ============================================================
     # שלב 2 - קבלת כתובת איסוף + כתובת מסירה
     # ============================================================
