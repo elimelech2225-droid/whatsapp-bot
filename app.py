@@ -4506,13 +4506,7 @@ def start_new_shipment(
         return
 
 
-    save_session(
-        phone,
-
-        "shipment_origin_city",
-
-        {}
-    )
+    
 
 
         save_session(
