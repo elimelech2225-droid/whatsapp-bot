@@ -5028,11 +5028,14 @@ def handle_new_shipment(phone, text, action_id):
         # ============================================================
     # שלב 1 - קבלת עיר מוצא + עיר יעד
     # ============================================================
+        # ============================================================
+    # שלב 1 - קבלת עיר מוצא + עיר יעד
+    # ============================================================
     if state in {
         "shipment_origin_city",
         "shipment_origin_short",
     }:
-        route_text = clean_value(text)
+        route_text = (text or "").strip()
 
         if len(route_text) < 3:
             send_message(
@@ -5045,7 +5048,6 @@ def handle_new_shipment(phone, text, action_id):
             return True
 
         # שומרים את מה שהמשתמש כתב בשלב העיר-לעיר
-        # כדי שהמשך הזרימה הקיים יוכל להשתמש בו
         save(
             "shipment_addresses_both",
             origin_address=route_text,
@@ -5068,23 +5070,26 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     # ============================================================
-    # שלב 2 - כתובת איסוף + כתובת מסירה
+    # שלב 2 - קבלת כתובת איסוף + כתובת מסירה
     # ============================================================
     if state == "shipment_addresses_both":
-        addresses_text = clean_value(text)
+        addresses_text = (text or "").strip()
 
         if len(addresses_text) < 5:
             send_message(
                 phone,
-                """📍 רשום כתובת איסוף וכתובת מסירה.
+                """📍 רשום קודם כתובת איסוף ולאחריה כתובת מסירה.
 
 לדוגמה:
-הרצל 50 ירקון 10"""
+הרצל 50 ירקון 10
+
+אפשר גם:
+הרצל 50 לירקון 10"""
             )
             return True
 
-        # מחפשים שתי כתובות לפי מספרי הבית.
-        # עובד למשל גם עם:
+        # זיהוי שתי הכתובות לפי מספרי הבית.
+        # לדוגמה:
         # הרצל 50 ירקון 10
         # הרצל 50 לירקון 10
         match = re.match(
@@ -5097,18 +5102,18 @@ def handle_new_shipment(phone, text, action_id):
                 phone,
                 """⚠️ לא הצלחתי לזהות שתי כתובות.
 
-רשום קודם כתובת איסוף ולאחריה כתובת מסירה.
+רשום קודם את כתובת האיסוף ולאחריה את כתובת המסירה.
 
 לדוגמה:
 הרצל 50 ירקון 10
 
-או:
+אפשר גם:
 הרצל 50 לירקון 10"""
             )
             return True
 
-        pickup_address = clean_value(match.group(1))
-        destination_address = clean_value(match.group(2))
+        pickup_address = (match.group(1) or "").strip()
+        destination_address = (match.group(2) or "").strip()
 
         save(
             "shipment_pickup_time_choice",
@@ -5137,7 +5142,6 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         return True
-
     # =====================================================
     # זמן - עכשיו
     # =====================================================
