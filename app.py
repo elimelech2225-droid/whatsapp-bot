@@ -4727,7 +4727,7 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def calculate_price():
-                origin_address = (
+        origin_address = (
             data.get("origin_address")
             or data.get("pickup_address")
             or ""
@@ -4763,7 +4763,7 @@ def handle_new_shipment(phone, text, action_id):
         if destination_city:
             destination = f"{destination_address}, {destination_city}, ישראל"
         else:
-            destination = f"{destination_address}, ישראל"
+            destination = f"{destination_address}, ישראל"                
         route = get_google_route(
             origin,
             destination
