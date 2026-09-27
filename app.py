@@ -136,6 +136,8 @@ DEFAULT_SETTINGS = {
 
     # מצב תחזוקה
     "maintenance_mode": "0",
+    # הפעלה / כיבוי של צד השליחים
+    "driver_side_enabled": "1",        
 }
 
 
