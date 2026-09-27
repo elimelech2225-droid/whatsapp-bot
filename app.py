@@ -1993,6 +1993,11 @@ def show_admin_menu(phone):
             ),
 
             (
+                "admin_driver_side_toggle",
+                "🚚 הפעלה / כיבוי צד השליחים",
+                "השארת צד השולח פעיל",
+            ),            
+            (
                 "admin_shipments",
                 "📦 משלוחים פעילים",
                 "צפייה במשלוחים"
