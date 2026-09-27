@@ -4515,7 +4515,7 @@ def start_new_shipment(
     )
 
 
-     save_session(
+         save_session(
         phone,
         "shipment_route_cities",
         {}
@@ -4529,7 +4529,7 @@ def start_new_shipment(
 
 לדוגמה:
 ירושלים לתל אביב"""
-    )   
+    )
 
 # =========================================================
 # תהליך יצירת משלוח
