@@ -4951,11 +4951,10 @@ def handle_new_shipment(phone, text, action_id):
             f"""📦 סיכום משלוח
 
 📍 איסוף:
-{data.get('origin_address', '')}
+{data.get('origin_city', '')} {data.get('origin_address') or data.get('pickup_address', '')}
 
 🎯 יעד:
-{data.get('destination_city', '')}
-
+{data.get('destination_city', '')} {data.get('destination_address', '')}
 🕐 איסוף:
 {pickup_time}
 
