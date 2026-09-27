@@ -4648,7 +4648,7 @@ def handle_new_shipment(phone, text, action_id):
     # בית שמש לבני ברק
     # =====================================================
 
-        def parse_cities(value):
+    def parse_cities(value):
         value = clean_value(value)
 
         if not value:
@@ -4685,7 +4685,7 @@ def handle_new_shipment(phone, text, action_id):
         return (
             origin_city,
             destination_city
-        )
+        )        
 
     # =====================================================
     # כתובת מלאה לחישוב Google
