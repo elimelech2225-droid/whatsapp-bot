@@ -4531,6 +4531,8 @@ def start_new_shipment(
 # =========================================================
 
 def handle_new_shipment(phone, text, action_id):
+    if (action_id or "").startswith("customer_select_driver_"):
+        return False    
     user = get_user(phone)
 
     if not user:
