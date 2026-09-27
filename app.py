@@ -4515,17 +4515,16 @@ def start_new_shipment(
     )
 
 
-         
-
     send_message(
         phone,
         """📦 פרסום משלוח חדש
 
-📍 מאיזו עיר לאיזו עיר?
+📍 מאיזו עיר המשלוח יוצא?
+רשום עיר + רחוב ומספר.
 
 לדוגמה:
-ירושלים לתל אביב"""
-    )
+ ירושלים הרצל 9"""
+    )        
 
 # =========================================================
 # תהליך יצירת משלוח
@@ -4727,43 +4726,30 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def calculate_price():
-        origin_address = (
-            data.get("origin_address")
-            or data.get("pickup_address")
-            or ""
+        origin = data.get(
+            "origin_address",
+            ""
         ).strip()
 
-        destination_address = (
-            data.get("destination_address")
-            or ""
+        destination_city = data.get(
+            "destination_city",
+            ""
         ).strip()
 
-        origin_city = (
-            data.get("origin_city")
-            or ""
-        ).strip()
+        if not origin:
+            raise ValueError(
+                "חסרה כתובת איסוף"
+            )
 
-        destination_city = (
-            data.get("destination_city")
-            or ""
-        ).strip()
+        if not destination_city:
+            raise ValueError(
+                "חסרה עיר יעד"
+            )
 
-        if not origin_address:
-            raise ValueError("חסרה כתובת איסוף")
+        destination = (
+            f"{destination_city}, ישראל"
+        )
 
-        if not destination_address:
-            raise ValueError("חסרה כתובת מסירה")
-
-        # מחברים את הרחוב לעיר שנבחרה קודם, אם העיר קיימת
-        if origin_city:
-            origin = f"{origin_address}, {origin_city}, ישראל"
-        else:
-            origin = f"{origin_address}, ישראל"
-
-        if destination_city:
-            destination = f"{destination_address}, {destination_city}, ישראל"
-        else:
-            destination = f"{destination_address}, ישראל"                
         route = get_google_route(
             origin,
             destination
@@ -4951,10 +4937,11 @@ def handle_new_shipment(phone, text, action_id):
             f"""📦 סיכום משלוח
 
 📍 איסוף:
-{data.get('origin_city', '')} {data.get('origin_address') or data.get('pickup_address', '')}
+{data.get('origin_address', '')}
 
 🎯 יעד:
-{data.get('destination_city', '')} {data.get('destination_address', '')}
+{data.get('destination_city', '')}
+
 🕐 איסוף:
 {pickup_time}
 
@@ -5037,151 +5024,55 @@ def handle_new_shipment(phone, text, action_id):
     # עיר + רחוב ומספר באותה הודעה
     # =====================================================
 
-        # ============================================================
-    # שלב 1 - קבלת עיר מוצא + עיר יעד
-    # ============================================================
-        # ============================================================
-    # שלב 1 - קבלת עיר מוצא + עיר יעד
-    # ============================================================
-        if state in {
+    if state in {
         "shipment_origin_city",
         "shipment_origin_short",
     }:
-        route_text = (text or "").strip()
-
-        if len(route_text) < 3:
+        if len(text) < 3:
             send_message(
                 phone,
-                """📍 מאיזו עיר לאיזו עיר?
-
-לדוגמה:
-ירושלים לתל אביב
-בית שמש לתל אביב"""
+                "📍 רשום עיר + רחוב ומספר."
             )
-            return True
 
-        # מנרמלים "ל" שמפרידה בין עיר המוצא לעיר היעד
-        normalized_route = re.sub(r"\s+", " ", route_text).strip()
-
-        # קודם מנסים צורה מפורשת: "בית שמש לתל אביב"
-        route_match = re.match(
-            r"^(.+?)\s+ל(.+)$",
-            normalized_route
-        )
-
-        if route_match:
-            origin_city = route_match.group(1).strip()
-            destination_city = route_match.group(2).strip()
-
-        else:
-            # בלי ל' - מנסים את כל נקודות החיתוך האפשריות
-            # ובוחרים את הזוג הראשון ששתי הערים שלו מזוהות במפות
-            words = normalized_route.split()
-            origin_city = ""
-            destination_city = ""
-
-            for i in range(1, len(words)):
-                possible_origin = " ".join(words[:i]).strip()
-                possible_destination = " ".join(words[i:]).strip()
-
-                try:
-                    test_route = get_google_route(
-                        f"{possible_origin}, ישראל",
-                        f"{possible_destination}, ישראל"
-                    )
-
-                    if float(test_route.get("distance_km", 0) or 0) > 0:
-                        origin_city = possible_origin
-                        destination_city = possible_destination
-                        break
-                except Exception:
-                    continue
-
-        if not origin_city or not destination_city:
-            send_message(
-                phone,
-                """⚠️ לא הצלחתי לזהות את שתי הערים.
-
-נסה למשל:
-בית שמש לתל אביב
-
-או:
-ירושלים בית שמש"""
-            )
             return True
 
         save(
-            "shipment_addresses_both",
-            origin_city=origin_city,
-            destination_city=destination_city,
-            route_text=route_text,
+            "shipment_destination_city_short",
+            origin_address=text
         )
 
         send_message(
             phone,
-            """📍 מה כתובת האיסוף וכתובת המסירה?
+            """🎯 לאן מוסרים?
 
-רשום קודם את כתובת האיסוף ולאחריה את כתובת המסירה.
+רשום רק את העיר.
 
 לדוגמה:
-הרצל 50 ירקון 10
-
-אפשר גם:
-הרצל 50 לירקון 10"""
+ירושלים"""
         )
 
         return True
-    # ============================================================
-    # שלב 2 - קבלת כתובת איסוף + כתובת מסירה
-    # ============================================================
-    if state == "shipment_addresses_both":
-        addresses_text = (text or "").strip()
 
-        if len(addresses_text) < 5:
+    # =====================================================
+    # שלב 2 - יעד
+    # עיר בלבד
+    # =====================================================
+
+    if (
+        state
+        == "shipment_destination_city_short"
+    ):
+        if len(text) < 2:
             send_message(
                 phone,
-                """📍 רשום קודם כתובת איסוף ולאחריה כתובת מסירה.
-
-לדוגמה:
-הרצל 50 ירקון 10
-
-אפשר גם:
-הרצל 50 לירקון 10"""
+                "🎯 רשום את עיר היעד."
             )
+
             return True
-
-        # זיהוי שתי הכתובות לפי מספרי הבית.
-        # לדוגמה:
-        # הרצל 50 ירקון 10
-        # הרצל 50 לירקון 10
-        match = re.match(
-            r"^\s*(.+?\s+\d+[א-תA-Za-z]?)\s+(?:ל\s*)?(.+?\s+\d+[א-תA-Za-z]?)\s*$",
-            addresses_text,
-        )
-
-        if not match:
-            send_message(
-                phone,
-                """⚠️ לא הצלחתי לזהות שתי כתובות.
-
-רשום קודם את כתובת האיסוף ולאחריה את כתובת המסירה.
-
-לדוגמה:
-הרצל 50 ירקון 10
-
-אפשר גם:
-הרצל 50 לירקון 10"""
-            )
-            return True
-
-        pickup_address = (match.group(1) or "").strip()
-        destination_address = (match.group(2) or "").strip()
 
         save(
             "shipment_pickup_time_choice",
-            pickup_address=pickup_address,
-            origin_address=pickup_address,
-            destination_address=destination_address,
+            destination_city=text
         )
 
         send_buttons(
@@ -5190,20 +5081,21 @@ def handle_new_shipment(phone, text, action_id):
             [
                 (
                     "shipment_time_now",
-                    "עכשיו",
+                    "עכשיו"
                 ),
                 (
                     "shipment_time_other",
-                    "שעה אחרת",
+                    "שעה אחרת"
                 ),
                 (
                     "shipment_cancel_new",
-                    "ביטול",
+                    "ביטול"
                 ),
-            ],
+            ]
         )
 
         return True
+
     # =====================================================
     # זמן - עכשיו
     # =====================================================
