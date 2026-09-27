@@ -11203,13 +11203,12 @@ def handle_user_action(
         )
 
 
-        if state.startswith("shipment_"):
+    if state.startswith("shipment_"):
         return handle_new_shipment(
             phone,
             text,
             action_id
-        )
-
+        )        
     # הרשמה
     if handle_registration(
         phone,
