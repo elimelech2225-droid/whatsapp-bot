@@ -4727,30 +4727,43 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def calculate_price():
-        origin = data.get(
-            "origin_address",
-            ""
+                origin_address = (
+            data.get("origin_address")
+            or data.get("pickup_address")
+            or ""
         ).strip()
 
-        destination_city = data.get(
-            "destination_city",
-            ""
+        destination_address = (
+            data.get("destination_address")
+            or ""
         ).strip()
 
-        if not origin:
-            raise ValueError(
-                "חסרה כתובת איסוף"
-            )
+        origin_city = (
+            data.get("origin_city")
+            or ""
+        ).strip()
 
-        if not destination_city:
-            raise ValueError(
-                "חסרה עיר יעד"
-            )
+        destination_city = (
+            data.get("destination_city")
+            or ""
+        ).strip()
 
-        destination = (
-            f"{destination_city}, ישראל"
-        )
+        if not origin_address:
+            raise ValueError("חסרה כתובת איסוף")
 
+        if not destination_address:
+            raise ValueError("חסרה כתובת מסירה")
+
+        # מחברים את הרחוב לעיר שנבחרה קודם, אם העיר קיימת
+        if origin_city:
+            origin = f"{origin_address}, {origin_city}, ישראל"
+        else:
+            origin = f"{origin_address}, ישראל"
+
+        if destination_city:
+            destination = f"{destination_address}, {destination_city}, ישראל"
+        else:
+            destination = f"{destination_address}, ישראל"
         route = get_google_route(
             origin,
             destination
