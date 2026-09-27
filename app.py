@@ -4523,7 +4523,7 @@ def start_new_shipment(
 רשום עיר + רחוב ומספר.
 
 לדוגמה:
-הרצל 9"""
+ ירושלים הרצל 9"""
     )        
 
 # =========================================================
@@ -5695,7 +5695,88 @@ def handle_new_shipment(phone, text, action_id):
 
         return True
 
-    return False        
+    return False
+def shipment_driver_text(shipment):
+    notes = (
+        shipment["notes"]
+        if shipment["notes"]
+        else ""
+    )
+
+    pickup_time = "לא צוין"
+    vehicle_name = "לא צוין"
+    driver_help = "לא"
+    distance_text = ""
+    duration_text = ""
+
+    for line in notes.splitlines():
+        line = line.strip()
+
+        if line.startswith("זמן איסוף:"):
+            pickup_time = line.split(
+                ":",
+                1
+            )[1].strip()
+
+        elif line.startswith("סוג רכב נדרש:"):
+            vehicle_name = line.split(
+                ":",
+                1
+            )[1].strip()
+
+        elif line.startswith("עזרת נהג:"):
+            driver_help = line.split(
+                ":",
+                1
+            )[1].strip()
+
+        elif line.startswith("מרחק:"):
+            distance_text = line.split(
+                ":",
+                1
+            )[1].strip()
+
+        elif line.startswith("זמן נסיעה משוער:"):
+            duration_text = line.split(
+                ":",
+                1
+            )[1].strip()
+
+    text = f"""📦 משלוח #{shipment["id"]}
+
+📍 איסוף:
+{shipment["pickup_address"]}
+
+🎯 יעד:
+{shipment["destination_city"]}
+
+🕐 זמן איסוף:
+{pickup_time}
+
+🚘 רכב:
+{vehicle_name}
+
+💪 עזרת נהג:
+{driver_help}"""
+
+    if distance_text:
+        text += f"""
+
+🛣️ מרחק:
+{distance_text}"""
+
+    if duration_text:
+        text += f"""
+
+⏱️ זמן נסיעה משוער:
+{duration_text}"""
+
+    text += f"""
+
+💰 מחיר:
+{shipment["price"]} ₪"""
+
+    return text    
 # =========================================================
 # הצגת משלוחים זמינים לשליח
 # =========================================================
