@@ -5025,55 +5025,96 @@ def handle_new_shipment(phone, text, action_id):
     # עיר + רחוב ומספר באותה הודעה
     # =====================================================
 
+        # ============================================================
+    # שלב 1 - קבלת עיר מוצא + עיר יעד
+    # ============================================================
     if state in {
         "shipment_origin_city",
         "shipment_origin_short",
     }:
-        if len(text) < 3:
+        route_text = clean_value(text)
+
+        if len(route_text) < 3:
             send_message(
                 phone,
-                "📍 רשום עיר + רחוב ומספר."
-            )
+                """📍 מאיזו עיר לאיזו עיר?
 
+לדוגמה:
+ירושלים בית שמש"""
+            )
             return True
 
+        # שומרים את מה שהמשתמש כתב בשלב העיר-לעיר
+        # כדי שהמשך הזרימה הקיים יוכל להשתמש בו
         save(
-            "shipment_destination_city_short",
-            origin_address=text
+            "shipment_addresses_both",
+            origin_address=route_text,
+            route_text=route_text,
         )
 
         send_message(
             phone,
-            """🎯 לאן מוסרים?
+            """📍 מה כתובת האיסוף וכתובת המסירה?
 
-רשום רק את העיר.
+רשום קודם את כתובת האיסוף ולאחריה את כתובת המסירה.
 
 לדוגמה:
-ירושלים"""
+הרצל 50 ירקון 10
+
+אפשר גם:
+הרצל 50 לירקון 10"""
         )
 
         return True
 
-    # =====================================================
-    # שלב 2 - יעד
-    # עיר בלבד
-    # =====================================================
+    # ============================================================
+    # שלב 2 - כתובת איסוף + כתובת מסירה
+    # ============================================================
+    if state == "shipment_addresses_both":
+        addresses_text = clean_value(text)
 
-    if (
-        state
-        == "shipment_destination_city_short"
-    ):
-        if len(text) < 2:
+        if len(addresses_text) < 5:
             send_message(
                 phone,
-                "🎯 רשום את עיר היעד."
-            )
+                """📍 רשום כתובת איסוף וכתובת מסירה.
 
+לדוגמה:
+הרצל 50 ירקון 10"""
+            )
             return True
+
+        # מחפשים שתי כתובות לפי מספרי הבית.
+        # עובד למשל גם עם:
+        # הרצל 50 ירקון 10
+        # הרצל 50 לירקון 10
+        match = re.match(
+            r"^\s*(.+?\s+\d+[א-תA-Za-z]?)\s+(?:ל\s*)?(.+?\s+\d+[א-תA-Za-z]?)\s*$",
+            addresses_text,
+        )
+
+        if not match:
+            send_message(
+                phone,
+                """⚠️ לא הצלחתי לזהות שתי כתובות.
+
+רשום קודם כתובת איסוף ולאחריה כתובת מסירה.
+
+לדוגמה:
+הרצל 50 ירקון 10
+
+או:
+הרצל 50 לירקון 10"""
+            )
+            return True
+
+        pickup_address = clean_value(match.group(1))
+        destination_address = clean_value(match.group(2))
 
         save(
             "shipment_pickup_time_choice",
-            destination_city=text
+            pickup_address=pickup_address,
+            origin_address=pickup_address,
+            destination_address=destination_address,
         )
 
         send_buttons(
@@ -5082,17 +5123,17 @@ def handle_new_shipment(phone, text, action_id):
             [
                 (
                     "shipment_time_now",
-                    "עכשיו"
+                    "עכשיו",
                 ),
                 (
                     "shipment_time_other",
-                    "שעה אחרת"
+                    "שעה אחרת",
                 ),
                 (
                     "shipment_cancel_new",
-                    "ביטול"
+                    "ביטול",
                 ),
-            ]
+            ],
         )
 
         return True
