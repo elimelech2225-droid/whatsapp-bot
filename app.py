@@ -4648,41 +4648,32 @@ def handle_new_shipment(phone, text, action_id):
     # בית שמש לבני ברק
     # =====================================================
 
-    def parse_cities(value):
+        def parse_cities(value):
         value = clean_value(value)
 
         if not value:
             return None
 
-        # קודם מחפשים ל' שמתחילה את עיר היעד.
-        # לדוגמה:
+        # דוגמאות תקינות:
         # ירושלים לתל אביב
+        # עמנואל לבני ברק
         # אשקלון לירושלים
         #
-        # נדרשת לפחות מילה/טקסט לפני ואחרי.
-        matches = list(
-            re.finditer(
-                r"\s+ל(?=\S)",
-                value
-            )
+        # מחפשים רווח ואחריו ל' שמחוברת לעיר היעד.
+        match = re.match(
+            r"^(.+?)\s+ל(.+)$",
+            value
         )
 
-        if not matches:
+        if not match:
             return None
 
-        # משתמשים בהפרדה הראשונה.
-        separator = matches[0]
-
         origin_city = clean_value(
-            value[
-                :separator.start()
-            ]
+            match.group(1)
         )
 
         destination_city = clean_value(
-            value[
-                separator.end():
-            ]
+            match.group(2)
         )
 
         if (
