@@ -4537,15 +4537,36 @@ def handle_new_shipment(phone, text, action_id):
         return False
 
     session = get_session(phone)
-    state = session.get("state", "")
+
+    state = session.get(
+        "state",
+        ""
+    )
+
+    data = session.get(
+        "data",
+        {}
+    )
+
+    if not isinstance(data, dict):
+        data = {}
+
+    text = (
+        text
+        or ""
+    ).strip()
+
+    action_id = (
+        action_id
+        or ""
+    ).strip()
 
     # =====================================================
-    # הגדרות מחירון
+    # מחירון כלי רכב
     # =====================================================
 
     VEHICLES = {
-        "shipment_vehicle_motorcycle": {
-            "code": "motorcycle",
+        "motorcycle": {
             "label": "אופנוע / קטנוע",
             "minimum": 80,
             "included_km": 10,
@@ -4553,8 +4574,8 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": 30,
             "help_extra": 0,
         },
-        "shipment_vehicle_private": {
-            "code": "private",
+
+        "private": {
             "label": "רכב פרטי",
             "minimum": 100,
             "included_km": 10,
@@ -4562,8 +4583,8 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 50,
         },
-        "shipment_vehicle_7": {
-            "code": "7_seats",
+
+        "7_seats": {
             "label": "רכב 7 מקומות",
             "minimum": 150,
             "included_km": 10,
@@ -4571,8 +4592,8 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 80,
         },
-        "shipment_vehicle_small_commercial": {
-            "code": "small_commercial",
+
+        "small_commercial": {
             "label": "מסחרי קטן / ברלינגו",
             "minimum": 150,
             "included_km": 10,
@@ -4580,8 +4601,8 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 80,
         },
-        "shipment_vehicle_large_commercial": {
-            "code": "large_commercial",
+
+        "large_commercial": {
             "label": "מסחרי גדול / ויטו",
             "minimum": 200,
             "included_km": 10,
@@ -4591,73 +4612,115 @@ def handle_new_shipment(phone, text, action_id):
         },
     }
 
-    def vehicle_by_code(code):
-        for item in VEHICLES.values():
-            if item["code"] == code:
-                return item
+    # =====================================================
+    # פונקציות פנימיות
+    # =====================================================
 
-        return None
+    def save(
+        new_state=None,
+        **changes
+    ):
+        nonlocal state
+        nonlocal data
 
-    def show_vehicle_menu():
-        send_list(
+        for key, value in changes.items():
+            data[key] = value
+
+        if new_state is None:
+            new_state = state
+
+        state = new_state
+
+        save_session(
             phone,
-            "🚘 איזה כלי רכב נדרש למשלוח?",
-            "בחירת רכב",
-            [
-                {
-                    "id": "shipment_vehicle_motorcycle",
-                    "title": "אופנוע / קטנוע",
-                    "description": "עד 30 ק״מ",
-                },
-                {
-                    "id": "shipment_vehicle_private",
-                    "title": "רכב פרטי",
-                    "description": "משלוח לרכב רגיל",
-                },
-                {
-                    "id": "shipment_vehicle_7",
-                    "title": "רכב 7 מקומות",
-                    "description": "למשלוח גדול יותר",
-                },
-                {
-                    "id": "shipment_vehicle_small_commercial",
-                    "title": "מסחרי קטן",
-                    "description": "ברלינגו וכדומה",
-                },
-                {
-                    "id": "shipment_vehicle_large_commercial",
-                    "title": "מסחרי גדול",
-                    "description": "ויטו וכדומה",
-                },
-            ],
+            new_state,
+            data
         )
 
-    def show_help_question():
-        current = get_session(phone)
-
-        vehicle = vehicle_by_code(
-            current.get(
-                "temp_vehicle_type",
+    def vehicle_info():
+        return VEHICLES.get(
+            data.get(
+                "vehicle_type",
                 ""
             )
         )
 
-        if not vehicle:
+    def vehicle_label():
+        info = vehicle_info()
+
+        if not info:
+            return "-"
+
+        return info["label"]
+
+    def show_vehicle_menu():
+        send_buttons(
+            phone,
+            "🚘 איזה כלי רכב נדרש למשלוח?",
+            [
+                (
+                    "shipment_vehicle_motorcycle",
+                    "אופנוע / קטנוע"
+                ),
+                (
+                    "shipment_vehicle_private",
+                    "רכב פרטי"
+                ),
+                (
+                    "shipment_vehicle_more",
+                    "רכבים נוספים"
+                ),
+            ]
+        )
+
+    def show_more_vehicle_menu():
+        send_buttons(
+            phone,
+            "🚚 בחר סוג רכב:",
+            [
+                (
+                    "shipment_vehicle_7",
+                    "רכב 7 מקומות"
+                ),
+                (
+                    "shipment_vehicle_small_commercial",
+                    "מסחרי קטן"
+                ),
+                (
+                    "shipment_vehicle_large_commercial",
+                    "מסחרי גדול"
+                ),
+            ]
+        )
+
+    def show_help_question():
+        info = vehicle_info()
+
+        if not info:
+            save(
+                "shipment_vehicle"
+            )
+
             show_vehicle_menu()
             return
 
-        extra = vehicle["help_extra"]
+        extra = int(
+            info.get(
+                "help_extra",
+                0
+            )
+            or 0
+        )
 
         if extra > 0:
             message = (
                 "💪 האם הנהג צריך לעזור "
                 "בהעמסה או בפריקה?\n\n"
-                f"תוספת עבור עזרת נהג: "
-                f"{extra} ₪"
+                f"תוספת עזרת נהג: {extra} ₪"
             )
         else:
             message = (
-                "💪 האם נדרשת עזרת הנהג "
+                "💪 האם הנהג צריך לעזור "
                 "בהעמסה או בפריקה?"
             )
 
@@ -4677,25 +4740,25 @@ def handle_new_shipment(phone, text, action_id):
                     "shipment_cancel_new",
                     "ביטול"
                 ),
-            ],
+            ]
         )
 
-    def calculate_current_price():
-        current = get_session(phone)
-
-        origin_address = (
-            f"{current.get('temp_pickup_address', '')}, "
-            f"{current.get('temp_origin', '')}, ישראל"
+    def calculate_price():
+        origin = (
+            f"{data.get('pickup_address', '')}, "
+            f"{data.get('origin_city', '')}, "
+            "ישראל"
         )
 
-        destination_address = (
-            f"{current.get('temp_dropoff_address', '')}, "
-            f"{current.get('temp_destination', '')}, ישראל"
+        destination = (
+            f"{data.get('dropoff_address', '')}, "
+            f"{data.get('destination_city', '')}, "
+            "ישראל"
         )
 
         route = get_google_route(
-            origin_address,
-            destination_address
+            origin,
+            destination
         )
 
         distance_km = float(
@@ -4724,61 +4787,64 @@ def handle_new_shipment(phone, text, action_id):
 
         if distance_km <= 0:
             raise ValueError(
-                "לא התקבל מרחק תקין"
+                "לא התקבל מרחק תקין מהמסלול"
             )
 
-        vehicle = vehicle_by_code(
-            current.get(
-                "temp_vehicle_type",
-                ""
-            )
-        )
+        info = vehicle_info()
 
-        if not vehicle:
+        if not info:
             raise ValueError(
                 "לא נבחר סוג רכב"
             )
 
-        if (
-            vehicle["max_km"] is not None
-            and distance_km
-            > vehicle["max_km"]
-        ):
-            raise ValueError(
-                f"{vehicle['label']} מתאים "
-                f"למשלוחים עד "
-                f"{vehicle['max_km']} ק״מ בלבד"
-            )
-
-        price = float(
-            vehicle["minimum"]
+        max_km = info.get(
+            "max_km"
         )
 
         if (
-            distance_km
-            > vehicle["included_km"]
+            max_km is not None
+            and distance_km > max_km
         ):
+            raise ValueError(
+                f"{info['label']} מתאים למשלוחים "
+                f"עד {max_km} ק״מ בלבד"
+            )
+
+        price = float(
+            info["minimum"]
+        )
+
+        included_km = float(
+            info["included_km"]
+        )
+
+        if distance_km > included_km:
             extra_km = (
                 distance_km
-                - vehicle["included_km"]
+                - included_km
             )
 
             price += (
                 extra_km
-                * vehicle["per_km"]
+                * float(
+                    info["per_km"]
+                )
             )
 
         help_extra = 0
 
         if (
-            current.get(
-                "temp_plan",
-                ""
+            data.get(
+                "driver_help"
             )
-            == "help_yes"
+            == "yes"
         ):
-            help_extra = (
-                vehicle["help_extra"]
+            help_extra = int(
+                info.get(
+                    "help_extra",
+                    0
+                )
+                or 0
             )
 
             price += help_extra
@@ -4799,47 +4865,70 @@ def handle_new_shipment(phone, text, action_id):
             round(price)
         )
 
-        # משתמשים רק בשדות session שקיימים
-        # כבר אצלך כדי שלא תהיה שוב שגיאת
-        # unexpected keyword argument.
+        data[
+            "distance_km"
+        ] = round(
+            distance_km,
+            1
+        )
+
+        data[
+            "duration_minutes"
+        ] = duration_minutes
+
+        data[
+            "static_duration_minutes"
+        ] = static_duration_minutes
+
+        data[
+            "traffic_delay"
+        ] = traffic_delay
+
+        data[
+            "traffic_extra"
+        ] = traffic_extra
+
+        data[
+            "help_extra"
+        ] = help_extra
+
+        data[
+            "price"
+        ] = final_price
+
         save_session(
             phone,
-            temp_business_name=str(
-                final_price
-            ),
-            temp_payment_method=str(
-                round(
-                    distance_km,
-                    1
-                )
-            ),
-            temp_email=str(
-                duration_minutes
-            ),
+            state,
+            data
         )
 
         return {
-            "price": final_price,
-            "distance_km": round(
-                distance_km,
-                1
-            ),
+            "distance_km":
+                round(
+                    distance_km,
+                    1
+                ),
+
             "duration_minutes":
                 duration_minutes,
+
             "traffic_delay":
                 traffic_delay,
+
             "traffic_extra":
                 traffic_extra,
+
             "help_extra":
                 help_extra,
+
+            "price":
+                final_price,
         }
 
     def show_summary():
-        current = get_session(phone)
-
         try:
             calculation = (
-                calculate_current_price()
+                calculate_price()
             )
 
         except Exception as exc:
@@ -4848,20 +4937,25 @@ def handle_new_shipment(phone, text, action_id):
                 repr(exc)
             )
 
-            message = str(exc)
+            error_text = str(
+                exc
+            )
 
-            if "מתאים למשלוחים עד" in message:
+            if (
+                "מתאים למשלוחים עד"
+                in error_text
+            ):
                 send_message(
                     phone,
-                    f"❌ {message}"
+                    f"❌ {error_text}"
                 )
 
-                save_session(
-                    phone,
-                    state="shipment_vehicle"
+                save(
+                    "shipment_vehicle"
                 )
 
                 show_vehicle_menu()
+
                 return True
 
             send_buttons(
@@ -4883,39 +4977,22 @@ def handle_new_shipment(phone, text, action_id):
                         "shipment_cancel_new",
                         "ביטול"
                     ),
-                ],
+                ]
             )
 
             return True
 
-        current = get_session(phone)
-
-        vehicle = vehicle_by_code(
-            current.get(
-                "temp_vehicle_type",
-                ""
-            )
-        )
-
-        vehicle_name = (
-            vehicle["label"]
-            if vehicle
-            else "-"
-        )
-
         help_text = (
             "כן"
-            if current.get(
-                "temp_plan",
-                ""
+            if data.get(
+                "driver_help"
             )
-            == "help_yes"
+            == "yes"
             else "לא"
         )
 
-        save_session(
-            phone,
-            state="shipment_confirm"
+        save(
+            "shipment_confirm"
         )
 
         send_buttons(
@@ -4923,33 +5000,33 @@ def handle_new_shipment(phone, text, action_id):
             f"""📦 סיכום המשלוח
 
 📍 איסוף:
-{current.get('temp_origin', '')}
-{current.get('temp_pickup_address', '')}
+{data.get('origin_city', '')}
+{data.get('pickup_address', '')}
 
 🎯 מסירה:
-{current.get('temp_destination', '')}
-{current.get('temp_dropoff_address', '')}
+{data.get('destination_city', '')}
+{data.get('dropoff_address', '')}
 
 📦 מהות המשלוח:
-{current.get('temp_package', '')}
+{data.get('package_description', '')}
 
 🚘 רכב נדרש:
-{vehicle_name}
+{vehicle_label()}
 
 💪 עזרת נהג:
 {help_text}
 
 👤 נמען:
-{current.get('temp_recipient_name', '')}
+{data.get('recipient_name', '')}
 
 📞 טלפון נמען:
-{current.get('temp_recipient_phone', '')}
+{data.get('recipient_phone', '')}
 
 🕐 זמן ביצוע:
-{current.get('temp_service_areas', '')}
+{data.get('delivery_time', '')}
 
 📝 הערות:
-{current.get('temp_notes', '') or '-'}
+{data.get('notes', '') or '-'}
 
 🛣️ מרחק:
 {calculation['distance_km']} ק״מ
@@ -4974,7 +5051,7 @@ def handle_new_shipment(phone, text, action_id):
                     "shipment_cancel_new",
                     "ביטול"
                 ),
-            ],
+            ]
         )
 
         return True
@@ -4987,7 +5064,9 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_cancel_new"
     ):
-        clear_session(phone)
+        clear_session(
+            phone
+        )
 
         send_message(
             phone,
@@ -5000,11 +5079,12 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_restart"
     ):
-        clear_session(phone)
+        data = {}
 
         save_session(
             phone,
-            state="shipment_origin_city"
+            "shipment_origin_city",
+            data
         )
 
         send_message(
@@ -5015,70 +5095,185 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     # =====================================================
+    # בחירת רכב
+    # =====================================================
+
+    if (
+        action_id
+        == "shipment_vehicle_more"
+    ):
+        show_more_vehicle_menu()
+
+        return True
+
+    vehicle_actions = {
+        "shipment_vehicle_motorcycle":
+            "motorcycle",
+
+        "shipment_vehicle_private":
+            "private",
+
+        "shipment_vehicle_7":
+            "7_seats",
+
+        "shipment_vehicle_small_commercial":
+            "small_commercial",
+
+        "shipment_vehicle_large_commercial":
+            "large_commercial",
+    }
+
+    if action_id in vehicle_actions:
+        save(
+            "shipment_driver_help",
+            vehicle_type=
+                vehicle_actions[
+                    action_id
+                ]
+        )
+
+        show_help_question()
+
+        return True
+
+    # =====================================================
+    # עזרת נהג
+    # =====================================================
+
+    if (
+        action_id
+        == "shipment_help_yes"
+    ):
+        save(
+            "shipment_notes",
+            driver_help="yes"
+        )
+
+        send_message(
+            phone,
+            '📝 יש הערות נוספות?\n'
+            'אם אין, כתוב "אין".'
+        )
+
+        return True
+
+    if (
+        action_id
+        == "shipment_help_no"
+    ):
+        save(
+            "shipment_notes",
+            driver_help="no"
+        )
+
+        send_message(
+            phone,
+            '📝 יש הערות נוספות?\n'
+            'אם אין, כתוב "אין".'
+        )
+
+        return True
+
+    # =====================================================
     # תיקון פרטים
     # =====================================================
 
-    if action_id == "shipment_edit":
-        send_list(
+    if (
+        action_id
+        == "shipment_edit"
+    ):
+        send_buttons(
             phone,
-            "✏️ איזה פרט תרצה לתקן?",
-            "בחירת פרט",
+            "✏️ מה תרצה לתקן?",
             [
-                {
-                    "id":
-                        "shipment_edit_origin",
-                    "title":
-                        "איסוף",
-                },
-                {
-                    "id":
-                        "shipment_edit_destination",
-                    "title":
-                        "מסירה",
-                },
-                {
-                    "id":
-                        "shipment_edit_package",
-                    "title":
-                        "מהות המשלוח",
-                },
-                {
-                    "id":
-                        "shipment_edit_vehicle",
-                    "title":
-                        "סוג רכב",
-                },
-                {
-                    "id":
-                        "shipment_edit_help",
-                    "title":
-                        "עזרת נהג",
-                },
-                {
-                    "id":
-                        "shipment_edit_time",
-                    "title":
-                        "זמן ביצוע",
-                },
-                {
-                    "id":
-                        "shipment_edit_recipient",
-                    "title":
-                        "פרטי נמען",
-                },
-                {
-                    "id":
-                        "shipment_edit_notes",
-                    "title":
-                        "הערות",
-                },
-                {
-                    "id":
-                        "shipment_back_summary",
-                    "title":
-                        "חזרה לסיכום",
-                },
-            ],
+                (
+                    "shipment_edit_route",
+                    "איסוף / מסירה"
+                ),
+                (
+                    "shipment_edit_details",
+                    "פרטי משלוח"
+                ),
+                (
+                    "shipment_edit_more",
+                    "עוד אפשרויות"
+                ),
+            ]
+        )
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_route"
+    ):
+        send_buttons(
+            phone,
+            "📍 איזה פרט לתקן?",
+            [
+                (
+                    "shipment_edit_origin",
+                    "איסוף"
+                ),
+                (
+                    "shipment_edit_destination",
+                    "מסירה"
+                ),
+                (
+                    "shipment_back_summary",
+                    "חזרה"
+                ),
+            ]
+        )
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_details"
+    ):
+        send_buttons(
+            phone,
+            "📦 איזה פרט לתקן?",
+            [
+                (
+                    "shipment_edit_package",
+                    "מהות המשלוח"
+                ),
+                (
+                    "shipment_edit_recipient",
+                    "פרטי נמען"
+                ),
+                (
+                    "shipment_edit_time",
+                    "זמן ביצוע"
+                ),
+            ]
+        )
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_more"
+    ):
+        send_buttons(
+            phone,
+            "⚙️ איזה פרט לתקן?",
+            [
+                (
+                    "shipment_edit_vehicle",
+                    "סוג רכב"
+                ),
+                (
+                    "shipment_edit_help",
+                    "עזרת נהג"
+                ),
+                (
+                    "shipment_edit_notes",
+                    "הערות"
+                ),
+            ]
         )
 
         return True
@@ -5087,9 +5282,8 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_edit_origin"
     ):
-        save_session(
-            phone,
-            state="shipment_edit_origin_city"
+        save(
+            "shipment_edit_origin_city"
         )
 
         send_message(
@@ -5103,10 +5297,8 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_edit_destination"
     ):
-        save_session(
-            phone,
-            state=
-                "shipment_edit_destination_city"
+        save(
+            "shipment_edit_destination_city"
         )
 
         send_message(
@@ -5120,9 +5312,8 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_edit_package"
     ):
-        save_session(
-            phone,
-            state="shipment_edit_package"
+        save(
+            "shipment_edit_package"
         )
 
         send_message(
@@ -5134,52 +5325,10 @@ def handle_new_shipment(phone, text, action_id):
 
     if (
         action_id
-        == "shipment_edit_vehicle"
-    ):
-        save_session(
-            phone,
-            state="shipment_vehicle"
-        )
-
-        show_vehicle_menu()
-        return True
-
-    if (
-        action_id
-        == "shipment_edit_help"
-    ):
-        save_session(
-            phone,
-            state="shipment_driver_help"
-        )
-
-        show_help_question()
-        return True
-
-    if (
-        action_id
-        == "shipment_edit_time"
-    ):
-        save_session(
-            phone,
-            state="shipment_edit_time"
-        )
-
-        send_message(
-            phone,
-            "🕐 מתי צריך לבצע את המשלוח?"
-        )
-
-        return True
-
-    if (
-        action_id
         == "shipment_edit_recipient"
     ):
-        save_session(
-            phone,
-            state=
-                "shipment_edit_recipient_name"
+        save(
+            "shipment_edit_recipient_name"
         )
 
         send_message(
@@ -5191,16 +5340,54 @@ def handle_new_shipment(phone, text, action_id):
 
     if (
         action_id
-        == "shipment_edit_notes"
+        == "shipment_edit_time"
     ):
-        save_session(
-            phone,
-            state="shipment_edit_notes"
+        save(
+            "shipment_edit_time"
         )
 
         send_message(
             phone,
-            '📝 רשום הערות. '
+            "🕐 מתי צריך לבצע את המשלוח?"
+        )
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_vehicle"
+    ):
+        save(
+            "shipment_vehicle"
+        )
+
+        show_vehicle_menu()
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_help"
+    ):
+        save(
+            "shipment_driver_help"
+        )
+
+        show_help_question()
+
+        return True
+
+    if (
+        action_id
+        == "shipment_edit_notes"
+    ):
+        save(
+            "shipment_edit_notes"
+        )
+
+        send_message(
+            phone,
+            '📝 רשום מחדש את ההערות.\n'
             'אם אין, כתוב "אין".'
         )
 
@@ -5211,197 +5398,106 @@ def handle_new_shipment(phone, text, action_id):
         == "shipment_back_summary"
     ):
         return show_summary()
-
     # =====================================================
-    # בחירת רכב
-    # =====================================================
-
-    if action_id in VEHICLES:
-        selected = VEHICLES[
-            action_id
-        ]
-
-        save_session(
-            phone,
-            state="shipment_driver_help",
-            temp_vehicle_type=
-                selected["code"]
-        )
-
-        show_help_question()
-        return True
-
-    # =====================================================
-    # עזרת נהג
-    # =====================================================
-
-    if (
-        action_id
-        == "shipment_help_yes"
-    ):
-        save_session(
-            phone,
-            state="shipment_notes",
-            temp_plan="help_yes"
-        )
-
-        send_message(
-            phone,
-            '📝 יש הערות נוספות? '
-            'אם אין, כתוב "אין".'
-        )
-
-        return True
-
-    if (
-        action_id
-        == "shipment_help_no"
-    ):
-        save_session(
-            phone,
-            state="shipment_notes",
-            temp_plan="help_no"
-        )
-
-        send_message(
-            phone,
-            '📝 יש הערות נוספות? '
-            'אם אין, כתוב "אין".'
-        )
-
-        return True
-        # =====================================================
     # תיקון פרטים - קליטת טקסט
     # =====================================================
 
     if state == "shipment_edit_origin_city":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום עיר איסוף."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_edit_pickup_address",
-            temp_origin=value
+        save(
+            "shipment_edit_pickup_address",
+            origin_city=text
         )
 
         send_message(
             phone,
-            "📍 רשום מחדש את כתובת האיסוף המלאה:"
+            "📍 רשום מחדש את כתובת האיסוף:"
         )
 
         return True
 
     if state == "shipment_edit_pickup_address":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום כתובת איסוף."
             )
             return True
 
-        save_session(
-            phone,
-            temp_pickup_address=value
+        save(
+            state,
+            pickup_address=text
         )
 
         return show_summary()
 
     if state == "shipment_edit_destination_city":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום עיר מסירה."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_edit_dropoff_address",
-            temp_destination=value
+        save(
+            "shipment_edit_dropoff_address",
+            destination_city=text
         )
 
         send_message(
             phone,
-            "🎯 רשום מחדש את כתובת המסירה המלאה:"
+            "🎯 רשום מחדש את כתובת המסירה:"
         )
 
         return True
 
     if state == "shipment_edit_dropoff_address":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום כתובת מסירה."
             )
             return True
 
-        save_session(
-            phone,
-            temp_dropoff_address=value
+        save(
+            state,
+            dropoff_address=text
         )
 
         return show_summary()
 
     if state == "shipment_edit_package":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום מה יש במשלוח."
             )
             return True
 
-        save_session(
-            phone,
-            temp_package=value
-        )
-
-        return show_summary()
-
-    if state == "shipment_edit_time":
-        value = (text or "").strip()
-
-        if not value:
-            send_message(
-                phone,
-                "❌ חובה לרשום זמן ביצוע."
-            )
-            return True
-
-        save_session(
-            phone,
-            temp_service_areas=value
+        save(
+            state,
+            package_description=text
         )
 
         return show_summary()
 
     if state == "shipment_edit_recipient_name":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום שם נמען."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_edit_recipient_phone",
-            temp_recipient_name=value
+        save(
+            "shipment_edit_recipient_phone",
+            recipient_name=text
         )
 
         send_message(
@@ -5413,7 +5509,7 @@ def handle_new_shipment(phone, text, action_id):
 
     if state == "shipment_edit_recipient_phone":
         recipient_phone = normalize_phone(
-            text or ""
+            text
         )
 
         if not recipient_phone:
@@ -5423,50 +5519,60 @@ def handle_new_shipment(phone, text, action_id):
             )
             return True
 
-        save_session(
-            phone,
-            temp_recipient_phone=recipient_phone
+        save(
+            state,
+            recipient_phone=recipient_phone
+        )
+
+        return show_summary()
+
+    if state == "shipment_edit_time":
+        if not text:
+            send_message(
+                phone,
+                "❌ חובה לרשום זמן ביצוע."
+            )
+            return True
+
+        save(
+            state,
+            delivery_time=text
         )
 
         return show_summary()
 
     if state == "shipment_edit_notes":
-        value = (text or "").strip()
-
         notes = (
             ""
-            if value in {
+            if text in {
                 "אין",
                 "ללא"
             }
-            else value
+            else text
         )
 
-        save_session(
-            phone,
-            temp_notes=notes
+        save(
+            state,
+            notes=notes
         )
 
         return show_summary()
 
     # =====================================================
-    # יצירת משלוח - עיר איסוף
+    # עיר איסוף
     # =====================================================
 
     if state == "shipment_origin_city":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום עיר איסוף."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_pickup_address",
-            temp_origin=value
+        save(
+            "shipment_pickup_address",
+            origin_city=text
         )
 
         send_message(
@@ -5482,19 +5588,16 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_pickup_address":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום כתובת איסוף."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_destination_city",
-            temp_pickup_address=value
+        save(
+            "shipment_destination_city",
+            pickup_address=text
         )
 
         send_message(
@@ -5509,19 +5612,16 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_destination_city":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום עיר מסירה."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_dropoff_address",
-            temp_destination=value
+        save(
+            "shipment_dropoff_address",
+            destination_city=text
         )
 
         send_message(
@@ -5537,19 +5637,16 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_dropoff_address":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום כתובת מסירה."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_recipient_name",
-            temp_dropoff_address=value
+        save(
+            "shipment_recipient_name",
+            dropoff_address=text
         )
 
         send_message(
@@ -5564,19 +5661,16 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_recipient_name":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום את שם הנמען."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_recipient_phone",
-            temp_recipient_name=value
+        save(
+            "shipment_recipient_phone",
+            recipient_name=text
         )
 
         send_message(
@@ -5592,7 +5686,7 @@ def handle_new_shipment(phone, text, action_id):
 
     if state == "shipment_recipient_phone":
         recipient_phone = normalize_phone(
-            text or ""
+            text
         )
 
         if not recipient_phone:
@@ -5602,18 +5696,16 @@ def handle_new_shipment(phone, text, action_id):
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_package",
-            temp_recipient_phone=recipient_phone
+        save(
+            "shipment_package",
+            recipient_phone=recipient_phone
         )
 
         send_message(
             phone,
             "📦 מה יש במשלוח?\n\n"
-            "רשום תיאור ברור של המשלוח.\n"
-            "לדוגמה: מעטפה, שקית, מאוורר, "
-            "4 קרטונים וכדומה."
+            "לדוגמה: מעטפה, שקית, "
+            "מאוורר או 4 קרטונים."
         )
 
         return True
@@ -5623,28 +5715,23 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_package":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
                 "❌ חובה לרשום מה יש במשלוח."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_time",
-            temp_package=value
+        save(
+            "shipment_time",
+            package_description=text
         )
 
         send_message(
             phone,
             "🕐 מתי צריך לבצע את המשלוח?\n\n"
-            "לדוגמה:\n"
-            "• עכשיו\n"
-            "• היום ב-16:00\n"
-            "• מחר בבוקר"
+            "לדוגמה: עכשיו, היום ב-16:00 "
+            "או מחר בבוקר."
         )
 
         return True
@@ -5654,20 +5741,16 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_time":
-        value = (text or "").strip()
-
-        if not value:
+        if not text:
             send_message(
                 phone,
-                "❌ חובה לרשום מתי צריך לבצע "
-                "את המשלוח."
+                "❌ חובה לרשום זמן ביצוע."
             )
             return True
 
-        save_session(
-            phone,
-            state="shipment_vehicle",
-            temp_service_areas=value
+        save(
+            "shipment_vehicle",
+            delivery_time=text
         )
 
         show_vehicle_menu()
@@ -5679,33 +5762,29 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     if state == "shipment_notes":
-        value = (text or "").strip()
-
         notes = (
             ""
-            if value in {
+            if text in {
                 "אין",
                 "ללא"
             }
-            else value
+            else text
         )
 
-        save_session(
-            phone,
-            temp_notes=notes
+        save(
+            "shipment_confirm",
+            notes=notes
         )
 
         return show_summary()
 
     # =====================================================
-    # אישור ופרסום המשלוח
+    # אישור סופי
     # =====================================================
 
     if action_id == "shipment_confirm_yes":
-        current = get_session(phone)
-
         try:
-            calculation = calculate_current_price()
+            calculation = calculate_price()
 
         except Exception as exc:
             print(
@@ -5716,7 +5795,7 @@ def handle_new_shipment(phone, text, action_id):
             send_buttons(
                 phone,
                 "❌ לא הצלחתי לאמת את "
-                "המסלול והמחיר.\n\n"
+                "המסלול והמחיר.\n"
                 "המשלוח לא פורסם.",
                 [
                     (
@@ -5731,62 +5810,52 @@ def handle_new_shipment(phone, text, action_id):
                         "shipment_cancel_new",
                         "ביטול"
                     ),
-                ],
+                ]
             )
 
             return True
 
-        current = get_session(phone)
-
-        vehicle = vehicle_by_code(
-            current.get(
-                "temp_vehicle_type",
-                ""
-            )
-        )
+        info = vehicle_info()
 
         vehicle_name = (
-            vehicle["label"]
-            if vehicle
+            info["label"]
+            if info
             else "-"
         )
 
         help_text = (
             "כן"
-            if current.get(
-                "temp_plan",
-                ""
+            if data.get(
+                "driver_help"
             )
-            == "help_yes"
+            == "yes"
             else "לא"
         )
 
         original_notes = (
-            current.get(
-                "temp_notes",
+            data.get(
+                "notes",
                 ""
             )
             or ""
         )
 
         system_notes = (
-            f"סוג רכב נדרש: "
-            f"{vehicle_name}\n"
-            f"עזרת נהג: "
-            f"{help_text}\n"
+            f"סוג רכב נדרש: {vehicle_name}\n"
+            f"עזרת נהג: {help_text}\n"
             f"מרחק: "
             f"{calculation['distance_km']} ק״מ\n"
             f"זמן נסיעה משוער: "
             f"{calculation['duration_minutes']} דקות"
         )
 
-        final_notes = system_notes
-
         if original_notes:
             final_notes = (
                 f"{original_notes}\n\n"
                 f"{system_notes}"
             )
+        else:
+            final_notes = system_notes
 
         with db() as conn:
             cursor = conn.execute(
@@ -5815,36 +5884,36 @@ def handle_new_shipment(phone, text, action_id):
                 (
                     user["id"],
                     SHIP_OPEN,
-                    current.get(
-                        "temp_origin",
+                    data.get(
+                        "origin_city",
                         ""
                     ),
-                    current.get(
-                        "temp_destination",
+                    data.get(
+                        "destination_city",
                         ""
                     ),
-                    current.get(
-                        "temp_pickup_address",
+                    data.get(
+                        "pickup_address",
                         ""
                     ),
-                    current.get(
-                        "temp_dropoff_address",
+                    data.get(
+                        "dropoff_address",
                         ""
                     ),
-                    current.get(
-                        "temp_recipient_name",
+                    data.get(
+                        "recipient_name",
                         ""
                     ),
-                    current.get(
-                        "temp_recipient_phone",
+                    data.get(
+                        "recipient_phone",
                         ""
                     ),
-                    current.get(
-                        "temp_package",
+                    data.get(
+                        "package_description",
                         ""
                     ),
-                    current.get(
-                        "temp_service_areas",
+                    data.get(
+                        "delivery_time",
                         ""
                     ),
                     final_notes,
@@ -5877,7 +5946,9 @@ def handle_new_shipment(phone, text, action_id):
                 repr(exc)
             )
 
-        clear_session(phone)
+        clear_session(
+            phone
+        )
 
         send_message(
             phone,
@@ -5887,12 +5958,12 @@ def handle_new_shipment(phone, text, action_id):
 #{shipment_id}
 
 📍 איסוף:
-{current.get('temp_origin', '')}
-{current.get('temp_pickup_address', '')}
+{data.get('origin_city', '')}
+{data.get('pickup_address', '')}
 
 🎯 מסירה:
-{current.get('temp_destination', '')}
-{current.get('temp_dropoff_address', '')}
+{data.get('destination_city', '')}
+{data.get('dropoff_address', '')}
 
 🚘 רכב:
 {vehicle_name}
@@ -5904,10 +5975,7 @@ def handle_new_shipment(phone, text, action_id):
 {calculation['price']} ₪"""
         )
 
-        # ================================================
         # פרסום לשליחים דרך המנגנון הקיים
-        # ================================================
-
         try:
             notify_drivers_about_shipment(
                 shipment_id
@@ -5919,10 +5987,7 @@ def handle_new_shipment(phone, text, action_id):
                 repr(exc)
             )
 
-        # ================================================
         # הודעה למנהל
-        # ================================================
-
         try:
             send_message(
                 ADMIN_PHONE,
@@ -5932,24 +5997,24 @@ def handle_new_shipment(phone, text, action_id):
 #{shipment_id}
 
 📍 איסוף:
-{current.get('temp_origin', '')}
-{current.get('temp_pickup_address', '')}
+{data.get('origin_city', '')}
+{data.get('pickup_address', '')}
 
 🎯 מסירה:
-{current.get('temp_destination', '')}
-{current.get('temp_dropoff_address', '')}
+{data.get('destination_city', '')}
+{data.get('dropoff_address', '')}
 
 📦 תכולה:
-{current.get('temp_package', '')}
+{data.get('package_description', '')}
 
 👤 נמען:
-{current.get('temp_recipient_name', '')}
+{data.get('recipient_name', '')}
 
 📞 טלפון נמען:
-{current.get('temp_recipient_phone', '')}
+{data.get('recipient_phone', '')}
 
 🕐 זמן ביצוע:
-{current.get('temp_service_areas', '')}
+{data.get('delivery_time', '')}
 
 🚘 רכב:
 {vehicle_name}
@@ -5976,7 +6041,6 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     return False        
-
 # =========================================================
 # הצגת משלוחים זמינים לשליח
 # =========================================================
