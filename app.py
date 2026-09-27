@@ -4521,11 +4521,7 @@ def start_new_shipment(
         {}
     )
 
-    save_session(
-        phone,
-        "shipment_route_cities",
-        {}
-    )
+    
 
     send_message(
         phone,
