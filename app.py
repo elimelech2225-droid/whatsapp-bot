@@ -4511,21 +4511,20 @@ def start_new_shipment(
 
         save_session(
         phone,
-        "shipment_route_cities",
+        "shipment_origin_city",
         {}
     )
-
-    
 
     send_message(
         phone,
         """📦 פרסום משלוח חדש
 
-📍 מאיזו עיר לאיזו עיר?
+📍 מאיזו עיר המשלוח יוצא?
+רשום עיר + רחוב ומספר.
 
 לדוגמה:
-ירושלים לתל אביב"""
-    )    
+ירושלים הרצל 9"""
+    )
 def handle_new_shipment(phone, text, action_id):
     # =====================================================
     # לא לתפוס את כפתור "בחר שליח"
