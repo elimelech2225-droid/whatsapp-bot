@@ -4531,8 +4531,13 @@ def start_new_shipment(
 # =========================================================
 
 def handle_new_shipment(phone, text, action_id):
-    if (action_id or "").startswith("customer_select_driver_"):
-        return False    
+
+    # לא לתפוס לחיצה של המפרסם על "בחר שליח"
+    if (action_id or "").startswith(
+        "customer_select_driver_"
+    ):
+        return False
+
     user = get_user(phone)
 
     if not user:
@@ -4561,6 +4566,7 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": 30,
             "help_extra": 0,
         },
+
         "private": {
             "label": "רכב פרטי",
             "minimum": 100,
@@ -4569,6 +4575,7 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 50,
         },
+
         "7_seats": {
             "label": "רכב 7 מקומות",
             "minimum": 150,
@@ -4577,6 +4584,7 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 80,
         },
+
         "small_commercial": {
             "label": "מסחרי קטן / ברלינגו",
             "minimum": 150,
@@ -4585,6 +4593,7 @@ def handle_new_shipment(phone, text, action_id):
             "max_km": None,
             "help_extra": 80,
         },
+
         "large_commercial": {
             "label": "מסחרי גדול / ויטו",
             "minimum": 200,
@@ -4596,11 +4605,111 @@ def handle_new_shipment(phone, text, action_id):
     }
 
     # =====================================================
-    # שמירת session
-    # אצלך: save_session(phone, state, data)
+    # ערים / יישובים לזיהוי עיר האיסוף
+    #
+    # חשוב:
+    # זאת לא רשימת "אזורים מרוחקים".
+    # אין כאן שום תוספת מחיר.
+    #
+    # הרשימה משמשת רק כדי לזהות עיר מתוך כתובת חופשית.
+    # לדוגמה:
+    # "ירושלים הרצל 9"
+    # "הרצל 9 ירושלים"
+    # בשני המקרים -> ירושלים
     # =====================================================
 
-    def save(new_state=None, **changes):
+    ISRAEL_CITIES = [
+        "מודיעין מכבים רעות",
+        "מודיעין עילית",
+        "מעלה אדומים",
+        "קריית ארבע",
+        "קריית אונו",
+        "קריית גת",
+        "קריית מלאכי",
+        "קריית שמונה",
+        "קריית ביאליק",
+        "קריית מוצקין",
+        "קריית ים",
+        "קריית אתא",
+        "קרני שומרון",
+        "בית שמש",
+        "בית שאן",
+        "ביתר עילית",
+        "בני ברק",
+        "באר שבע",
+        "באר יעקב",
+        "באר טוביה",
+        "גבעת שמואל",
+        "גבעתיים",
+        "גבעת זאב",
+        "גן יבנה",
+        "הוד השרון",
+        "זכרון יעקב",
+        "טירת כרמל",
+        "כפר סבא",
+        "כפר יונה",
+        "כפר חב״ד",
+        "כפר חבד",
+        "מבשרת ציון",
+        "מגדל העמק",
+        "נהריה",
+        "נס ציונה",
+        "נוף הגליל",
+        "נצרת",
+        "נתיבות",
+        "נתניה",
+        "עפולה",
+        "עמנואל",
+        "ערד",
+        "פתח תקווה",
+        "פרדס חנה",
+        "צפת",
+        "ראש העין",
+        "ראשון לציון",
+        "רחובות",
+        "רמת גן",
+        "רמת השרון",
+        "רעננה",
+        "שדרות",
+        "תל אביב",
+        "אור יהודה",
+        "אור עקיבא",
+        "אילת",
+        "אשדוד",
+        "אשקלון",
+        "אריאל",
+        "בת ים",
+        "חדרה",
+        "חולון",
+        "חיפה",
+        "חריש",
+        "טבריה",
+        "יבנה",
+        "יהוד",
+        "ירושלים",
+        "לוד",
+        "רמלה",
+        "הרצליה",
+        "עכו",
+        "כרמיאל",
+        "דימונה",
+    ]
+
+    # הארוכים קודם כדי למשל "רמת גן"
+    # לא יתפרש בצורה חלקית.
+    ISRAEL_CITIES.sort(
+        key=len,
+        reverse=True
+    )
+
+    # =====================================================
+    # כלי עזר
+    # =====================================================
+
+    def save(
+        new_state=None,
+        **changes
+    ):
         nonlocal state
         nonlocal data
 
@@ -4611,15 +4720,98 @@ def handle_new_shipment(phone, text, action_id):
 
         state = new_state
 
+        # מותאם ל-save_session האמיתי אצלך:
+        # save_session(phone, state, data)
         save_session(
             phone,
             new_state,
             data
         )
 
+    def normalize_address_text(value):
+        value = (
+            value
+            or ""
+        ).strip()
+
+        value = re.sub(
+            r"\s+",
+            " ",
+            value
+        )
+
+        value = value.replace(
+            ",",
+            " "
+        )
+
+        value = re.sub(
+            r"\s+",
+            " ",
+            value
+        ).strip()
+
+        return value
+
+    def detect_origin_city(
+        address_text
+    ):
+        normalized = normalize_address_text(
+            address_text
+        )
+
+        for city in ISRAEL_CITIES:
+            if city in normalized:
+                return city
+
+        return ""
+
+    def google_origin_address():
+        origin_full = normalize_address_text(
+            data.get(
+                "origin_address",
+                ""
+            )
+        )
+
+        origin_city = (
+            data.get(
+                "origin_city",
+                ""
+            )
+            or ""
+        ).strip()
+
+        if not origin_full:
+            return ""
+
+        # אם העיר כבר מופיעה בכתובת,
+        # לא מוסיפים אותה שוב.
+        if (
+            origin_city
+            and origin_city
+            in origin_full
+        ):
+            return (
+                f"{origin_full}, ישראל"
+            )
+
+        if origin_city:
+            return (
+                f"{origin_full}, "
+                f"{origin_city}, ישראל"
+            )
+
+        return (
+            f"{origin_full}, ישראל"
+        )
+
     def vehicle_info():
         return VEHICLES.get(
-            data.get("vehicle_type", "")
+            data.get(
+                "vehicle_type",
+                ""
+            )
         )
 
     def vehicle_label():
@@ -4682,23 +4874,33 @@ def handle_new_shipment(phone, text, action_id):
         info = vehicle_info()
 
         if not info:
-            save("shipment_vehicle")
+            save(
+                "shipment_vehicle"
+            )
+
             show_vehicle_menu()
+
             return
 
         extra = int(
-            info.get("help_extra", 0)
+            info.get(
+                "help_extra",
+                0
+            )
             or 0
         )
 
         if extra > 0:
             message = (
-                "💪 צריך עזרת נהג בהעמסה/פריקה?\n"
+                "💪 צריך עזרת נהג "
+                "בהעמסה/פריקה?\n"
                 f"תוספת: {extra} ₪"
             )
+
         else:
             message = (
-                "💪 צריך עזרת נהג בהעמסה/פריקה?"
+                "💪 צריך עזרת נהג "
+                "בהעמסה/פריקה?"
             )
 
         send_buttons(
@@ -4722,18 +4924,19 @@ def handle_new_shipment(phone, text, action_id):
 
     # =====================================================
     # חישוב מסלול ומחיר
-    # אין אזורים מרוחקים
+    #
+    # אין אזורים מרוחקים.
     # =====================================================
 
     def calculate_price():
-        origin = data.get(
-            "origin_address",
-            ""
-        ).strip()
+        origin = google_origin_address()
 
-        destination_city = data.get(
-            "destination_city",
-            ""
+        destination_city = (
+            data.get(
+                "destination_city",
+                ""
+            )
+            or ""
         ).strip()
 
         if not origin:
@@ -4756,12 +4959,18 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         distance_km = float(
-            route.get("distance_km", 0)
+            route.get(
+                "distance_km",
+                0
+            )
             or 0
         )
 
         duration_minutes = int(
-            route.get("duration_minutes", 0)
+            route.get(
+                "duration_minutes",
+                0
+            )
             or 0
         )
 
@@ -4785,41 +4994,52 @@ def handle_new_shipment(phone, text, action_id):
                 "לא נבחר סוג רכב"
             )
 
-        max_km = info.get("max_km")
+        max_km = info.get(
+            "max_km"
+        )
 
         if (
             max_km is not None
             and distance_km > max_km
         ):
             raise ValueError(
-                f"{info['label']} מתאים למשלוחים "
-                f"עד {max_km} ק״מ"
+                f"{info['label']} מתאים "
+                f"למשלוחים עד "
+                f"{max_km} ק״מ"
             )
 
         price = float(
             info["minimum"]
         )
 
-        if (
-            distance_km
-            > float(info["included_km"])
-        ):
+        included_km = float(
+            info["included_km"]
+        )
+
+        if distance_km > included_km:
             extra_km = (
                 distance_km
-                - float(info["included_km"])
+                - included_km
             )
 
             price += (
                 extra_km
-                * float(info["per_km"])
+                * float(
+                    info["per_km"]
+                )
             )
 
         if (
-            data.get("driver_help")
+            data.get(
+                "driver_help"
+            )
             == "yes"
         ):
             price += int(
-                info.get("help_extra", 0)
+                info.get(
+                    "help_extra",
+                    0
+                )
                 or 0
             )
 
@@ -4839,7 +5059,9 @@ def handle_new_shipment(phone, text, action_id):
             round(price)
         )
 
-        data["distance_km"] = round(
+        data[
+            "distance_km"
+        ] = round(
             distance_km,
             1
         )
@@ -4852,7 +5074,9 @@ def handle_new_shipment(phone, text, action_id):
             "traffic_extra"
         ] = traffic_extra
 
-        data["price"] = final_price
+        data[
+            "price"
+        ] = final_price
 
         save_session(
             phone,
@@ -4862,7 +5086,10 @@ def handle_new_shipment(phone, text, action_id):
 
         return {
             "distance_km":
-                round(distance_km, 1),
+                round(
+                    distance_km,
+                    1
+                ),
 
             "duration_minutes":
                 duration_minutes,
@@ -4885,7 +5112,9 @@ def handle_new_shipment(phone, text, action_id):
                 repr(exc)
             )
 
-            error_text = str(exc)
+            error_text = str(
+                exc
+            )
 
             if (
                 "מתאים למשלוחים עד"
@@ -4896,15 +5125,20 @@ def handle_new_shipment(phone, text, action_id):
                     f"❌ {error_text}"
                 )
 
-                save("shipment_vehicle")
+                save(
+                    "shipment_vehicle"
+                )
+
                 show_vehicle_menu()
 
                 return True
 
             send_buttons(
                 phone,
-                "❌ לא הצלחתי לחשב את המסלול.\n"
-                "בדוק את כתובת האיסוף ועיר היעד.",
+                "❌ לא הצלחתי לחשב "
+                "את המסלול.\n"
+                "בדוק את כתובת האיסוף "
+                "ועיר היעד.",
                 [
                     (
                         "shipment_restart",
@@ -4921,16 +5155,24 @@ def handle_new_shipment(phone, text, action_id):
 
         help_text = (
             "כן"
-            if data.get("driver_help") == "yes"
+            if data.get(
+                "driver_help"
+            )
+            == "yes"
             else "לא"
         )
 
-        pickup_time = data.get(
-            "pickup_time",
-            "עכשיו"
+        pickup_time = (
+            data.get(
+                "pickup_time",
+                "עכשיו"
+            )
+            or "עכשיו"
         )
 
-        save("shipment_confirm")
+        save(
+            "shipment_confirm"
+        )
 
         send_buttons(
             phone,
@@ -4985,7 +5227,9 @@ def handle_new_shipment(phone, text, action_id):
         action_id
         == "shipment_cancel_new"
     ):
-        clear_session(phone)
+        clear_session(
+            phone
+        )
 
         send_message(
             phone,
@@ -5010,7 +5254,7 @@ def handle_new_shipment(phone, text, action_id):
             phone,
             """📦 פרסום משלוח חדש
 
-📍 מאיזו עיר תרצה להוציא את המשלוח?
+📍 מאיזו עיר המשלוח יוצא?
 רשום עיר + רחוב ומספר.
 
 לדוגמה:
@@ -5021,7 +5265,11 @@ def handle_new_shipment(phone, text, action_id):
 
     # =====================================================
     # שלב 1 - איסוף
-    # עיר + רחוב ומספר באותה הודעה
+    #
+    # המשתמש יכול לכתוב:
+    # ירושלים הרצל 9
+    # או:
+    # הרצל 9 ירושלים
     # =====================================================
 
     if state in {
@@ -5036,9 +5284,34 @@ def handle_new_shipment(phone, text, action_id):
 
             return True
 
+        clean_origin = normalize_address_text(
+            text
+        )
+
+        detected_city = detect_origin_city(
+            clean_origin
+        )
+
+        if not detected_city:
+            send_message(
+                phone,
+                """❌ לא הצלחתי לזהות את עיר האיסוף.
+
+רשום עיר + רחוב ומספר.
+
+לדוגמה:
+ירושלים הרצל 9
+
+או:
+הרצל 9 ירושלים"""
+            )
+
+            return True
+
         save(
             "shipment_destination_city_short",
-            origin_address=text
+            origin_address=clean_origin,
+            origin_city=detected_city
         )
 
         send_message(
@@ -5221,11 +5494,15 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         return show_summary()
+
     # =====================================================
     # אישור ופרסום
     # =====================================================
 
-    if action_id == "shipment_confirm_yes":
+    if (
+        action_id
+        == "shipment_confirm_yes"
+    ):
         try:
             result = calculate_price()
 
@@ -5263,47 +5540,56 @@ def handle_new_shipment(phone, text, action_id):
 
         help_text = (
             "כן"
-            if data.get("driver_help") == "yes"
+            if data.get("driver_help")
+            == "yes"
             else "לא"
         )
 
-        pickup_time = data.get(
-            "pickup_time",
-            "עכשיו"
+        pickup_time = (
+            data.get(
+                "pickup_time",
+                "עכשיו"
+            )
+            or "עכשיו"
         )
 
-        origin_full = data.get(
-            "origin_address",
-            ""
+        origin_full = (
+            data.get(
+                "origin_address",
+                ""
+            )
+            or ""
         ).strip()
 
-        destination_city = data.get(
-            "destination_city",
-            ""
-        ).strip()
-
-        # =================================================
-        # חילוץ עיר האיסוף
-        # "אשקלון קדש 9" -> "אשקלון"
-        # =================================================
-
-        origin_parts = origin_full.split(
-            " ",
-            1
-        )
-
+        # כאן משתמשים בעיר שכבר זוהתה בחלק 1.
+        # לא לוקחים יותר את המילה הראשונה מהכתובת.
         origin_city = (
-            origin_parts[0]
-            if origin_parts
-            else origin_full
-        )
+            data.get(
+                "origin_city",
+                ""
+            )
+            or ""
+        ).strip()
 
-        # =================================================
-        # כל הפרטים שאין להם עמודה ייעודית
-        # נשמרים בתוך notes.
-        # אין שימוש ב-delivery_time.
-        # =================================================
+        destination_city = (
+            data.get(
+                "destination_city",
+                ""
+            )
+            or ""
+        ).strip()
 
+        if not origin_city:
+            send_message(
+                phone,
+                "❌ לא הצלחתי לזהות את עיר האיסוף.\n"
+                "התחל את המשלוח מחדש."
+            )
+
+            return True
+
+        # פרטים שאין להם עמודה נפרדת נשמרים ב-notes.
+        # אין שימוש בעמודת delivery_time.
         system_notes = (
             f"זמן איסוף: {pickup_time}\n"
             f"סוג רכב נדרש: {vehicle_name}\n"
@@ -5345,7 +5631,9 @@ def handle_new_shipment(phone, text, action_id):
                     origin_full,
                     destination_city,
                     system_notes,
-                    str(result["price"]),
+                    str(
+                        result["price"]
+                    ),
                     now_ts(),
                     now_ts(),
                 ),
@@ -5377,27 +5665,35 @@ def handle_new_shipment(phone, text, action_id):
         clear_session(phone)
 
         # =================================================
-        # אישור קצר למפרסם
+        # אישור למפרסם
         # =================================================
 
         send_message(
             phone,
             f"""✅ משלוח #{shipment_id} פורסם
 
-📍 {origin_full}
-🎯 {destination_city}
-🕐 {pickup_time}
+📍 איסוף:
+{origin_full}
 
-🛣️ {result['distance_km']} ק״מ
-💰 {result['price']} ₪"""
+🎯 יעד:
+{destination_city}
+
+🕐 זמן איסוף:
+{pickup_time}
+
+🛣️ מרחק:
+{result['distance_km']} ק״מ
+
+💰 מחיר:
+{result['price']} ₪"""
         )
 
         # =================================================
-        # פרסום לשליחים דרך מנגנון ההתאמה הקיים
+        # פרסום לשליחים
         #
-        # origin_city נשמר בנפרד כדי שהמערכת תוכל
-        # להתאים למשל שליח שזמין באשקלון.
-        # pickup_address מכיל את האיסוף המלא.
+        # origin_city עכשיו העיר האמיתית שזוהתה,
+        # גם אם המשתמש כתב:
+        # "הרצל 9 ירושלים"
         # =================================================
 
         try:
@@ -5452,7 +5748,7 @@ def handle_new_shipment(phone, text, action_id):
             )
 
         # =================================================
-        # אפשרות למפרסם להעלות מחיר
+        # אפשרות להעלות מחיר
         # =================================================
 
         send_buttons(
@@ -5470,7 +5766,7 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     # =====================================================
-    # העלאת מחיר - לחיצה על הכפתור
+    # לחיצה על "העלאת מחיר"
     # =====================================================
 
     raise_match = re.match(
@@ -5505,7 +5801,10 @@ def handle_new_shipment(phone, text, action_id):
 
             return True
 
-        if shipment["status"] != SHIP_OPEN:
+        if (
+            shipment["status"]
+            != SHIP_OPEN
+        ):
             send_message(
                 phone,
                 "המשלוח כבר אינו פתוח."
@@ -5513,6 +5812,8 @@ def handle_new_shipment(phone, text, action_id):
 
             return True
 
+        # שומרים session חדש ונקי
+        # עבור העלאת המחיר.
         save_session(
             phone,
             "shipment_raise_price",
@@ -5536,10 +5837,13 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     # =====================================================
-    # העלאת מחיר - קבלת הסכום
+    # קבלת סכום העלאת המחיר
     # =====================================================
 
-    if state == "shipment_raise_price":
+    if (
+        state
+        == "shipment_raise_price"
+    ):
         clean_amount = re.sub(
             r"[^\d]",
             "",
@@ -5609,7 +5913,10 @@ def handle_new_shipment(phone, text, action_id):
 
                 return True
 
-            if shipment["status"] != SHIP_OPEN:
+            if (
+                shipment["status"]
+                != SHIP_OPEN
+            ):
                 clear_session(phone)
 
                 send_message(
@@ -5664,12 +5971,15 @@ def handle_new_shipment(phone, text, action_id):
 
 📦 משלוח #{shipment_id}
 
-💰 {old_price} ₪ → {new_price} ₪"""
+💰 מחיר קודם:
+{old_price} ₪
+
+💰 מחיר חדש:
+{new_price} ₪"""
         )
 
         # =================================================
-        # שולחים מחדש לשליחים את המשלוח
-        # עם המחיר החדש
+        # מפרסמים מחדש לשליחים עם המחיר החדש
         # =================================================
 
         try:
@@ -5698,87 +6008,6 @@ def handle_new_shipment(phone, text, action_id):
         return True
 
     return False
-def shipment_driver_text(shipment):
-    notes = (
-        shipment["notes"]
-        if shipment["notes"]
-        else ""
-    )
-
-    pickup_time = "לא צוין"
-    vehicle_name = "לא צוין"
-    driver_help = "לא"
-    distance_text = ""
-    duration_text = ""
-
-    for line in notes.splitlines():
-        line = line.strip()
-
-        if line.startswith("זמן איסוף:"):
-            pickup_time = line.split(
-                ":",
-                1
-            )[1].strip()
-
-        elif line.startswith("סוג רכב נדרש:"):
-            vehicle_name = line.split(
-                ":",
-                1
-            )[1].strip()
-
-        elif line.startswith("עזרת נהג:"):
-            driver_help = line.split(
-                ":",
-                1
-            )[1].strip()
-
-        elif line.startswith("מרחק:"):
-            distance_text = line.split(
-                ":",
-                1
-            )[1].strip()
-
-        elif line.startswith("זמן נסיעה משוער:"):
-            duration_text = line.split(
-                ":",
-                1
-            )[1].strip()
-
-    text = f"""📦 משלוח #{shipment["id"]}
-
-📍 איסוף:
-{shipment["pickup_address"]}
-
-🎯 יעד:
-{shipment["destination_city"]}
-
-🕐 זמן איסוף:
-{pickup_time}
-
-🚘 רכב:
-{vehicle_name}
-
-💪 עזרת נהג:
-{driver_help}"""
-
-    if distance_text:
-        text += f"""
-
-🛣️ מרחק:
-{distance_text}"""
-
-    if duration_text:
-        text += f"""
-
-⏱️ זמן נסיעה משוער:
-{duration_text}"""
-
-    text += f"""
-
-💰 מחיר:
-{shipment["price"]} ₪"""
-
-    return text    
 # =========================================================
 # הצגת משלוחים זמינים לשליח
 # =========================================================
