@@ -4531,7 +4531,7 @@ def start_new_shipment(
 # =========================================================
 
 def handle_new_shipment(phone, text, action_id):
-    user = get_user_by_phone(phone)
+    user = get_user(phone)
     if not user:
         return False
 
