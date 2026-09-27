@@ -11877,28 +11877,7 @@ def webhook():
 # =========================================================
 # בדיקת שרת
 # =========================================================
-# ============================================================
-# בדיקה זמנית - Google Routes API
-# ============================================================
 
-@app.route("/test-google-route", methods=["GET"])
-def test_google_route():
-    try:
-        route = get_google_route(
-            "ירושלים, ישראל",
-            "תל אביב, ישראל"
-        )
-
-        return {
-            "ok": True,
-            "route": route
-        }, 200
-
-    except Exception as e:
-        return {
-            "ok": False,
-            "error": str(e)
-        }, 500
 @app.route(
     "/",
     methods=["GET"]
