@@ -4613,8 +4613,7 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def save(new_state=None, **changes):
-        nonlocal state
-        nonlocal data
+        nonlocal state, data
 
         data.update(changes)
 
@@ -4622,12 +4621,7 @@ def handle_new_shipment(phone, text, action_id):
             new_state = state
 
         state = new_state
-
-        save_session(
-            phone,
-            new_state,
-            data
-        )
+        save_session(phone, new_state, data)
 
     def clean_value(value):
         value = (value or "").strip()
