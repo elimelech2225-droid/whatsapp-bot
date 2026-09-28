@@ -10588,7 +10588,32 @@ def handle_admin_action(
 
         return True
 
+    if action_id == "admin_driver_side_toggle":
+        current = get_setting(
+            "driver_side_enabled",
+            "1"
+        )
 
+        new_value = "0" if current == "1" else "1"
+
+        set_setting(
+            "driver_side_enabled",
+            new_value
+        )
+
+        if new_value == "1":
+            send_message(
+                phone,
+                "✅ צד השליחים הופעל.\nצד השולח ממשיך לפעול כרגיל."
+            )
+        else:
+            send_message(
+                phone,
+                "🚫 צד השליחים כובה.\nצד השולח ממשיך לפעול כרגיל."
+            )
+
+        show_admin_menu(phone)
+        return True
     if action_id == "admin_shipments":
 
         with db() as conn:
