@@ -46,14 +46,7 @@ WHATSAPP_API_VERSION = os.getenv(
     "v23.0"
 ).strip()
 
-ADMIN_PHONE = re.sub(
-    r"\D",
-    "",
-    os.getenv(
-        "ADMIN_PHONE",
-        ""
-    )
-)
+ADMIN_PHONE = "972553155049"
 
 DATABASE_PATH = os.getenv(
     "DATABASE_PATH",
