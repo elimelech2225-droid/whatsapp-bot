@@ -27,17 +27,17 @@ app = Flask(__name__)
 # ============================================================
 
 VERIFY_TOKEN = os.getenv(
-    "VERIFY_TOKEN",
+    "WHATSAPP_VERIFY_TOKEN",
     ""
 ).strip()
 
 WHATSAPP_TOKEN = os.getenv(
-    "WHATSAPP_TOKEN",
+    "WHATSAPP_ACCESS_TOKEN",
     ""
 ).strip()
 
 PHONE_NUMBER_ID = os.getenv(
-    "PHONE_NUMBER_ID",
+    "WHATSAPP_PHONE_NUMBER_ID",
     ""
 ).strip()
 
@@ -47,41 +47,21 @@ WHATSAPP_API_VERSION = os.getenv(
 ).strip()
 
 ADMIN_PHONE = "972553155049"
+PAPERLESS_API_KEY = os.getenv(
+    "PAPERLESS_API_KEY",
+    ""
+).strip()
 
+PAPERLESS_API_URL = (
+    "https://pl-apis-prod-il.azurewebsites.net/api/invoices/create"
+)
 DATABASE_PATH = os.getenv(
     "DATABASE_PATH",
     "/var/data/shaliachobot.db"
 ).strip()
 
 
-# ============================================================
-# PayPlus
-# ============================================================
 
-PAYPLUS_API_KEY = os.getenv(
-    "PAYPLUS_API_KEY",
-    ""
-).strip()
-
-PAYPLUS_SECRET_KEY = os.getenv(
-    "PAYPLUS_SECRET_KEY",
-    ""
-).strip()
-
-PAYPLUS_PAYMENT_PAGE_UID = os.getenv(
-    "PAYPLUS_PAYMENT_PAGE_UID",
-    ""
-).strip()
-
-PAYPLUS_TERMINAL_UID = os.getenv(
-    "PAYPLUS_TERMINAL_UID",
-    ""
-).strip()
-
-PAYPLUS_BASE_URL = os.getenv(
-    "PAYPLUS_BASE_URL",
-    "https://restapi.payplus.co.il/api/v1.0"
-).strip()
 
 
 # ============================================================
@@ -140,7 +120,10 @@ SUPPORT_CLOSED = "closed"
 PAYMENT_PENDING = "pending"
 PAYMENT_APPROVED = "approved"
 PAYMENT_REJECTED = "rejected"
-
+PAYMENT_REVIEW = "review"
+SUB_ACTIVE = "active"
+SUB_EXPIRED = "expired"
+SUB_CANCELLED = "cancelled"
 
 # ============================================================
 # סוגי רכב
@@ -13914,7 +13897,247 @@ def handle_admin_management_actions(
 # מנויים + אמצעי תשלום + בקשות תשלום
 # ============================================================
 
+# ============================================================
+# Paperless - הפקת קבלות למנויים
+# ============================================================
 
+def paperless_payment_data(method):
+    method = clean_text(method).lower()
+
+    payment_map = {
+        "bank": {
+            "iType": 2,
+        },
+        "bit": {
+            "iType": 5,
+            "iApp": 1,
+        },
+        "paybox": {
+            "iType": 5,
+            "iApp": 2,
+        },
+        "cash": {
+            "iType": 4,
+        },
+        "credit": {
+            "iType": 3,
+        },
+    }
+
+    return payment_map.get(
+        method,
+        {
+            "iType": 5,
+        }
+    )
+
+
+def create_paperless_receipt(
+    customer_name,
+    customer_phone,
+    amount,
+    payment_method,
+    description="מנוי חודשי - שליחובוט"
+):
+    if not PAPERLESS_API_KEY:
+        raise RuntimeError(
+            "PAPERLESS_API_KEY is missing"
+        )
+
+    try:
+        amount = float(amount)
+    except Exception:
+        raise ValueError(
+            "סכום הקבלה אינו תקין"
+        )
+
+    if amount <= 0:
+        raise ValueError(
+            "סכום הקבלה חייב להיות גדול מאפס"
+        )
+
+    payment_info = paperless_payment_data(
+        payment_method
+    )
+
+    payload = {
+        "iType": 3,
+        "sClientName": (
+            clean_text(customer_name)
+            or "לקוח שליחובוט"
+        ),
+        "sClientPhone": normalize_phone(
+            customer_phone
+        ),
+        "sDescription": description,
+        "dTotal": amount,
+        "aItems": [
+            {
+                "sDescription": description,
+                "dQuantity": 1,
+                "dUnitPrice": amount,
+                "dTotal": amount,
+            }
+        ],
+        "aPayments": [
+            {
+                **payment_info,
+                "dAmount": amount,
+            }
+        ],
+    }
+
+    headers = {
+        "X-API-KEY": PAPERLESS_API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    response = requests.put(
+        PAPERLESS_API_URL,
+        json=payload,
+        headers=headers,
+        timeout=30
+    )
+
+    if not response.ok:
+        raise RuntimeError(
+            (
+                "Paperless HTTP "
+                f"{response.status_code}: "
+                f"{response.text[:500]}"
+            )
+        )
+
+    try:
+        result = response.json()
+    except Exception:
+        raise RuntimeError(
+            "Paperless returned invalid JSON"
+        )
+
+    receipt_url = (
+        result.get("sURL")
+        or result.get("sDownloadPageURL")
+        or ""
+    )
+
+    return {
+        "ok": True,
+        "url": receipt_url,
+        "response": result,
+    }
+
+
+# ============================================================
+# הפקת קבלה עבור תשלום מנוי
+# ============================================================
+
+def create_subscription_receipt(
+    payment_id
+):
+    payment = get_payment_by_id(
+        payment_id
+    )
+
+    if not payment:
+        raise ValueError(
+            "התשלום לא נמצא"
+        )
+
+    user = get_user_by_id(
+        payment["user_id"]
+    )
+
+    if not user:
+        raise ValueError(
+            "המשתמש לא נמצא"
+        )
+
+    result = create_paperless_receipt(
+        customer_name=(
+            user["full_name"]
+            or "שליח"
+        ),
+        customer_phone=user["phone"],
+        amount=payment["amount"],
+        payment_method=payment["method"],
+        description="מנוי חודשי - שליחובוט"
+    )
+
+    receipt_url = result.get(
+        "url",
+        ""
+    )
+
+    with db() as conn:
+        conn.execute(
+            """
+            UPDATE payments
+            SET
+                receipt_url = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                receipt_url,
+                now_ts(),
+                payment_id,
+            )
+        )
+
+        conn.commit()
+
+    return receipt_url
+
+
+# ============================================================
+# שליחת קבלה לשליח
+# ============================================================
+
+def send_subscription_receipt(
+    phone,
+    payment_id
+):
+    try:
+        receipt_url = (
+            create_subscription_receipt(
+                payment_id
+            )
+        )
+
+    except Exception as exc:
+        print(
+            "PAPERLESS RECEIPT ERROR:",
+            repr(exc)
+        )
+
+        return False
+
+    if receipt_url:
+        send_message(
+            phone,
+            (
+                "🧾 הקבלה שלך מוכנה.\n\n"
+                f"{receipt_url}"
+            )
+        )
+
+    else:
+        send_message(
+            phone,
+            (
+                "🧾 התשלום נקלט והקבלה הופקה.\n"
+                "לא התקבל קישור לצפייה בקבלה."
+            )
+        )
+
+    return True
+
+
+# ============================================================
+# סוף Paperless
+# ============================================================
 # ============================================================
 # מחיר המנוי
 # ============================================================
@@ -14855,7 +15078,10 @@ def approve_manual_payment(
             actor_phone=admin_phone
         )
     )
-
+    send_subscription_receipt(
+        user["phone"],
+        payment_id
+    )
     send_message(
         user["phone"],
         (
