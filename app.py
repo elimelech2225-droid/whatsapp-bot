@@ -15424,8 +15424,7 @@ def toggle_payment_method(
         "bank":
             "payment_bank_enabled",
 
-        "payplus":
-            "payment_payplus_enabled",
+        
     }
 
     key = key_map.get(
