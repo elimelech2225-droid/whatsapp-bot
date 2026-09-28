@@ -15655,11 +15655,7 @@ def handle_subscription_actions(
         )
         return True
 
-    if action_id == "subscription_pay_payplus":
-        return create_payplus_subscription_payment(
-            phone
-        )
-
+    
     if action_id.startswith(
         "payment_done_"
     ):
