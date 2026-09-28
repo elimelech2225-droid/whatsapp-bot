@@ -2027,7 +2027,34 @@ def show_admin_menu(phone):
         ]
     )
 
-
+def show_admin_price_list_menu(phone):
+    send_list(
+        phone,
+        "💰 ניהול מחירון",
+        "בחר פעולה:",
+        [
+            (
+                "admin_price_add",
+                "➕ הוספה / עדכון מחיר",
+                "הוספת מסלול חדש או שינוי מחיר קיים",
+            ),
+            (
+                "admin_price_check",
+                "🔎 בדיקת מחיר",
+                "בדיקת מחיר של מסלול קיים",
+            ),
+            (
+                "admin_price_delete",
+                "🗑️ מחיקת מחיר",
+                "מחיקת מסלול מהמחירון",
+            ),
+            (
+                "admin_menu",
+                "↩️ חזרה לתפריט מנהל",
+                "חזרה",
+            ),
+        ],
+    )
 # =========================================================
 # תפריט הגדרות מנהל
 # =========================================================
@@ -10506,7 +10533,59 @@ def handle_admin_action(
 
         return True
 
+    if action_id == "admin_price_list":
+        show_admin_price_list_menu(
+            phone
+        )
+        return True
+    if action_id == "admin_price_add":
+        save_session(
+            phone,
+            "admin_price_add_route",
+            {}
+        )
+        send_message(
+            phone,
+            "➕ הוספה / עדכון מחיר\n\n"
+            "שלח את המסלול בפורמט הבא:\n"
+            "עיר מוצא | עיר יעד\n\n"
+            "לדוגמה:\n"
+            "ירושלים | תל אביב"
+        )
+        return True
 
+    if action_id == "admin_price_check":
+        save_session(
+            phone,
+            "admin_price_check_route",
+            {}
+        )
+        send_message(
+            phone,
+            "🔎 בדיקת מחיר\n\n"
+            "שלח את המסלול בפורמט הבא:\n"
+            "עיר מוצא | עיר יעד\n\n"
+            "לדוגמה:\n"
+            "ירושלים | תל אביב"
+        )
+        return True
+
+    if action_id == "admin_price_delete":
+        save_session(
+            phone,
+            "admin_price_delete_route",
+            {}
+        )
+        send_message(
+            phone,
+            "🗑️ מחיקת מחיר\n\n"
+            "שלח את המסלול שברצונך למחוק:\n"
+            "עיר מוצא | עיר יעד\n\n"
+            "לדוגמה:\n"
+            "ירושלים | תל אביב"
+        )
+        return True
+    
     if action_id == "admin_support":
 
         show_open_support_requests(
