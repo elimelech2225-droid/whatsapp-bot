@@ -15475,10 +15475,8 @@ def toggle_payment_method(
             "0"
             if current
             else "1"
-        ),
-        phone
-    )
-
+        )
+    )    
     return True
 
 
