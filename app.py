@@ -5454,7 +5454,11 @@ def handle_new_shipment(phone, text, action_id):
 {result['duration_minutes']} דקות
 
 💰 מחיר:
-{result['price']} ₪"""
+{result['price']} ₪
+
+📞 מספר המזמין:
+
+{phone}"""
             )
 
         except Exception as exc:
