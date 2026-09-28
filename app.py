@@ -13797,10 +13797,8 @@ def handle_admin_management_state(
 
         set_setting(
             "maintenance_message",
-            text,
-            phone
-        )
-
+            text
+        )        
         clear_session(
             phone
         )
