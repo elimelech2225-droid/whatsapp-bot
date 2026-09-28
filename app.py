@@ -4769,30 +4769,9 @@ def handle_new_shipment(phone, text, action_id):
                 "חסרה כתובת מסירה"
             )
 
-        # =================================================
-        # בניית כתובות מלאות ל-Google Maps
-        # =================================================
-
-        if origin_city:
-            origin = (
-                f"{origin_address}, "
-                f"{origin_city}, ישראל"
-            )
-        else:
-            origin = (
-                f"{origin_address}, ישראל"
-            )
-
-        if destination_city:
-            destination = (
-                f"{destination_address}, "
-                f"{destination_city}, ישראל"
-            )
-        else:
-            destination = (
-                f"{destination_address}, ישראל"
-            )
-
+        # משתמשים בכתובות כפי שנשמרו בזרימת ההזמנה
+        origin = origin_address
+        destination = destination_address       
         # =================================================
         # חישוב מסלול
         # =================================================
