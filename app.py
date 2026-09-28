@@ -808,6 +808,7 @@ def init_db():
                 reminder_sent INTEGER DEFAULT 0,
 
                 created_at INTEGER DEFAULT 0,
+                updated_at INTEGER DEFAULT 0,
 
                 FOREIGN KEY(user_id)
                     REFERENCES users(id),
@@ -955,6 +956,20 @@ def init_db():
                 )
             )
 
+        subscription_columns = {
+            row["name"]
+            for row in conn.execute(
+                "PRAGMA table_info(subscriptions)"
+            ).fetchall()
+        }
+
+        if "updated_at" not in subscription_columns:
+            conn.execute(
+                """
+                ALTER TABLE subscriptions
+                ADD COLUMN updated_at INTEGER DEFAULT 0
+                """
+            )        
         conn.commit()
 
 
