@@ -13770,9 +13770,8 @@ def handle_admin_management_state(
             setting_key,
             str(
                 int(amount)
-            ),
-            phone
-        )
+            )
+        )        
 
         clear_session(
             phone
