@@ -15950,7 +15950,17 @@ def handle_basic_menu_action(
                 phone
             )
             return True
+    if action_id == "register_customer":
+        start_customer_registration(
+            phone
+        )
+        return True
 
+    if action_id == "register_driver":
+        start_driver_registration(
+            phone
+        )
+        return True
     if action_id == "customer_menu":
         show_customer_menu(
             phone
