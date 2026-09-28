@@ -7921,7 +7921,12 @@ def set_driver_available(
     if not city:
 
         return False
-
+    if get_setting("driver_side_enabled", "1") != "1":
+        send_message(
+            phone,
+            "🚫 צד השליחים אינו פעיל כרגע."
+        )
+        return True
     with db() as conn:
 
         conn.execute(
