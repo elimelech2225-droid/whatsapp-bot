@@ -450,6 +450,19 @@ def init_db():
             )
 
 
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS route_prices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                city_from TEXT NOT NULL,
+                city_to TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                created_at INTEGER DEFAULT 0,
+                updated_at INTEGER DEFAULT 0,
+                UNIQUE(city_from, city_to)
+            )
+            """
+        )        
         conn.commit()
 
 
@@ -1978,7 +1991,11 @@ def show_admin_menu(phone):
                 "💳 אישורי תשלום",
                 "אסמכתאות הממתינות לאישור"
             ),
-
+            (
+                "admin_price_list",
+                "💰 ניהול מחירון",
+                "הוספה, עדכון ומחיקת מחירים",
+            ),
             (
                 "admin_support",
                 "💬 פניות לנציג",
@@ -4738,220 +4755,65 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def calculate_price():
-        origin = data.get(
-            "origin_address",
-            ""
-        ).strip()
+    origin_city = (
+        data.get("origin_city")
+        or ""
+    ).strip()
 
-        destination_city = data.get(
-            "destination_city",
-            ""
-        ).strip()
+    destination_city = (
+        data.get("destination_city")
+        or ""
+    ).strip()
 
-        if not origin:
-            raise ValueError(
-                "חסרה כתובת איסוף"
-            )
+    if not origin_city:
+        raise ValueError("חסרה עיר איסוף")
 
-        if not destination_city:
-            raise ValueError(
-                "חסרה עיר יעד"
-            )
+    if not destination_city:
+        raise ValueError("חסרה עיר יעד")
 
-        destination = (
-            f"{destination_city}, ישראל"
-        )
+    # מנרמל את שמות הערים כדי שהכיוון לא ישנה
+    city_a = origin_city.strip()
+    city_b = destination_city.strip()
 
-        route = get_google_route(
-            origin,
-            destination
-        )        
-        distance_km = float(
-            route.get(
-                "distance_km",
-                0
-            )
-            or 0
-        )
-
-        duration_minutes = int(
-            route.get(
-                "duration_minutes",
-                0
-            )
-            or 0
-        )
-
-        static_minutes = int(
-            route.get(
-                "static_duration_minutes",
-                duration_minutes
-            )
-            or duration_minutes
-        )
-
-        if distance_km <= 0:
-            raise ValueError(
-                "לא התקבל מרחק תקין"
-            )
-
-        # =================================================
-        # סוג הרכב
-        # =================================================
-
-        vehicle_type = (
-            data.get("vehicle_type")
-            or ""
-        ).strip()
-
-        if not vehicle_type:
-            raise ValueError(
-                "לא נבחר סוג רכב"
-            )
-
-        # =================================================
-        # מחיר בסיס לפי מדרגת קילומטרים
-        # המחיר כאן הוא לרכב פרטי
-        # =================================================
-
-        if distance_km <= 35:
-            base_price = 150
-
-        elif distance_km <= 50:
-            base_price = 250
-
-        elif distance_km <= 100:
-            base_price = 350
-
-        elif distance_km <= 150:
-            base_price = 650
-
-        else:
-            # מעל 150 ק"מ:
-            # ממשיכים ממחיר 650 ₪
-            # ותוספת 4 ₪ לכל ק"מ נוסף
-            extra_km = (
-                distance_km
-                - 150
-            )
-
-            base_price = (
-                650
-                + extra_km * 4
-            )
-
-        # =================================================
-        # תוספת לפי סוג הרכב
-        #
-        # רכב פרטי = מחיר בסיס
-        # מסחרי קטן = +100
-        # מסחרי גדול = +200
-        # =================================================
-
-        vehicle_extra = 0
-
-        if vehicle_type == "private":
-            vehicle_extra = 0
-
-        elif vehicle_type in {
-            "7_seats",
-            "small_commercial",
-        }:
-            vehicle_extra = 100
-
-        elif vehicle_type == "large_commercial":
-            vehicle_extra = 200
-
-        elif vehicle_type == "motorcycle":
-            # אופנוע נשאר כרגע במחיר הבסיס
-            vehicle_extra = 0
-
-        price = (
-            base_price
-            + vehicle_extra
-        )
-
-        # =================================================
-        # עזרת נהג
-        # שומרים את התוספות שכבר היו אצלנו
-        # =================================================
-
-        help_extra = 0
-
-        if data.get("driver_help") == "yes":
-            if vehicle_type == "private":
-                help_extra = 50
-
-            elif vehicle_type in {
-                "7_seats",
-                "small_commercial",
-            }:
-                help_extra = 80
-
-            elif vehicle_type == "large_commercial":
-                help_extra = 100
-
-            price += help_extra
-
-        # =================================================
-        # תוספת עומס תנועה
-        # שומרים את המנגנון שהיה אצלנו
-        # =================================================
-
-        traffic_delay = max(
-            0,
-            duration_minutes
-            - static_minutes
-        )
-
-        traffic_extra = 0
-
-        if traffic_delay >= 20:
-            traffic_extra = 50
-            price += traffic_extra
-
-        # =================================================
-        # מחיר סופי
-        # =================================================
-
-        final_price = int(
-            round(price)
-        )
-
-        data["distance_km"] = round(
-            distance_km,
-            1
-        )
-
-        data[
-            "duration_minutes"
-        ] = duration_minutes
-
-        data[
-            "traffic_extra"
-        ] = traffic_extra
-
-        data[
-            "price"
-        ] = final_price
-
-        save_session(
-            phone,
-            state,
-            data
-        )
-
-        return {
-            "distance_km": round(
-                distance_km,
-                1
+    with db() as conn:
+        row = conn.execute(
+            """
+            SELECT price
+            FROM route_prices
+            WHERE
+                (city_from = ? AND city_to = ?)
+                OR
+                (city_from = ? AND city_to = ?)
+            LIMIT 1
+            """,
+            (
+                city_a,
+                city_b,
+                city_b,
+                city_a,
             ),
-            "duration_minutes":
-                duration_minutes,
-            "price":
-                final_price,
-        }    
+        ).fetchone()
 
+    if not row:
+        raise ValueError(
+            "אין כרגע מחיר אוטומטי למסלול הזה"
+        )
+
+    final_price = int(row["price"])
+
+    data["price"] = final_price
+
+    save_session(
+        phone,
+        state,
+        data
+    )
+
+    return {
+        "distance_km": None,
+        "duration_minutes": None,
+        "price": final_price,
+    }
     # =====================================================
     # סיכום
     # =====================================================
