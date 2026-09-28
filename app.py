@@ -15723,15 +15723,10 @@ def handle_subscription_actions(
                 "✅ מצב אמצעי התשלום עודכן."
             )
 
-        if method == "payplus":
-            show_payplus_admin(
-                phone
-            )
-        else:
             show_payment_method_admin(
                 phone,
                 method
-            )
+            )        
 
         return True
 
