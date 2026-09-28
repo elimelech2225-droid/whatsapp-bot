@@ -15559,9 +15559,8 @@ def handle_subscription_admin_state(
 
         set_setting(
             "subscription_price",
-            str(price),
-            phone
-        )
+            str(price)
+        )        
 
         clear_session(
             phone
