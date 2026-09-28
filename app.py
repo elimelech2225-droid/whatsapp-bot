@@ -13422,9 +13422,8 @@ def toggle_setting(
 
     set_setting(
         key,
-        new_value,
-        phone
-    )
+        new_value
+    )    
 
     return (
         new_value == "1"
