@@ -1794,7 +1794,12 @@ def show_driver_menu(
     phone,
     user
 ):
-
+    if get_setting("driver_side_enabled", "1") != "1":
+        send_message(
+            phone,
+            "🚫 צד השליחים אינו פעיל כרגע."
+        )
+        return
     trial_expires = int(
         user.get(
             "trial_expires_at"
