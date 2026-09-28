@@ -4738,29 +4738,64 @@ def handle_new_shipment(phone, text, action_id):
     # =====================================================
 
     def calculate_price():
-        origin = data.get(
-            "origin_address",
-            ""
+        origin_address = (
+            data.get("origin_address")
+            or data.get("pickup_address")
+            or ""
         ).strip()
 
-        destination_city = data.get(
-            "destination_city",
-            ""
+        destination_address = (
+            data.get("destination_address")
+            or ""
         ).strip()
 
-        if not origin:
+        origin_city = (
+            data.get("origin_city")
+            or ""
+        ).strip()
+
+        destination_city = (
+            data.get("destination_city")
+            or ""
+        ).strip()
+
+        if not origin_address:
             raise ValueError(
                 "חסרה כתובת איסוף"
             )
 
-        if not destination_city:
+        if not destination_address:
             raise ValueError(
-                "חסרה עיר יעד"
+                "חסרה כתובת מסירה"
             )
 
-        destination = (
-            f"{destination_city}, ישראל"
-        )
+        # =================================================
+        # בניית כתובות מלאות ל-Google Maps
+        # =================================================
+
+        if origin_city:
+            origin = (
+                f"{origin_address}, "
+                f"{origin_city}, ישראל"
+            )
+        else:
+            origin = (
+                f"{origin_address}, ישראל"
+            )
+
+        if destination_city:
+            destination = (
+                f"{destination_address}, "
+                f"{destination_city}, ישראל"
+            )
+        else:
+            destination = (
+                f"{destination_address}, ישראל"
+            )
+
+        # =================================================
+        # חישוב מסלול
+        # =================================================
 
         route = get_google_route(
             origin,
@@ -4768,12 +4803,18 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         distance_km = float(
-            route.get("distance_km", 0)
+            route.get(
+                "distance_km",
+                0
+            )
             or 0
         )
 
         duration_minutes = int(
-            route.get("duration_minutes", 0)
+            route.get(
+                "duration_minutes",
+                0
+            )
             or 0
         )
 
@@ -4790,50 +4831,108 @@ def handle_new_shipment(phone, text, action_id):
                 "לא התקבל מרחק תקין"
             )
 
-        info = vehicle_info()
+        # =================================================
+        # סוג הרכב
+        # =================================================
 
-        if not info:
+        vehicle_type = (
+            data.get("vehicle_type")
+            or ""
+        ).strip()
+
+        if not vehicle_type:
             raise ValueError(
                 "לא נבחר סוג רכב"
             )
 
-        max_km = info.get("max_km")
+        # =================================================
+        # מחיר בסיס לפי מדרגת קילומטרים
+        # המחיר כאן הוא לרכב פרטי
+        # =================================================
 
-        if (
-            max_km is not None
-            and distance_km > max_km
-        ):
-            raise ValueError(
-                f"{info['label']} מתאים למשלוחים "
-                f"עד {max_km} ק״מ"
-            )
+        if distance_km <= 35:
+            base_price = 150
 
-        price = float(
-            info["minimum"]
-        )
+        elif distance_km <= 50:
+            base_price = 250
 
-        if (
-            distance_km
-            > float(info["included_km"])
-        ):
+        elif distance_km <= 100:
+            base_price = 350
+
+        elif distance_km <= 150:
+            base_price = 650
+
+        else:
+            # מעל 150 ק"מ:
+            # ממשיכים ממחיר 650 ₪
+            # ותוספת 4 ₪ לכל ק"מ נוסף
             extra_km = (
                 distance_km
-                - float(info["included_km"])
+                - 150
             )
 
-            price += (
-                extra_km
-                * float(info["per_km"])
+            base_price = (
+                650
+                + extra_km * 4
             )
 
-        if (
-            data.get("driver_help")
-            == "yes"
-        ):
-            price += int(
-                info.get("help_extra", 0)
-                or 0
-            )
+        # =================================================
+        # תוספת לפי סוג הרכב
+        #
+        # רכב פרטי = מחיר בסיס
+        # מסחרי קטן = +100
+        # מסחרי גדול = +200
+        # =================================================
+
+        vehicle_extra = 0
+
+        if vehicle_type == "private":
+            vehicle_extra = 0
+
+        elif vehicle_type in {
+            "7_seats",
+            "small_commercial",
+        }:
+            vehicle_extra = 100
+
+        elif vehicle_type == "large_commercial":
+            vehicle_extra = 200
+
+        elif vehicle_type == "motorcycle":
+            # אופנוע נשאר כרגע במחיר הבסיס
+            vehicle_extra = 0
+
+        price = (
+            base_price
+            + vehicle_extra
+        )
+
+        # =================================================
+        # עזרת נהג
+        # שומרים את התוספות שכבר היו אצלנו
+        # =================================================
+
+        help_extra = 0
+
+        if data.get("driver_help") == "yes":
+            if vehicle_type == "private":
+                help_extra = 50
+
+            elif vehicle_type in {
+                "7_seats",
+                "small_commercial",
+            }:
+                help_extra = 80
+
+            elif vehicle_type == "large_commercial":
+                help_extra = 100
+
+            price += help_extra
+
+        # =================================================
+        # תוספת עומס תנועה
+        # שומרים את המנגנון שהיה אצלנו
+        # =================================================
 
         traffic_delay = max(
             0,
@@ -4846,6 +4945,10 @@ def handle_new_shipment(phone, text, action_id):
         if traffic_delay >= 20:
             traffic_extra = 50
             price += traffic_extra
+
+        # =================================================
+        # מחיר סופי
+        # =================================================
 
         final_price = int(
             round(price)
@@ -4864,7 +4967,9 @@ def handle_new_shipment(phone, text, action_id):
             "traffic_extra"
         ] = traffic_extra
 
-        data["price"] = final_price
+        data[
+            "price"
+        ] = final_price
 
         save_session(
             phone,
@@ -4873,15 +4978,15 @@ def handle_new_shipment(phone, text, action_id):
         )
 
         return {
-            "distance_km":
-                round(distance_km, 1),
-
+            "distance_km": round(
+                distance_km,
+                1
+            ),
             "duration_minutes":
                 duration_minutes,
-
             "price":
                 final_price,
-        }
+        }    
 
     # =====================================================
     # סיכום
