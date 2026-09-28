@@ -14680,16 +14680,7 @@ def show_subscription_payment_methods(
 ):
     rows = []
 
-    if payment_method_enabled(
-        "payplus"
-    ):
-        rows.append(
-            (
-                "subscription_pay_payplus",
-                "💳 אשראי",
-                "תשלום מאובטח וקבלה אוטומטית",
-            )
-        )
+    
 
     if payment_method_enabled(
         "bit"
