@@ -16124,6 +16124,11 @@ def handle_basic_menu_action(
         )
         return True
 
+    if action_id == "admin_more":
+        show_admin_more_menu(
+            phone
+        )
+        return True    
     if action_id == "admin_system_settings":
         show_admin_system_settings(
             phone
