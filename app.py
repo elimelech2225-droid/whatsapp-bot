@@ -15340,9 +15340,8 @@ def toggle_subscriptions(phone):
             "0"
             if current
             else "1"
-        ),
-        phone
-    )
+        )
+    )    
 
     new_status = not current
 
