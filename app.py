@@ -4798,7 +4798,6 @@ def handle_new_shipment(phone, text, action_id):
     if not destination_city:
         raise ValueError("חסרה עיר יעד")
 
-    # מנרמל את שמות הערים כדי שהכיוון לא ישנה
     city_a = origin_city.strip()
     city_b = destination_city.strip()
 
