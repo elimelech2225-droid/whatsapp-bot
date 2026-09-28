@@ -11064,7 +11064,270 @@ def handle_user_action(
         "state",
         ""
     )
+    # ============================================================
+    # ניהול מחירון ידני - מנהל
+    # ============================================================
 
+    if state == "admin_price_add_route":
+        route_text = (text or "").strip()
+
+        if "|" not in route_text:
+            send_message(
+                phone,
+                "❌ פורמט לא תקין.\n\n"
+                "שלח כך:\n"
+                "ירושלים | תל אביב"
+            )
+            return True
+
+        parts = [part.strip() for part in route_text.split("|", 1)]
+        city_from = parts[0]
+        city_to = parts[1]
+
+        if not city_from or not city_to:
+            send_message(
+                phone,
+                "❌ יש להזין עיר מוצא ועיר יעד."
+            )
+            return True
+
+        save_session(
+            phone,
+            "admin_price_add_amount",
+            {
+                "city_from": city_from,
+                "city_to": city_to,
+            }
+        )
+
+        send_message(
+            phone,
+            f"💰 מסלול:\n"
+            f"{city_from} ↔ {city_to}\n\n"
+            f"שלח עכשיו את המחיר בשקלים.\n"
+            f"לדוגמה: 250"
+        )
+        return True
+
+    if state == "admin_price_add_amount":
+        price_text = re.sub(
+            r"[^\d]",
+            "",
+            text or ""
+        )
+
+        if not price_text:
+            send_message(
+                phone,
+                "❌ שלח מחיר במספרים בלבד.\n"
+                "לדוגמה: 250"
+            )
+            return True
+
+        price = int(price_text)
+
+        if price <= 0:
+            send_message(
+                phone,
+                "❌ המחיר חייב להיות גדול מ-0."
+            )
+            return True
+
+        session_data = current_session.get("data", {}) or {}
+        city_from = (session_data.get("city_from") or "").strip()
+        city_to = (session_data.get("city_to") or "").strip()
+
+        if not city_from or not city_to:
+            clear_session(phone)
+            send_message(
+                phone,
+                "❌ פרטי המסלול אבדו. התחל מחדש."
+            )
+            show_admin_price_list_menu(phone)
+            return True
+
+        now = int(time.time())
+
+        with db() as conn:
+            existing = conn.execute(
+                """
+                SELECT id
+                FROM route_prices
+                WHERE
+                    (city_from = ? AND city_to = ?)
+                    OR
+                    (city_from = ? AND city_to = ?)
+                LIMIT 1
+                """,
+                (
+                    city_from,
+                    city_to,
+                    city_to,
+                    city_from,
+                ),
+            ).fetchone()
+
+            if existing:
+                conn.execute(
+                    """
+                    UPDATE route_prices
+                    SET
+                        city_from = ?,
+                        city_to = ?,
+                        price = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        city_from,
+                        city_to,
+                        price,
+                        now,
+                        existing["id"],
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO route_prices (
+                        city_from,
+                        city_to,
+                        price,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        city_from,
+                        city_to,
+                        price,
+                        now,
+                        now,
+                    ),
+                )
+
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            f"✅ המחיר נשמר בהצלחה.\n\n"
+            f"📍 {city_from} ↔ {city_to}\n"
+            f"💰 {price} ₪\n\n"
+            f"המחיר תקף לשני הכיוונים."
+        )
+
+        show_admin_price_list_menu(phone)
+        return True
+
+    if state == "admin_price_check_route":
+        route_text = (text or "").strip()
+
+        if "|" not in route_text:
+            send_message(
+                phone,
+                "❌ פורמט לא תקין.\n\n"
+                "שלח כך:\n"
+                "ירושלים | תל אביב"
+            )
+            return True
+
+        parts = [part.strip() for part in route_text.split("|", 1)]
+        city_from = parts[0]
+        city_to = parts[1]
+
+        with db() as conn:
+            row = conn.execute(
+                """
+                SELECT price
+                FROM route_prices
+                WHERE
+                    (city_from = ? AND city_to = ?)
+                    OR
+                    (city_from = ? AND city_to = ?)
+                LIMIT 1
+                """,
+                (
+                    city_from,
+                    city_to,
+                    city_to,
+                    city_from,
+                ),
+            ).fetchone()
+
+        clear_session(phone)
+
+        if row:
+            send_message(
+                phone,
+                f"🔎 מחיר קיים:\n\n"
+                f"📍 {city_from} ↔ {city_to}\n"
+                f"💰 {int(row['price'])} ₪"
+            )
+        else:
+            send_message(
+                phone,
+                f"❌ לא קיים מחיר למסלול:\n"
+                f"{city_from} ↔ {city_to}"
+            )
+
+        show_admin_price_list_menu(phone)
+        return True
+
+    if state == "admin_price_delete_route":
+        route_text = (text or "").strip()
+
+        if "|" not in route_text:
+            send_message(
+                phone,
+                "❌ פורמט לא תקין.\n\n"
+                "שלח כך:\n"
+                "ירושלים | תל אביב"
+            )
+            return True
+
+        parts = [part.strip() for part in route_text.split("|", 1)]
+        city_from = parts[0]
+        city_to = parts[1]
+
+        with db() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM route_prices
+                WHERE
+                    (city_from = ? AND city_to = ?)
+                    OR
+                    (city_from = ? AND city_to = ?)
+                """,
+                (
+                    city_from,
+                    city_to,
+                    city_to,
+                    city_from,
+                ),
+            )
+            deleted = cursor.rowcount
+            conn.commit()
+
+        clear_session(phone)
+
+        if deleted:
+            send_message(
+                phone,
+                f"🗑️ המחיר נמחק.\n\n"
+                f"📍 {city_from} ↔ {city_to}"
+            )
+        else:
+            send_message(
+                phone,
+                f"❌ לא נמצא מחיר למסלול:\n"
+                f"{city_from} ↔ {city_to}"
+            )
+
+        show_admin_price_list_menu(phone)
+        return True
     if state == "driver_id_photo":
         if not media_id:
             send_message(
