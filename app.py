@@ -5532,10 +5532,7 @@ def show_admin_payments_menu(phone):
                         "פרטים והפעלה / כיבוי",
                     ),
                     (
-                        "admin_payplus_settings",
-                        "🧾 PayPlus",
-                        "תשלומים וקבלות",
-                    ),
+                        
                 ],
             },
             {
