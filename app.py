@@ -15709,11 +15709,7 @@ def handle_subscription_actions(
         )
         return True
 
-    if action_id == "admin_payplus_settings":
-        show_payplus_admin(
-            phone
-        )
-        return True
+    
 
     if action_id.startswith(
         "payment_method_toggle_"
