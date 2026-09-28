@@ -15615,9 +15615,8 @@ def handle_subscription_admin_state(
 
         set_setting(
             key,
-            text,
-            phone
-        )
+            text
+        )        
 
         clear_session(
             phone
