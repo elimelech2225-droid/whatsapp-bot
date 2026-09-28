@@ -6227,7 +6227,7 @@ def handle_customer_registration_state(
             business_name=business_name,
             city=city
         )
-
+        notify_admin_about_registration(user_id)
         clear_session(
             phone
         )
@@ -6610,7 +6610,7 @@ def handle_driver_registration_state(
             id_photo_media_id=id_photo_media_id,
             selfie_media_id=media_id
         )
-
+        notify_admin_about_registration(user_id)
         clear_session(
             phone
         )
