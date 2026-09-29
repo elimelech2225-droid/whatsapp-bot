@@ -14026,13 +14026,13 @@ def create_paperless_receipt(
         },        
         "items": [
             {
-                "sProductID": "",
+                "sProductID": None,
                 "sProductName": description,
                 "dCount": 1,
-                "dPrice": amount,
-                "bVAT0": False
+                "dPrice": float(amount),
+                "bVAT0": IS_VAT_EXEMPT
             }
-        ],
+        ],        
         "payments": [
             {
                 **payment_info,
