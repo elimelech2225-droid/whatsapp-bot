@@ -13028,8 +13028,7 @@ def add_dispatcher(
                     role = ?,
                     status = ?,
                     approved_at = ?,
-                    approved_by = ?,
-                    updated_at = ?
+                    approved_by = ?
                 WHERE phone = ?
                 """,
                 (
@@ -13039,11 +13038,9 @@ def add_dispatcher(
                     normalize_phone(
                         admin_phone
                     ),
-                    now_ts(),
                     dispatcher_phone,
                 )
-            )
-
+            )        
             conn.commit()
 
     else:
