@@ -16417,7 +16417,7 @@ def handle_all_media_states(
                     f"👤 {user['full_name'] or '-'}\n"
                     f"📱 {user['phone']}\n"
                     f"💰 {payment['amount']} ₪\n"
-                    f"💳 אמצעי: {payment['method']}\n"
+                    f"💳 אמצעי: {payment['payment_method']}\n"
                     f"🔢 תשלום: {payment_id}"
                 ),
                 [
