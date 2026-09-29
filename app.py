@@ -16379,17 +16379,15 @@ def handle_all_media_states(
                 UPDATE payments
                 SET
                     proof_media_id = ?,
-                    status = ?,
-                    updated_at = ?
+                    status = ?
                 WHERE id = ?
                 """,
                 (
                     media_id,
                     PAYMENT_REVIEW,
-                    now_ts(),
                     payment_id,
                 )
-            )
+            )            
 
             conn.commit()
 
