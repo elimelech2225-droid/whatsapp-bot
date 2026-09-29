@@ -15359,7 +15359,7 @@ def toggle_subscriptions(phone):
     current = subscriptions_are_enabled()
 
     set_setting(
-        "subscription_enabled",
+        "subscriptions_enabled",
         (
             "0"
             if current
