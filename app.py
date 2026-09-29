@@ -9813,28 +9813,30 @@ def choose_driver_for_shipment(
     # הודעה לשליח שנבחר
     # --------------------------------------------------------
 
-    send_message(
+        send_buttons(
         driver["phone"],
         (
             "🎉 נבחרת למשלוח!\n\n"
             f"{shipment_title(shipment)}\n\n"
-            f"📍 מוצא: "
-            f"{shipment['origin_city']}\n"
-            f"🏠 איסוף: "
-            f"{shipment['pickup_address']}\n\n"
-            f"📍 יעד: "
-            f"{shipment['destination_city']}\n"
-            f"🏠 מסירה: "
-            f"{shipment['dropoff_address']}\n\n"
-            f"🕐 זמן: "
-            f"{shipment['pickup_time']}\n"
-            f"💵 מחיר: "
-            f"{shipment['final_price']} ₪\n\n"
+            f"📍 מוצא: {shipment['origin_city']}\n"
+            f"🏠 איסוף: {shipment['pickup_address']}\n\n"
+            f"📍 יעד: {shipment['destination_city']}\n"
+            f"🏠 מסירה: {shipment['dropoff_address']}\n\n"
+            f"🕐 זמן: {shipment['pickup_time']}\n"
+            f"💵 מחיר: {shipment['final_price']} ₪\n\n"
             f"🏢 מפרסם: "
             f"{publisher['business_name'] or publisher['full_name'] or '-'}\n"
-            f"📱 טלפון מפרסם: "
-            f"{publisher['phone']}"
-        )
+            f"📱 טלפון מפרסם: {publisher['phone']}\n\n"
+            "בסיום המשלוח לחץ על הכפתור למטה.\n"
+            "⭐ לאחר הסיום המפרסם יוכל לדרג אותך."
+        ),
+        [
+            (
+                f"driver_complete_{shipment_id}",
+                "✅ סיימתי משלוח"
+            ),
+        ],
+        header="🚚 משלוח פעיל"
     )
 
     # --------------------------------------------------------
