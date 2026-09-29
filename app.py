@@ -14010,32 +14010,36 @@ def create_paperless_receipt(
     )
 
     payload = {
-        "iType": 3,
-        "sClientName": (
-            clean_text(customer_name)
-            or "לקוח שליחובוט"
-        ),
-        "sClientPhone": normalize_phone(
-            customer_phone
-        ),
-        "sDescription": description,
-        "dTotal": amount,
-        "aItems": [
+        "type": {
+            "iType": 3
+        },
+        "client": {
+            "sPaperlessID": "",
+            "sNumber": "",
+            "sName": clean_text(customer_name) or "לקוח שליחובוט",
+            "sEmail": "",
+            "sMobile": normalize_phone(customer_phone),
+            "sAddress": "",
+            "sExternalID": "",
+            "bIsFixed": False,
+            "bIsEng": False
+        },
+        "items": [
             {
-                "sDescription": description,
-                "dQuantity": 1,
-                "dUnitPrice": amount,
-                "dTotal": amount,
+                "sProductID": "",
+                "sProductName": description,
+                "dCount": 1,
+                "dPrice": amount,
+                "bVAT0": False
             }
         ],
-        "aPayments": [
+        "payments": [
             {
                 **payment_info,
-                "dAmount": amount,
+                "dAmount": amount
             }
-        ],
-    }
-
+        ]
+    }    
     headers = {
         "X-API-KEY": PAPERLESS_API_KEY,
         "Content-Type": "application/json",
