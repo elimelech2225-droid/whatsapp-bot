@@ -14110,7 +14110,7 @@ def create_subscription_receipt(
         ),
         customer_phone=user["phone"],
         amount=payment["amount"],
-        payment_method=payment["method"],
+        payment_method=payment["payment_method"],
         description="מנוי חודשי - שליחובוט"
     )
 
@@ -14123,14 +14123,11 @@ def create_subscription_receipt(
         conn.execute(
             """
             UPDATE payments
-            SET
-                receipt_url = ?,
-                updated_at = ?
+            SET receipt_url = ?
             WHERE id = ?
             """,
             (
                 receipt_url,
-                now_ts(),
                 payment_id,
             )
         )
@@ -14138,7 +14135,6 @@ def create_subscription_receipt(
         conn.commit()
 
     return receipt_url
-
 
 # ============================================================
 # שליחת קבלה לשליח
