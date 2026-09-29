@@ -452,22 +452,22 @@ def init_db():
 
                 block_reason TEXT DEFAULT ''
             );
-                users_columns = {
-                    row["name"]
-                    for row in conn.execute(
-                        "PRAGMA table_info(users)"
-                    ).fetchall()
-                }
-        
-                if "updated_at" not in users_columns:
-                    conn.execute(
-                        """
-                        ALTER TABLE users
-                        ADD COLUMN updated_at INTEGER DEFAULT 0
-                        """
-                    )
-                    conn.commit()
+                
+            users_columns = {
+                row["name"]
+                for row in conn.execute(
+                    "PRAGMA table_info(users)"
+                ).fetchall()
+            }
 
+            if "updated_at" not in users_columns:
+                conn.execute(
+                    """
+                ALTER TABLE users
+                ADD COLUMN updated_at INTEGER DEFAULT 0
+                    """
+                )
+                conn.commit()
             CREATE INDEX IF NOT EXISTS idx_users_role
             ON users(role);
 
