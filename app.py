@@ -8545,7 +8545,21 @@ def driver_matches_shipment(
         or 0
     ):
         return False
+    driver_city = resolve_city(
+        driver_profile["available_city"]
+        or ""
+    )
 
+    shipment_city = resolve_city(
+        shipment["origin_city"]
+        or ""
+    )
+
+    if (
+        not driver_city
+        or driver_city != shipment_city
+    ):
+        return False
     if shipment["status"] not in (
         SHIP_NEW,
         SHIP_OPEN,
