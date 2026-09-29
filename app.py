@@ -4950,16 +4950,7 @@ def show_driver_menu(phone):
             "בחר פעולה:"
         ),
         [
-            (
-                "driver_available",
-                "🟢 אני פנוי",
-                "הפעלת זמינות לקבלת משלוחים",
-            ),
-            (
-                "driver_unavailable",
-                "🔴 לא זמין",
-                "הפסקת קבלת משלוחים",
-            ),
+            
             (
                 "driver_available_shipments",
                 "📦 משלוחים זמינים",
@@ -16414,6 +16405,32 @@ def handle_general_text(
 
             return True
 
+    if normalized in (
+        "תפוס",
+        "לא פנוי",
+        "לא זמין",
+    ):
+        user = get_user(
+            phone
+        )
+
+        if (
+            user
+            and user["role"] == ROLE_DRIVER
+            and user["status"] == USER_APPROVED
+        ):
+            set_driver_available(
+                user["id"],
+                False,
+                ""
+            )
+
+            send_message(
+                phone,
+                "🔴 סומנת כתפוס.\nלא יישלחו אליך משלוחים חדשים."
+            )
+
+            return True    
     if normalized in (
         "תפריט",
         "התחלה",
