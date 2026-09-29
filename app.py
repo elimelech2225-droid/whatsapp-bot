@@ -14825,15 +14825,14 @@ def create_manual_payment_request(
             INSERT INTO payments (
                 user_id,
                 payment_type,
-                method,
+                payment_method,
                 amount,
                 status,
-                external_id,
+                proof_media_id,
                 receipt_url,
-                created_at,
-                updated_at
+                created_at
             )
-            VALUES (?, ?, ?, ?, ?, '', '', ?, ?)
+            VALUES (?, ?, ?, ?, ?, '', '', ?)
             """,
             (
                 user["id"],
@@ -14841,7 +14840,6 @@ def create_manual_payment_request(
                 method,
                 amount,
                 PAYMENT_PENDING,
-                now_ts(),
                 now_ts(),
             )
         )
@@ -14853,7 +14851,6 @@ def create_manual_payment_request(
         conn.commit()
 
     return payment_id
-
 
 # ============================================================
 # שליחת הוראות תשלום ידני
