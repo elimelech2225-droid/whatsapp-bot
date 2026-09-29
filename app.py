@@ -10607,12 +10607,23 @@ def send_rating_prompt(
     ]:
         return
 
+    driver = get_user_by_id(
+        shipment["assigned_driver_id"]
+    )
+
+    if not driver:
+        return
+
     send_buttons(
         phone,
         (
-            "⭐ דירוג השליח\n\n"
-            "איך היית מדרג את השליח "
-            "במשלוח הזה?"
+            "✅ המשלוח סומן כהושלם.\n\n"
+            f"📦 {shipment_title(shipment)}\n"
+            f"📍 {shipment['origin_city']} → "
+            f"{shipment['destination_city']}\n\n"
+            "⭐ איך היית מדרג את השליח?\n"
+            f"👤 שליח: {driver['full_name'] or '-'}\n"
+            f"📱 טלפון: {driver['phone']}"
         ),
         [
             (
@@ -10624,11 +10635,8 @@ def send_rating_prompt(
                 "לא עכשיו"
             ),
         ],
-        header=shipment_title(
-            shipment
-        )
+        header="⭐ דירוג שליח"
     )
-
 
 # ============================================================
 # מסך בחירת דירוג
