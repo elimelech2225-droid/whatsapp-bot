@@ -16362,6 +16362,58 @@ def handle_general_text(
         text
     ).lower()
 
+    # --------------------------------------------------------
+    # שליח - סימון פנוי לפי עיר
+    # דוגמאות:
+    # פ ירושלים
+    # פנוי ירושלים
+    # --------------------------------------------------------
+
+    if (
+        normalized.startswith("פ ")
+        or normalized.startswith("פנוי ")
+    ):
+        user = get_user(
+            phone
+        )
+
+        if (
+            user
+            and user["role"] == ROLE_DRIVER
+            and user["status"] == USER_APPROVED
+        ):
+            if normalized.startswith("פנוי "):
+                city_text = normalized[len("פנוי "):].strip()
+            else:
+                city_text = normalized[len("פ "):].strip()
+
+            if not city_text:
+                send_message(
+                    phone,
+                    "❌ יש לרשום עיר.\nלדוגמה: פ ירושלים"
+                )
+                return True
+
+            city = resolve_city(
+                city_text
+            )
+
+            set_driver_available(
+                user["id"],
+                True,
+                city
+            )
+
+            send_message(
+                phone,
+                (
+                    "🟢 סומנת כפנוי.\n"
+                    f"📍 אזור זמינות: {city}"
+                )
+            )
+
+            return True
+
     if normalized in (
         "תפריט",
         "התחלה",
