@@ -14952,69 +14952,36 @@ def driver_mark_payment_done(
             )
         ).fetchone()
 
-        if not payment:
-            send_message(
-                phone,
-                "❌ בקשת התשלום לא נמצאה."
-            )
-            return True
-
-        if payment["user_id"] != user["id"]:
-            return True
-
-        conn.execute(
-            """
-            UPDATE payments
-            SET
-                status = ?,
-                updated_at = ?
-            WHERE id = ?
-            """,
-            (
-                PAYMENT_REVIEW,
-                now_ts(),
-                payment_id,
-            )
+    if not payment:
+        send_message(
+            phone,
+            "❌ בקשת התשלום לא נמצאה."
         )
+        return True
 
-        conn.commit()
+    if payment["user_id"] != user["id"]:
+        return True
+
+    save_session(
+        phone,
+        "subscription_payment_proof",
+        {
+            "payment_id": payment_id
+        }
+    )
 
     send_message(
         phone,
         (
-            "✅ קיבלנו את הודעת התשלום.\n\n"
-            "התשלום ממתין לאישור מנהל.\n"
-            "לאחר האישור המנוי יופעל "
-            "ותקבל הודעה."
+            "📸 שלח עכשיו צילום של אישור התשלום.\n\n"
+            "אפשר לשלוח צילום מסך של "
+            "Bit / PayBox / העברה בנקאית.\n\n"
+            "לאחר שליחת הצילום הבקשה "
+            "תועבר לאישור המנהל."
         )
     )
 
-    if ADMIN_PHONE:
-        send_buttons(
-            ADMIN_PHONE,
-            (
-                "💳 תשלום מנוי ממתין לאישור\n\n"
-                f"👤 {user['full_name'] or '-'}\n"
-                f"📱 {user['phone']}\n"
-                f"💰 {payment['amount']} ₪\n"
-                f"💳 אמצעי: {payment['method']}\n"
-                f"🔢 תשלום: {payment_id}"
-            ),
-            [
-                (
-                    f"payment_approve_{payment_id}",
-                    "✅ אישור"
-                ),
-                (
-                    f"payment_reject_{payment_id}",
-                    "❌ דחייה"
-                ),
-            ],
-            header="אישור תשלום"
-        )
-
     return True
-
 
 # ============================================================
 # סוף חלק 8A
@@ -16364,6 +16331,115 @@ def handle_all_media_states(
     media_id,
     message_type
 ):
+    if state == "subscription_payment_proof":
+        session = get_session(
+            phone
+        )
+
+        payment_id = (
+            session
+            .get("data", {})
+            .get("payment_id")
+        )
+
+        if not payment_id:
+            clear_session(phone)
+            return True
+
+        user = get_user(phone)
+
+        if not user:
+            clear_session(phone)
+            return True
+
+        with db() as conn:
+            payment = conn.execute(
+                """
+                SELECT *
+                FROM payments
+                WHERE id = ?
+                LIMIT 1
+                """,
+                (
+                    payment_id,
+                )
+            ).fetchone()
+
+            if not payment:
+                clear_session(phone)
+                send_message(
+                    phone,
+                    "❌ בקשת התשלום לא נמצאה."
+                )
+                return True
+
+            if payment["user_id"] != user["id"]:
+                clear_session(phone)
+                return True
+
+            conn.execute(
+                """
+                UPDATE payments
+                SET
+                    proof_media_id = ?,
+                    status = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    media_id,
+                    PAYMENT_REVIEW,
+                    now_ts(),
+                    payment_id,
+                )
+            )
+
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            (
+                "✅ צילום התשלום התקבל.\n\n"
+                "הבקשה הועברה לאישור המנהל.\n"
+                "לאחר האישור המנוי יופעל "
+                "ותקבל הודעה."
+            )
+        )
+
+        if ADMIN_PHONE:
+            send_image_by_media_id(
+                ADMIN_PHONE,
+                media_id,
+                "📸 אסמכתא לתשלום מנוי"
+            )
+
+            send_buttons(
+                ADMIN_PHONE,
+                (
+                    "💳 תשלום מנוי ממתין לאישור\n\n"
+                    f"👤 {user['full_name'] or '-'}\n"
+                    f"📱 {user['phone']}\n"
+                    f"💰 {payment['amount']} ₪\n"
+                    f"💳 אמצעי: {payment['method']}\n"
+                    f"🔢 תשלום: {payment_id}"
+                ),
+                [
+                    (
+                        f"payment_approve_{payment_id}",
+                        "✅ אישור"
+                    ),
+                    (
+                        f"payment_reject_{payment_id}",
+                        "❌ דחייה"
+                    ),
+                ],
+                header="אישור תשלום"
+            )
+
+        return True
+
     if handle_driver_registration_state(
         phone,
         state,
@@ -16374,7 +16450,6 @@ def handle_all_media_states(
         return True
 
     return False
-
 
 # ============================================================
 # פקודות טקסט כלליות
