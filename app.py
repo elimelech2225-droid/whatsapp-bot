@@ -14030,7 +14030,7 @@ def create_paperless_receipt(
                 "sProductName": description,
                 "dCount": 1,
                 "dPrice": float(amount),
-                "bVAT0": IS_VAT_EXEMPT
+                "bVAT0": False
             }
         ],        
         "payments": [
