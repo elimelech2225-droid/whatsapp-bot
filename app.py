@@ -14069,11 +14069,17 @@ def create_paperless_receipt(
             "Paperless returned invalid JSON"
         )
 
-    receipt_url = (
-        result.get("sURL")
-        or result.get("sDownloadPageURL")
-        or ""
-    )
+    invoices = result.get("invoices", [])
+
+    if invoices:
+        invoice = invoices[0]
+        receipt_url = (
+            invoice.get("sURL")
+            or invoice.get("sDownloadPageURL")
+            or ""
+        )
+    else:
+        receipt_url = ""    
 
     return {
         "ok": True,
