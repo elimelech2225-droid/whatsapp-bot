@@ -8340,7 +8340,11 @@ def handle_new_shipment_action(
         # המשלוח מתומחר ומוכן לפרסום
         # ----------------------------------------------------
 
-        send_message(
+        distribute_shipment_to_drivers(
+            shipment_id
+        )
+
+        send_buttons(
             phone,
             (
                 "✅ המשלוח נוצר בהצלחה!\n\n"
@@ -8348,9 +8352,16 @@ def handle_new_shipment_action(
                 f"📍 {shipment['origin_city']} → "
                 f"{shipment['destination_city']}\n"
                 f"💵 מחיר: {shipment['final_price']} ₪\n\n"
-                "המשלוח מוכן להפצה לשליחים."
-            )
-        )
+                "המשלוח הופץ לשליחים המתאימים."
+            ),
+            [
+                (
+                    f"customer_cancel_shipment_{shipment_id}",
+                    "❌ בטל משלוח"
+                ),
+            ],
+            header="📦 המשלוח פורסם"
+        )        
 
         # מנהל רואה גם את מספר הטלפון של המפרסם
         if ADMIN_PHONE:
