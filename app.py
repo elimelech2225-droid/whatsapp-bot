@@ -14014,16 +14014,16 @@ def create_paperless_receipt(
             "iType": 3
         },
         "client": {
-            "sPaperlessID": "",
-            "sNumber": "",
+            "sPaperlessID": None,
+            "sNumber": None,
             "sName": clean_text(customer_name) or "לקוח שליחובוט",
-            "sEmail": "",
+            "sEmail": None,
             "sMobile": normalize_phone(customer_phone),
-            "sAddress": "",
-            "sExternalID": "",
-            "bIsFixed": False,
+            "sAddress": None,
+            "sExternalID": None,
+            "bIsFixed": True,
             "bIsEng": False
-        },
+        },        
         "items": [
             {
                 "sProductID": "",
