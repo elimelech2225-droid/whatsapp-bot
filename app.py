@@ -15056,8 +15056,7 @@ def approve_manual_payment(
             SET
                 status = ?,
                 approved_at = ?,
-                approved_by = ?,
-                updated_at = ?
+                approved_by = ?
             WHERE id = ?
             """,
             (
@@ -15066,10 +15065,9 @@ def approve_manual_payment(
                 normalize_phone(
                     admin_phone
                 ),
-                now_ts(),
                 payment_id,
             )
-        )
+        )    
 
         conn.commit()
 
@@ -15148,8 +15146,7 @@ def reject_manual_payment(
             UPDATE payments
             SET
                 status = ?,
-                approved_by = ?,
-                updated_at = ?
+                approved_by = ?
             WHERE id = ?
             """,
             (
@@ -15157,10 +15154,9 @@ def reject_manual_payment(
                 normalize_phone(
                     admin_phone
                 ),
-                now_ts(),
                 payment_id,
             )
-        )
+        )    
 
         conn.commit()
 
