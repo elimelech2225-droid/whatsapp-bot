@@ -1843,13 +1843,18 @@ def calculate_shipment_price(
     vehicle_type,
     driver_help=False
 ):
-    base_price = get_route_price(
+    route_price = get_route_price(
         origin_city,
         destination_city
     )
 
-    if base_price is None:
+    if route_price is None:
         return None
+
+    # get_route_price מחזירה sqlite3.Row
+    base_price = int(
+        route_price["price"]
+    )
 
     help_extra = 0
 
@@ -1859,21 +1864,15 @@ def calculate_shipment_price(
         )
 
     final_price = (
-        int(base_price)
+        base_price
         + int(help_extra)
     )
 
     return {
-        "base_price":
-            int(base_price),
-
-        "help_extra":
-            int(help_extra),
-
-        "final_price":
-            int(final_price),
+        "base_price": base_price,
+        "help_extra": int(help_extra),
+        "final_price": int(final_price),
     }
-
 
 # ============================================================
 # דירוג שליח
