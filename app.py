@@ -7683,10 +7683,8 @@ def show_new_shipment_summary(phone):
         or {}
     )
 
-    summary, price_data = (
-        build_shipment_summary(
-            data
-        )
+    summary, price_data = build_shipment_summary(
+        data
     )
 
     if price_data is None:
@@ -7710,28 +7708,32 @@ def show_new_shipment_summary(phone):
             ],
             header="אישור משלוח"
         )
+        return
 
-    else:
-        send_buttons(
-            phone,
-            summary,
-            [
-                (
-                    "shipment_confirm",
-                    "✅ פרסם משלוח"
-                ),
-                (
-                    "shipment_edit",
-                    "✏️ עריכה"
-                ),
-                (
-                    "shipment_cancel",
-                    "❌ ביטול"
-                ),
-            ],
-            header="אישור משלוח"
-        )
-
+    send_list(
+        phone,
+        "📦 אישור משלוח",
+        summary,
+        [
+            (
+                "shipment_confirm",
+                "✅ פרסם משלוח",
+                "פרסום המשלוח לשליחים"
+            ),
+            (
+                "shipment_edit",
+                "✏️ עריכה",
+                "חזרה לעריכת המשלוח"
+            ),
+            (
+                "shipment_cancel",
+                "❌ ביטול",
+                "ביטול יצירת המשלוח"
+            ),
+        ],
+        button_text="בחר פעולה",
+        footer="שליחובוט"
+    )
 
 # ============================================================
 # טיפול בטקסט במהלך יצירת משלוח
