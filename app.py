@@ -14413,7 +14413,7 @@ def activate_driver_subscription(
             INSERT INTO subscriptions (
                 user_id,
                 status,
-                starts_at,
+                start_at,
                 expires_at,
                 payment_id,
                 created_at,
