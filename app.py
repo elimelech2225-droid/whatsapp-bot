@@ -82,6 +82,7 @@ USER_PENDING = "pending"
 USER_APPROVED = "approved"
 USER_REJECTED = "rejected"
 USER_BLOCKED = "blocked"
+USER_RESET = "reset"
 
 
 # ============================================================
@@ -5199,7 +5200,7 @@ def show_main_menu(phone):
         phone
     )
 
-    if not user:
+    if not user or user["status"] == USER_RESET:
         show_role_choice(
             phone
         )
