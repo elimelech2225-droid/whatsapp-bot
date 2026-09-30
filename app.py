@@ -16155,7 +16155,7 @@ def route_user_to_menu(phone):
         phone
     )
 
-    if not user:
+    if not user or user["status"] == USER_RESET:
         show_role_choice(
             phone
         )
