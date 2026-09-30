@@ -16264,6 +16264,100 @@ def handle_all_actions(
     if not action_id:
         return False
 
+    # הסכם שימוש למפרסם
+    if action_id in (
+        "customer_agreement_accept",
+        "customer_agreement_reject",
+    ):
+        session = get_session(phone)
+
+        if session.get("state") != "register_customer_agreement":
+            send_message(
+                phone,
+                "❌ לא נמצאה הרשמה שממתינה לאישור."
+            )
+            return True
+
+        if action_id == "customer_agreement_reject":
+            clear_session(phone)
+
+            send_message(
+                phone,
+                (
+                    "❌ ההסכם לא אושר.\n"
+                    "ההרשמה כמפרסם בוטלה."
+                )
+            )
+
+            show_role_choice(phone)
+            return True
+
+        data = session.get("data") or {}
+
+        full_name = clean_text(
+            data.get("full_name", "")
+        )
+
+        business_name = clean_text(
+            data.get("business_name", "")
+        )
+
+        city = resolve_city(
+            data.get("city", "")
+        )
+
+        if not full_name:
+            clear_session(phone)
+
+            send_message(
+                phone,
+                "❌ פרטי ההרשמה חסרים. יש להתחיל את ההרשמה מחדש."
+            )
+
+            show_role_choice(phone)
+            return True
+
+        user_id = create_or_update_user(
+            phone=phone,
+            role=ROLE_CUSTOMER,
+            status=USER_PENDING,
+            full_name=full_name,
+            business_name=business_name,
+            city=city
+        )
+
+        notify_admin_about_registration(
+            user_id
+        )
+
+        create_admin_notification(
+            "customer_registration",
+            "🆕 בקשת הרשמת מפרסם חדשה",
+            (
+                f"👤 שם: {full_name}\n"
+                f"🏢 עסק: {business_name}\n"
+                f"📱 טלפון: {normalize_phone(phone)}\n"
+                f"📍 עיר: {city}"
+            ),
+            "user",
+            user_id
+        )
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            (
+                "✅ ההסכם אושר.\n\n"
+                "📋 בקשת ההרשמה התקבלה.\n"
+                f"🏢 עסק: {business_name}\n"
+                f"📍 עיר: {city}\n\n"
+                "הבקשה הועברה לאישור מנהל.\n"
+                "לאחר האישור נעדכן אותך כאן ותוכל להתחיל לפרסם משלוחים."
+            )
+        )
+
+        return True    
     # הרשמת שליח - בחירת רכב
     if handle_driver_registration_action(
         phone,
