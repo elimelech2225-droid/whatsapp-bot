@@ -5626,10 +5626,15 @@ def show_admin_system_settings(phone):
                 "שינוי תוספת המחיר לפי רכב",
             ),
             (
-                "admin_maintenance_text",
-                "🛠️ הודעת תחזוקה",
-                "עריכת ההודעה למשתמשים",
+                "admin_maintenance_drivers",
+                "🛠️ תחזוקה לשליחים",
+                "שליחת הודעה לכל השליחים",
             ),
+            (
+                "admin_maintenance_publishers",
+                "🛠️ תחזוקה למפרסמים",
+                "שליחה למפרסמים ולסדרנים",
+            ),            
             (
                 "admin_menu",
                 "↩️ חזרה",
@@ -13600,21 +13605,32 @@ def start_help_price_update(
 # הודעת תחזוקה
 # ============================================================
 
-def start_maintenance_text_update(phone):
+def start_maintenance_text_update(phone, target):
     if not is_admin(phone):
+        return
+
+    if target not in ("drivers", "publishers"):
         return
 
     save_session(
         phone,
         "admin_maintenance_text",
-        {}
+        {
+            "target": target
+        }
+    )
+
+    target_text = (
+        "לשליחים"
+        if target == "drivers"
+        else "למפרסמים ולסדרנים"
     )
 
     send_message(
         phone,
         (
-            "🛠️ שלח את הודעת התחזוקה "
-            "החדשה שתוצג למשתמשים."
+            f"🛠️ שלח את הודעת התחזוקה {target_text}.\n\n"
+            "ההודעה תישלח למשתמשים המתאימים."
         )
     )
 
@@ -13928,11 +13944,19 @@ def handle_admin_management_actions(
         )
         return True
 
-    if action_id == "admin_maintenance_text":
+    if action_id == "admin_maintenance_drivers":
         start_maintenance_text_update(
-            phone
+            phone,
+            "drivers"
         )
         return True
+
+    if action_id == "admin_maintenance_publishers":
+        start_maintenance_text_update(
+            phone,
+            "publishers"
+        )
+        return True    
 
     return False
 
