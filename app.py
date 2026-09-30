@@ -13827,7 +13827,79 @@ def handle_admin_management_state(
 
         return True
 
-    
+    if state == "admin_maintenance_text":
+        if len(text) < 2:
+            send_message(
+                phone,
+                "❌ ההודעה קצרה מדי."
+            )
+            return True
+
+        target = (data or {}).get("target")
+
+        if target == "drivers":
+            roles = (ROLE_DRIVER,)
+            target_name = "השליחים"
+
+        elif target == "publishers":
+            roles = (ROLE_CUSTOMER, ROLE_DISPATCHER)
+            target_name = "המפרסמים והסדרנים"
+
+        else:
+            clear_session(phone)
+            send_message(
+                phone,
+                "❌ לא נמצאה קבוצת יעד."
+            )
+            return True
+
+        with db() as conn:
+            placeholders = ",".join(
+                "?" for _ in roles
+            )
+
+            users = conn.execute(
+                f"""
+                SELECT phone
+                FROM users
+                WHERE role IN ({placeholders})
+                  AND status = ?
+                """,
+                (*roles, USER_APPROVED)
+            ).fetchall()
+
+        sent_count = 0
+        failed_count = 0
+
+        for row in users:
+            target_phone = row["phone"]
+
+            try:
+                send_message(
+                    target_phone,
+                    text
+                )
+                sent_count += 1
+            except Exception as e:
+                print(
+                    "MAINTENANCE SEND ERROR:",
+                    target_phone,
+                    repr(e)
+                )
+                failed_count += 1
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            (
+                f"✅ הודעת התחזוקה נשלחה אל {target_name}.\n\n"
+                f"📤 נשלחו: {sent_count}\n"
+                f"❌ נכשלו: {failed_count}"
+            )
+        )
+
+        return True    
     return False
 
 
