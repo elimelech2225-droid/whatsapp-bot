@@ -6230,7 +6230,7 @@ def handle_customer_registration_state(
             }
         )
 
-        send_buttons(
+        send_message(
             phone,
             (
                 "📄 *הסכם שימוש למפרסם – שליחובוט*\n\n"
@@ -6258,7 +6258,14 @@ def handle_customer_registration_state(
                 "⚖️ *חוקיות המשלוח*\n"
                 "המפרסם מתחייב לפרסם ולמסור משלוחים חוקיים בלבד, "
                 "ולא להעביר פריטים שהחזקתם או הובלתם אסורות על פי דין "
-                "או מחייבות היתר שאינו קיים.\n\n"
+                "או מחייבות היתר שאינו קיים."
+            )
+        )
+
+        send_buttons(
+            phone,
+            (
+                "📄 *הסכם שימוש למפרסם – המשך*\n\n"
 
                 "📦 *פרטי המשלוח*\n"
                 "המפרסם מתחייב למסור פרטים נכונים ומלאים ולדאוג "
@@ -6292,8 +6299,7 @@ def handle_customer_registration_state(
                     "❌ איני מסכים"
                 ),
             ]
-        )
-
+        )        
         return True        
     return False
 
