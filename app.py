@@ -14192,7 +14192,7 @@ def handle_admin_management_actions(
                 """,
                 (
                     ROLE_CUSTOMER,
-                    USER_PENDING,
+                    USER_RESET,
                     user_id,
                 )
             )
