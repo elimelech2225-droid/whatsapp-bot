@@ -14132,6 +14132,90 @@ def handle_admin_management_actions(
         )
 
         return True    
+    if action_id == "admin_delete_user_cancel":
+        clear_session(phone)
+
+        send_message(
+            phone,
+            "❌ מחיקת המשתמש בוטלה."
+        )
+
+        show_admin_more_menu(phone)
+        return True
+
+    if action_id == "admin_delete_user_confirm":
+        session = get_session(phone)
+
+        if session.get("state") != "admin_delete_user_confirm":
+            send_message(
+                phone,
+                "❌ לא נמצאה בקשת מחיקה שממתינה לאישור."
+            )
+            return True
+
+        data = session.get("data") or {}
+        user_id = data.get("user_id")
+        target_phone = normalize_phone(
+            data.get("phone", "")
+        )
+
+        if not user_id or not target_phone:
+            clear_session(phone)
+
+            send_message(
+                phone,
+                "❌ פרטי המשתמש למחיקה חסרים."
+            )
+            return True
+
+        if is_admin(target_phone):
+            clear_session(phone)
+
+            send_message(
+                phone,
+                "❌ לא ניתן לאפס משתמש מנהל."
+            )
+            return True
+
+        with db() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET role = ?,
+                    status = ?,
+                    full_name = '',
+                    business_name = '',
+                    city = '',
+                    approved_at = 0
+                WHERE id = ?
+                """,
+                (
+                    ROLE_CUSTOMER,
+                    USER_PENDING,
+                    user_id,
+                )
+            )
+
+            conn.execute(
+                "DELETE FROM sessions WHERE phone = ?",
+                (target_phone,)
+            )
+
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            (
+                "✅ המשתמש אופס בהצלחה.\n\n"
+                f"📱 {target_phone}\n"
+                "המשתמש יכול כעת להתחיל את תהליך ההרשמה מחדש."
+            )
+        )
+
+        show_admin_more_menu(phone)
+        return True    
     return False
 
 
