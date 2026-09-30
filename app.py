@@ -13836,7 +13836,8 @@ def handle_admin_management_state(
             return True
 
         session = get_session(phone)
-target = ((session or {}).get("data") or {}).get("target")
+        target = ((session or {}).get("data") or {}).get("target")
+
         if target == "drivers":
             roles = (ROLE_DRIVER,)
             target_name = "השליחים"
@@ -13851,7 +13852,7 @@ target = ((session or {}).get("data") or {}).get("target")
                 phone,
                 "❌ לא נמצאה קבוצת יעד."
             )
-            return True
+            return True        
 
         with db() as conn:
             placeholders = ",".join(
