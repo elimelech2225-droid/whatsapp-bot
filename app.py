@@ -5161,6 +5161,11 @@ def show_admin_more_menu(phone):
                         "📋 יומן פעילות",
                         "פעולות מנהל ומערכת",
                     ),
+                (
+                    "admin_delete_user",
+                    "🗑️ מחיקת משתמש",
+                    "מחיקת משתמש ואפשרות להרשמה מחדש",
+                ),                    
                     (
                         "admin_menu",
                         "⬅️ חזרה לתפריט",
@@ -13686,6 +13691,72 @@ def handle_admin_management_state(
         text
     )
 
+    if state == "admin_delete_user_phone":
+        target_phone = normalize_phone(text)
+
+        with db() as conn:
+            user = conn.execute(
+                """
+                SELECT id, phone, role, status, full_name, business_name
+                FROM users
+                WHERE phone = ?
+                """,
+                (target_phone,)
+            ).fetchone()
+
+        if not user:
+            send_message(
+                phone,
+                (
+                    "❌ לא נמצא משתמש עם המספר הזה.\n"
+                    "שלח מספר אחר או חזור לתפריט."
+                )
+            )
+            return True
+
+        if is_admin(target_phone):
+            clear_session(phone)
+
+            send_message(
+                phone,
+                "❌ לא ניתן למחוק משתמש מנהל."
+            )
+            return True
+
+        save_session(
+            phone,
+            "admin_delete_user_confirm",
+            {
+                "user_id": user["id"],
+                "phone": user["phone"],
+            }
+        )
+
+        send_buttons(
+            phone,
+            (
+                "⚠️ *אישור מחיקת משתמש*\n\n"
+                f"👤 שם: {user['full_name'] or '-'}\n"
+                f"🏢 עסק: {user['business_name'] or '-'}\n"
+                f"📱 טלפון: {user['phone']}\n"
+                f"👥 תפקיד: {user['role']}\n"
+                f"📌 סטטוס: {user['status']}\n\n"
+                "המחיקה תאפס את המשתמש ותאפשר לו להתחיל הרשמה מחדש.\n\n"
+                "האם למחוק?"
+            ),
+            [
+                (
+                    "admin_delete_user_confirm",
+                    "🗑️ כן, מחק משתמש"
+                ),
+                (
+                    "admin_delete_user_cancel",
+                    "❌ ביטול"
+                ),
+            ]
+        )
+
+        return True    
     if state == "admin_dispatcher_add_phone":
         try:
             add_dispatcher(
@@ -14044,6 +14115,23 @@ def handle_admin_management_actions(
         )
         return True    
 
+    if action_id == "admin_delete_user":
+        save_session(
+            phone,
+            "admin_delete_user_phone",
+            {}
+        )
+
+        send_message(
+            phone,
+            (
+                "🗑️ *מחיקת משתמש*\n\n"
+                "שלח את מספר הטלפון של המשתמש שברצונך למחוק.\n\n"
+                "⚠️ לפני המחיקה יוצגו לך פרטי המשתמש לאישור."
+            )
+        )
+
+        return True    
     return False
 
 
