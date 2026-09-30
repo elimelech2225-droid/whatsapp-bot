@@ -13835,8 +13835,8 @@ def handle_admin_management_state(
             )
             return True
 
-        target = (data or {}).get("target")
-
+        session = get_session(phone)
+target = ((session or {}).get("data") or {}).get("target")
         if target == "drivers":
             roles = (ROLE_DRIVER,)
             target_name = "השליחים"
