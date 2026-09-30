@@ -13827,29 +13827,7 @@ def handle_admin_management_state(
 
         return True
 
-    if state == "admin_maintenance_text":
-        if len(text) < 2:
-            send_message(
-                phone,
-                "❌ ההודעה קצרה מדי."
-            )
-            return True
-
-        set_setting(
-            "maintenance_message",
-            text
-        )        
-        clear_session(
-            phone
-        )
-
-        send_message(
-            phone,
-            "✅ הודעת התחזוקה עודכנה."
-        )
-
-        return True
-
+    
     return False
 
 
