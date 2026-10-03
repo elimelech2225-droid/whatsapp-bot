@@ -986,6 +986,29 @@ def init_db():
                 """
             )        
         
+        driver_profile_columns = {
+            row["name"]
+            for row in conn.execute(
+                "PRAGMA table_info(driver_profiles)"
+            ).fetchall()
+        }
+
+        if "available_at" not in driver_profile_columns:
+            conn.execute(
+                """
+                ALTER TABLE driver_profiles
+                ADD COLUMN available_at INTEGER DEFAULT 0
+                """
+            )
+
+        if "availability_reminder_sent" not in driver_profile_columns:
+            conn.execute(
+                """
+                ALTER TABLE driver_profiles
+                ADD COLUMN availability_reminder_sent INTEGER DEFAULT 0
+                """
+            )        
+        
         conn.commit()
 
 
