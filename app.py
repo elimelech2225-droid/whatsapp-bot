@@ -971,6 +971,21 @@ def init_db():
                 ADD COLUMN updated_at INTEGER DEFAULT 0
                 """
             )        
+        user_columns = {
+            row["name"]
+            for row in conn.execute(
+                "PRAGMA table_info(users)"
+            ).fetchall()
+        }
+
+        if "last_inbound_at" not in user_columns:
+            conn.execute(
+                """
+                ALTER TABLE users
+                ADD COLUMN last_inbound_at INTEGER DEFAULT 0
+                """
+            )        
+        
         conn.commit()
 
 
