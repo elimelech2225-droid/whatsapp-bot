@@ -16976,6 +16976,20 @@ def process_incoming_message(
     if not phone:
         return False
 
+    with db() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET last_inbound_at = ?
+            WHERE phone = ?
+            """,
+            (
+                now_ts(),
+                phone,
+            )
+        )
+        conn.commit()    
+
     # המנהל תמיד יכול להיכנס.
     if not is_admin(phone):
         if not check_system_access(
