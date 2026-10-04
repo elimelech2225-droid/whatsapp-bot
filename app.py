@@ -1019,7 +1019,7 @@ def init_db():
                 ADD COLUMN availability_reminder_sent INTEGER DEFAULT 0
                 """
             )        
-         route_price_columns = {
+        route_price_columns = {
             row["name"]
             for row in conn.execute(
                 "PRAGMA table_info(route_prices)"
@@ -1032,7 +1032,7 @@ def init_db():
                 ALTER TABLE route_prices
                 ADD COLUMN vehicle_type TEXT NOT NULL DEFAULT 'private'
                 """
-            )       
+            )
         conn.commit()
 
 
