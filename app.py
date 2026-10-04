@@ -5436,6 +5436,11 @@ def show_admin_menu(phone):
                         "ניהול שמות וקיצורי ערים",
                     ),
                     (
+                        "admin_vehicle_types",
+                        "🚗 ניהול סוגי רכב",
+                        "הוספה, מחיקה והגדרת תעריפים",
+                    ),                    
+                    (
                         "admin_payments",
                         "💳 תשלומים ומנויים",
                         "ניהול Bit, PayBox, אשרורים ומנויים",
@@ -5452,7 +5457,53 @@ def show_admin_menu(phone):
         footer="שליחובוט • מנהל",
     )
 
+def show_admin_vehicle_types(phone):
+    if not is_admin(phone):
+        return
 
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, name, price_extra
+            FROM vehicle_types
+            WHERE is_active = 1
+            ORDER BY sort_order ASC, id ASC
+            """
+        ).fetchall()
+
+    menu_rows = []
+
+    for row in rows:
+        menu_rows.append(
+            (
+                f"admin_vehicle_type_{row['id']}",
+                row["name"],
+                f"תוספת מחיר: ₪{row['price_extra']}",
+            )
+        )
+
+    menu_rows.append(
+        (
+            "admin_vehicle_add",
+            "➕ הוספת סוג רכב",
+            "הגדרת סוג רכב חדש",
+        )
+    )
+
+    send_list(
+        phone,
+        "🚗 *ניהול סוגי רכב*\n\n"
+        "כאן ניתן להוסיף, לערוך ולמחוק סוגי רכב "
+        "ולהגדיר את התעריף שלהם.",
+        "בחר",
+        [
+            {
+                "title": "🚗 סוגי רכב",
+                "rows": menu_rows,
+            }
+        ],
+        footer="שליחובוט • מנהל",
+    )
 def show_admin_more_menu(phone):
     send_section_list(
         phone,
@@ -16844,7 +16895,22 @@ def handle_basic_menu_action(
             phone
         )
         return True
-
+    if action_id == "admin_vehicle_types":
+        show_admin_vehicle_types(phone)
+        return True
+    if action_id == "admin_vehicle_add":
+        set_session(
+            phone,
+            "admin_vehicle_add_name",
+            {}
+        )
+        send_message(
+            phone,
+            "🚗 *הוספת סוג רכב חדש*\n\n"
+            "שלח עכשיו את שם סוג הרכב.\n"
+            "לדוגמה: אופנוע / רכב פרטי / מסחרי גדול"
+        )
+        return True        
     if action_id == "admin_pending_users":
         show_admin_pending_users_menu(
             phone
@@ -16899,6 +16965,86 @@ def handle_basic_menu_action(
             phone
         )
         return True
+    if action_id.startswith("admin_vehicle_type_"):
+        try:
+            vehicle_id = int(
+                action_id.replace("admin_vehicle_type_", "")
+            )
+        except ValueError:
+            return True
+
+        with db() as conn:
+            vehicle = conn.execute(
+                """
+                SELECT id, name, price_extra
+                FROM vehicle_types
+                WHERE id = ?
+                """,
+                (vehicle_id,)
+            ).fetchone()
+
+        if not vehicle:
+            send_message(phone, "❌ סוג הרכב לא נמצא.")
+            return True
+
+        send_buttons(
+            phone,
+            (
+                f"🚗 *{vehicle['name']}*\n\n"
+                f"💰 תוספת מחיר נוכחית: ₪{vehicle['price_extra']}"
+            ),
+            [
+                (
+                    f"admin_vehicle_price_{vehicle_id}",
+                    "✏️ שינוי מחיר"
+                ),
+                (
+                    f"admin_vehicle_delete_{vehicle_id}",
+                    "🗑️ מחיקת סוג רכב"
+                ),
+            ]
+        )
+        return True
+    if action_id.startswith("admin_vehicle_price_"):
+        try:
+            vehicle_id = int(
+                action_id.replace("admin_vehicle_price_", "")
+            )
+        except ValueError:
+            return True
+
+        set_session(
+            phone,
+            "admin_vehicle_edit_price",
+            {"vehicle_id": vehicle_id}
+        )
+
+        send_message(
+            phone,
+            "💰 שלח עכשיו את תוספת המחיר החדשה בשקלים.\n"
+            "לדוגמה: 70\n\n"
+            "אם אין תוספת, שלח 0."
+        )
+        return True
+
+    if action_id.startswith("admin_vehicle_delete_"):
+        try:
+            vehicle_id = int(
+                action_id.replace("admin_vehicle_delete_", "")
+            )
+        except ValueError:
+            return True
+
+        with db() as conn:
+            conn.execute(
+                "DELETE FROM vehicle_types WHERE id = ?",
+                (vehicle_id,)
+            )
+            conn.commit()
+
+        send_message(phone, "🗑️ סוג הרכב נמחק בהצלחה.")
+        show_admin_vehicle_types(phone)
+        return True        
 
     if action_id == "admin_more":
         show_admin_more_menu(
@@ -17152,6 +17298,132 @@ def handle_all_text_states(
     state,
     text
 ):
+    if state == "admin_vehicle_add_name":
+        vehicle_name = text.strip()
+
+        if not vehicle_name:
+            send_message(
+                phone,
+                "❌ שם סוג הרכב לא יכול להיות ריק.\n"
+                "שלח שוב את שם סוג הרכב."
+            )
+            return True
+
+        set_session(
+            phone,
+            "admin_vehicle_add_price",
+            {
+                "vehicle_name": vehicle_name
+            }
+        )
+
+        send_message(
+            phone,
+            f"🚗 סוג הרכב: *{vehicle_name}*\n\n"
+            "💰 עכשיו שלח את תוספת המחיר בשקלים.\n"
+            "לדוגמה: 50\n\n"
+            "אם אין תוספת מחיר, שלח 0."
+        )
+        return True
+    if state == "admin_vehicle_add_price":
+        session = get_session(phone)
+        vehicle_name = session.get("data", {}).get("vehicle_name")
+
+        try:
+            price_extra = int(text.strip())
+            if price_extra < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            send_message(
+                phone,
+                "❌ יש לשלוח סכום תקין בשקלים.\n"
+                "לדוגמה: 50\n"
+                "או 0 אם אין תוספת."
+            )
+            return True
+
+        code = f"vehicle_{now_ts()}"
+
+        with db() as conn:
+            sort_order = conn.execute(
+                "SELECT COALESCE(MAX(sort_order), 0) + 1 FROM vehicle_types"
+            ).fetchone()[0]
+
+            conn.execute(
+                """
+                INSERT INTO vehicle_types (
+                    code,
+                    name,
+                    price_extra,
+                    sort_order,
+                    is_active,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, 1, ?, ?)
+                """,
+                (
+                    code,
+                    vehicle_name,
+                    price_extra,
+                    sort_order,
+                    now_ts(),
+                    now_ts(),
+                )
+            )
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            f"✅ סוג הרכב *{vehicle_name}* נוסף בהצלחה.\n"
+            f"💰 תוספת מחיר: ₪{price_extra}"
+        )
+
+        show_admin_vehicle_types(phone)
+        return True
+    if state == "admin_vehicle_edit_price":
+        session = get_session(phone)
+        vehicle_id = session.get("data", {}).get("vehicle_id")
+
+        try:
+            price_extra = int(text.strip())
+            if price_extra < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            send_message(
+                phone,
+                "❌ יש לשלוח סכום תקין בשקלים.\n"
+                "לדוגמה: 70\n"
+                "או 0 אם אין תוספת."
+            )
+            return True
+
+        with db() as conn:
+            conn.execute(
+                """
+                UPDATE vehicle_types
+                SET price_extra = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    price_extra,
+                    now_ts(),
+                    vehicle_id,
+                )
+            )
+            conn.commit()
+
+        clear_session(phone)
+
+        send_message(
+            phone,
+            f"✅ תעריף סוג הרכב עודכן ל־₪{price_extra}."
+        )
+
+        show_admin_vehicle_types(phone)
+        return True        
     if state == "driver_support_message":
         clear_session(phone)
 
