@@ -546,7 +546,8 @@ def init_db():
                 city_to TEXT NOT NULL,
 
                 price INTEGER NOT NULL,
-
+                
+                vehicle_type TEXT NOT NULL DEFAULT 'private',
                 created_by TEXT DEFAULT '',
 
                 created_by_role TEXT DEFAULT '',
@@ -559,7 +560,7 @@ def init_db():
 
                 updated_at INTEGER DEFAULT 0,
 
-                UNIQUE(city_from, city_to)
+                UNIQUE(city_from, city_to, vehicle_type)
             );
             CREATE TABLE IF NOT EXISTS vehicle_types (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1018,7 +1019,20 @@ def init_db():
                 ADD COLUMN availability_reminder_sent INTEGER DEFAULT 0
                 """
             )        
-        
+         route_price_columns = {
+            row["name"]
+            for row in conn.execute(
+                "PRAGMA table_info(route_prices)"
+            ).fetchall()
+        }
+
+        if "vehicle_type" not in route_price_columns:
+            conn.execute(
+                """
+                ALTER TABLE route_prices
+                ADD COLUMN vehicle_type TEXT NOT NULL DEFAULT 'private'
+                """
+            )       
         conn.commit()
 
 
@@ -12374,7 +12388,36 @@ def start_price_add(phone):
         )
     )
 
-
+def send_price_vehicle_choice(phone):
+    send_list(
+        phone,
+        "🚗 סוג רכב",
+        "לאיזה סוג רכב המחיר הזה מיועד?",
+        [
+            (
+                "price_vehicle_private",
+                "🚗 רכב פרטי",
+                "מחיר לרכב פרטי",
+            ),
+            (
+                "price_vehicle_7_seats",
+                "🚙 7 מקומות",
+                "מחיר לרכב 7 מקומות",
+            ),
+            (
+                "price_vehicle_small",
+                "🚐 מסחרי קטן",
+                "מחיר למסחרי קטן",
+            ),
+            (
+                "price_vehicle_large",
+                "🚚 מסחרי גדול",
+                "מחיר למסחרי גדול",
+            ),
+        ],
+        button_text="בחר רכב",
+        footer="שליחובוט • מחירון"
+    )
 # ============================================================
 # התחלת בדיקת מחיר
 # ============================================================
@@ -12485,27 +12528,16 @@ def handle_price_management_state(
     # --------------------------------------------------------
 
     if state == "price_add_to":
-        city_to = resolve_city(
-            text
-        )
+        city_to = resolve_city(text)
 
         update_session_data(
             phone,
-            "price_add_amount",
+            "price_add_vehicle",
             city_to=city_to
         )
 
-        send_message(
-            phone,
-            (
-                f"📍 יעד: {city_to}\n\n"
-                "💰 שלח את המחיר בשקלים.\n"
-                "לדוגמה: 85"
-            )
-        )
-
-        return True
-
+        send_price_vehicle_choice(phone)
+        return True    
     # --------------------------------------------------------
     # הוספה - מחיר
     # --------------------------------------------------------
