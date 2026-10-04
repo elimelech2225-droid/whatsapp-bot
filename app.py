@@ -16915,6 +16915,13 @@ def handle_all_text_states(
     state,
     text
 ):
+    if state == "driver_support_message":
+        clear_session(phone)
+        create_support_request(
+            phone,
+            text
+        )
+        return True    
     # הרשמת מפרסם
     if handle_customer_registration_state(
         phone,
