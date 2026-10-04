@@ -6252,7 +6252,135 @@ def send_admin_statistics(phone):
         header="שליחובוט • נתונים"
     )
 
+# ============================================================
+# פניות לנציג - מנהל
+# ============================================================
 
+def show_admin_support_requests(phone):
+    if not is_admin(phone):
+        return
+
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+            WHERE status = ?
+            ORDER BY created_at DESC
+            LIMIT 10
+            """,
+            (SUPPORT_OPEN,)
+        ).fetchall()
+
+    if not rows:
+        send_buttons(
+            phone,
+            "✅ אין כרגע פניות פתוחות לנציג.",
+            [
+                (
+                    "admin_more",
+                    "↩️ חזרה"
+                ),
+            ],
+            header="💬 פניות לנציג"
+        )
+        return
+
+    menu_rows = []
+
+    for item in rows:
+        menu_rows.append(
+            (
+                f"admin_support_view_{item['id']}",
+                f"פנייה #{item['id']}",
+                (
+                    f"{item['category'] or 'פנייה'} • "
+                    f"{item['phone']}"
+                )[:72],
+            )
+        )
+
+    send_list(
+        phone,
+        "💬 פניות לנציג",
+        "בחר פנייה לצפייה:",
+        menu_rows,
+        button_text="פתח",
+        footer="שליחובוט • מנהל"
+    )
+
+
+def show_admin_support_request(phone, request_id):
+    if not is_admin(phone):
+        return
+
+    with db() as conn:
+        item = conn.execute(
+            """
+            SELECT *
+            FROM support_requests
+            WHERE id = ?
+            LIMIT 1
+            """,
+            (request_id,)
+        ).fetchone()
+
+    if not item:
+        send_message(
+            phone,
+            "❌ הפנייה לא נמצאה."
+        )
+        return
+
+    send_buttons(
+        phone,
+        (
+            f"💬 פנייה #{item['id']}\n\n"
+            f"📱 טלפון: {item['phone']}\n"
+            f"📌 נושא: {item['category'] or '-'}\n\n"
+            f"📝 הודעה:\n{item['message'] or '-'}"
+        ),
+        [
+            (
+                f"admin_support_delete_{item['id']}",
+                "🗑️ סגור ומחק"
+            ),
+            (
+                "admin_support",
+                "↩️ חזרה"
+            ),
+        ],
+        header="פנייה לנציג"
+    )
+
+
+def delete_admin_support_request(phone, request_id):
+    if not is_admin(phone):
+        return False
+
+    with db() as conn:
+        cursor = conn.execute(
+            """
+            DELETE FROM support_requests
+            WHERE id = ?
+            """,
+            (request_id,)
+        )
+        conn.commit()
+
+    if cursor.rowcount:
+        send_message(
+            phone,
+            "🗑️ הפנייה נסגרה ונמחקה מהמערכת."
+        )
+    else:
+        send_message(
+            phone,
+            "❌ הפנייה לא נמצאה."
+        )
+
+    show_admin_support_requests(phone)
+    return True
 # ============================================================
 # סוף חלק 2B
 # ============================================================
@@ -16667,6 +16795,11 @@ def handle_basic_menu_action(
     # מנהל
     # --------------------------------------------------------
 
+      if action_id == "admin_support":
+        show_admin_support_requests(
+            phone
+        )
+        return True  
     if action_id == "admin_shipments":
         show_admin_shipments_menu(
             phone
@@ -16860,7 +16993,34 @@ def handle_all_actions(
             )
         )
 
-        return True    
+        return True
+    if action_id.startswith("admin_support_view_"):
+        request_id = int(
+            action_id.replace(
+                "admin_support_view_",
+                ""
+            )
+        )
+
+        show_admin_support_request(
+            phone,
+            request_id
+        )
+        return True
+
+    if action_id.startswith("admin_support_delete_"):
+        request_id = int(
+            action_id.replace(
+                "admin_support_delete_",
+                ""
+            )
+        )
+
+        delete_admin_support_request(
+            phone,
+            request_id
+        )
+        return True        
     # הרשמת שליח - בחירת רכב
     if handle_driver_registration_action(
         phone,
