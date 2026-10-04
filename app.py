@@ -9,6 +9,7 @@ import re
 import json
 import time
 import sqlite3
+import threading
 from datetime import datetime, timedelta
 
 import requests
@@ -17483,7 +17484,17 @@ def run_system_maintenance():
             "DRIVER AVAILABILITY ERROR:",
             repr(exc)
         )
+def maintenance_loop():
+    while True:
+        time.sleep(5 * 60)
 
+        try:
+            run_system_maintenance()
+        except Exception as exc:
+            print(
+                "MAINTENANCE LOOP ERROR:",
+                repr(exc)
+            )
 
 # ============================================================
 # אתחול
@@ -17499,6 +17510,11 @@ def initialize_shaliachobot():
             "SYSTEM MAINTENANCE ERROR:",
             repr(exc)
         )
+
+    threading.Thread(
+        target=maintenance_loop,
+        daemon=True
+    ).start()    
 
     print(
         "Shaliachobot initialized successfully"
