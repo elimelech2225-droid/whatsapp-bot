@@ -16591,6 +16591,29 @@ def handle_basic_menu_action(
             "💬 כתוב עכשיו את הפנייה שלך לנציג."
         )
 
+        return True
+
+    if action_id in (
+        "customer_support",
+        "dispatcher_support",
+    ):
+        category = (
+            "פניית מפרסם"
+            if action_id == "customer_support"
+            else "פניית סדרן"
+        )
+
+        save_session(
+            phone,
+            "general_support_message",
+            {"category": category}
+        )
+
+        send_message(
+            phone,
+            "💬 כתוב עכשיו את הפנייה שלך לנציג."
+        )
+
         return True    
 
     # --------------------------------------------------------
@@ -16917,11 +16940,40 @@ def handle_all_text_states(
 ):
     if state == "driver_support_message":
         clear_session(phone)
+
         create_support_request(
             phone,
-            text
+            "פניית שליח",
+            message=text
         )
-        return True    
+
+        send_message(
+            phone,
+            "✅ הפנייה נשלחה לנציג."
+        )
+
+        return True
+    if state == "general_support_message":
+        session = get_session(phone)
+        category = session.get("data", {}).get(
+            "category",
+            "פנייה לנציג"
+        )
+
+        clear_session(phone)
+
+        create_support_request(
+            phone,
+            category,
+            message=text
+        )
+
+        send_message(
+            phone,
+            "✅ הפנייה נשלחה לנציג."
+        )
+
+        return True        
     # הרשמת מפרסם
     if handle_customer_registration_state(
         phone,
