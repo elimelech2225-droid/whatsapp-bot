@@ -16795,7 +16795,7 @@ def handle_basic_menu_action(
     # מנהל
     # --------------------------------------------------------
 
-      if action_id == "admin_support":
+    if action_id == "admin_support":
         show_admin_support_requests(
             phone
         )
