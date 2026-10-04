@@ -13023,7 +13023,7 @@ def save_city_alias(
         conn.execute(
             """
             INSERT OR IGNORE INTO cities (
-                city_name,
+                name,
                 is_active,
                 created_by,
                 created_at,
