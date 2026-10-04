@@ -1019,6 +1019,85 @@ def init_db():
                 ADD COLUMN availability_reminder_sent INTEGER DEFAULT 0
                 """
             )        
+        route_price_indexes = conn.execute(
+            "PRAGMA index_list(route_prices)"
+        ).fetchall()
+
+        needs_route_prices_migration = False
+
+        for index_row in route_price_indexes:
+            if int(index_row["unique"] or 0) != 1:
+                continue
+
+            index_name = index_row["name"]
+
+            index_columns = conn.execute(
+                f"PRAGMA index_info('{index_name}')"
+            ).fetchall()
+
+            column_names = [
+                column["name"]
+                for column in index_columns
+            ]
+
+            if column_names == ["city_from", "city_to"]:
+                needs_route_prices_migration = True
+                break
+
+        if needs_route_prices_migration:
+            conn.executescript(
+                """
+                ALTER TABLE route_prices
+                RENAME TO route_prices_old;
+
+                CREATE TABLE route_prices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    city_from TEXT NOT NULL,
+                    city_to TEXT NOT NULL,
+                    price INTEGER NOT NULL,
+                    vehicle_type TEXT NOT NULL DEFAULT 'private',
+                    created_by TEXT DEFAULT '',
+                    created_by_role TEXT DEFAULT '',
+                    created_at INTEGER DEFAULT 0,
+                    updated_by TEXT DEFAULT '',
+                    updated_by_role TEXT DEFAULT '',
+                    updated_at INTEGER DEFAULT 0,
+                    UNIQUE(city_from, city_to, vehicle_type)
+                );
+
+                INSERT INTO route_prices (
+                    id,
+                    city_from,
+                    city_to,
+                    price,
+                    vehicle_type,
+                    created_by,
+                    created_by_role,
+                    created_at,
+                    updated_by,
+                    updated_by_role,
+                    updated_at
+                )
+                SELECT
+                    id,
+                    city_from,
+                    city_to,
+                    price,
+                    COALESCE(vehicle_type, 'private'),
+                    created_by,
+                    created_by_role,
+                    created_at,
+                    updated_by,
+                    updated_by_role,
+                    updated_at
+                FROM route_prices_old;
+
+                DROP TABLE route_prices_old;
+
+                CREATE INDEX IF NOT EXISTS idx_route_prices_cities
+                ON route_prices(city_from, city_to);
+                """
+            )        
         route_price_columns = {
             row["name"]
             for row in conn.execute(
@@ -8885,6 +8964,7 @@ def handle_new_shipment_action(
                         f"📍 יעד: {shipment['destination_city']}\n"
                         f"🏠 איסוף: {shipment['pickup_address']}\n"
                         f"🏠 מסירה: {shipment['dropoff_address']}"
+                        f"\n🚗 סוג רכב: {VEHICLE_LABELS.get(shipment['vehicle_type'], shipment['vehicle_type'])}"
                     ),
                     [
                         (
