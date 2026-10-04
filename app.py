@@ -12697,29 +12697,14 @@ def handle_price_management_state(
             text
         )
 
-        success = delete_route_price(
+        update_session_data(
             phone,
-            city_from,
-            city_to
+            "price_delete_vehicle",
+            city_to=city_to
         )
 
-        clear_session(
-            phone
-        )
-
-        if success:
-            send_message(
-                phone,
-                "🗑️ המחיר נמחק מהמחירון."
-            )
-        else:
-            send_message(
-                phone,
-                "❌ המסלול לא נמצא במחירון."
-            )
-
-        return True
-
+        send_price_vehicle_choice(phone)
+        return True    
     return False
 
 
@@ -12980,8 +12965,9 @@ def handle_manual_shipment_price_state(
             phone,
             shipment["origin_city"],
             shipment["destination_city"],
+            shipment["vehicle_type"],
             int(amount_text)
-        )
+        )        
 
     except Exception as exc:
         send_message(
@@ -13491,6 +13477,7 @@ def handle_price_city_actions(
         if state not in (
             "price_add_vehicle",
             "price_check_vehicle",
+            "price_delete_vehicle",
         ):
             return False
 
@@ -13559,7 +13546,39 @@ def handle_price_city_actions(
                 )
             )
 
-            return True    
+            return True
+        if state == "price_delete_vehicle":
+            city_from = data.get(
+                "city_from",
+                ""
+            )
+
+            city_to = data.get(
+                "city_to",
+                ""
+            )
+
+            success = delete_route_price(
+                phone,
+                city_from,
+                city_to,
+                vehicle_type
+            )
+
+            clear_session(phone)
+
+            if success:
+                send_message(
+                    phone,
+                    "🗑️ המחיר לסוג הרכב שנבחר נמחק מהמחירון."
+                )
+            else:
+                send_message(
+                    phone,
+                    "❌ המסלול הזה לא נמצא במחירון לסוג הרכב שנבחר."
+                )
+
+            return True            
     if action_id == "price_check":
         start_price_check(
             phone
