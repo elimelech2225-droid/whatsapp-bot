@@ -16581,10 +16581,10 @@ def handle_basic_menu_action(
         return True
 
     if action_id == "driver_guide":
-    show_driver_guide(
-        phone
-    )
-    return True
+        show_driver_guide(
+            phone
+        )
+        return True    
 
     # --------------------------------------------------------
     # סדרן
