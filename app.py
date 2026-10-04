@@ -5490,20 +5490,19 @@ def show_admin_vehicle_types(phone):
         )
     )
 
-    send_list(
+    send_section_list(
         phone,
-        "🚗 *ניהול סוגי רכב*\n\n"
-        "כאן ניתן להוסיף, לערוך ולמחוק סוגי רכב "
-        "ולהגדיר את התעריף שלהם.",
-        "בחר",
+        "🚗 ניהול סוגי רכב",
+        "כאן ניתן להוסיף, לערוך ולמחוק סוגי רכב ולהגדיר את התעריף שלהם.",
         [
             {
                 "title": "🚗 סוגי רכב",
                 "rows": menu_rows,
             }
         ],
+        button_text="בחר",
         footer="שליחובוט • מנהל",
-    )
+    )    
 def show_admin_more_menu(phone):
     send_section_list(
         phone,
