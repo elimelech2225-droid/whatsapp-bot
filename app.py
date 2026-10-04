@@ -12811,21 +12811,23 @@ def activate_waiting_shipments_for_route(
         )
 
         if publisher:
-            send_message(
+            send_buttons(
                 publisher["phone"],
                 (
-                    "💰 המשלוח שלך תומחר "
-                    "ומוכן לפרסום.\n\n"
+                    "💰 המשלוח שלך תומחר ומוכן לפרסום.\n\n"
                     f"{shipment_title(shipment)}\n"
                     f"📍 {a} → {b}\n"
-                    f"💵 מחיר: "
-                    f"{price_data['final_price']} ₪"
-                )
-            )
-
-        distribute_shipment_to_drivers(
-            shipment["id"]
-        )
+                    f"💵 מחיר: {price_data['final_price']} ₪\n\n"
+                    "האם לפרסם את המשלוח לשליחים?"
+                ),
+                [
+                    (
+                        f"publisher_publish_shipment_{shipment['id']}",
+                        "📢 פרסם משלוח"
+                    ),
+                ],
+                header="📦 המשלוח מוכן לפרסום"
+            )        
 
         activated += 1
 
@@ -13606,6 +13608,41 @@ def handle_price_city_actions(
                 int(raw_id)
             )
 
+    if action_id.startswith("publisher_publish_shipment_"):
+        raw_id = action_id.replace(
+            "publisher_publish_shipment_",
+            "",
+            1
+        )
+
+        if raw_id.isdigit():
+            shipment_id = int(raw_id)
+            shipment = get_shipment(shipment_id)
+
+            if not shipment:
+                send_message(
+                    phone,
+                    "❌ המשלוח לא נמצא."
+                )
+                return True
+
+            publisher = get_shipment_publisher(shipment_id)
+
+            if not publisher or publisher["phone"] != phone:
+                send_message(
+                    phone,
+                    "❌ אין הרשאה לפרסם את המשלוח הזה."
+                )
+                return True
+
+            distribute_shipment_to_drivers(shipment_id)
+
+            send_message(
+                phone,
+                "✅ המשלוח פורסם לשליחים."
+            )
+
+            return True    
     if action_id == "admin_city_add":
         start_add_city(
             phone
