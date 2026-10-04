@@ -3866,6 +3866,17 @@ def create_support_request(
         request_id
     )
 
+    if ADMIN_PHONE:
+        send_message(
+            ADMIN_PHONE,
+            (
+                "💬 *פנייה חדשה לנציג*\n\n"
+                f"📱 טלפון: {phone}\n"
+                f"📌 נושא: {category}\n\n"
+                f"📝 הודעה:\n{message}"
+            )
+        )    
+
     return request_id
 
 
