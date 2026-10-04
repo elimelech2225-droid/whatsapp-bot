@@ -8479,12 +8479,8 @@ def handle_new_shipment_state(
 
         send_message(
             phone,
-            (
-                f"📍 עיר יעד: "
-                f"{destination_city}\n\n"
-                "🏠 מה כתובת המסירה המלאה?"
-            )
-        )
+            "🏠 מה כתובת המסירה המלאה?"
+        )        
 
         return True
 
