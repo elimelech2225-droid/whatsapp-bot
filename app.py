@@ -16898,7 +16898,7 @@ def handle_basic_menu_action(
         show_admin_vehicle_types(phone)
         return True
     if action_id == "admin_vehicle_add":
-        set_session(
+        save_session(
             phone,
             "admin_vehicle_add_name",
             {}
@@ -17012,7 +17012,7 @@ def handle_basic_menu_action(
         except ValueError:
             return True
 
-        set_session(
+        save_session(
             phone,
             "admin_vehicle_edit_price",
             {"vehicle_id": vehicle_id}
@@ -17308,7 +17308,7 @@ def handle_all_text_states(
             )
             return True
 
-        set_session(
+        save_session(
             phone,
             "admin_vehicle_add_price",
             {
