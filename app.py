@@ -12553,22 +12553,22 @@ def handle_price_management_state(
             return True
 
         try:
-        route_id = save_route_price(
-            phone,
-            data.get(
-                "city_from",
-                ""
-            ),
-            data.get(
-                "city_to",
-                ""
-            ),
-            data.get(
-                "vehicle_type",
-                VEHICLE_PRIVATE
-            ),
-            int(clean_amount)
-        )            
+            route_id = save_route_price(
+                phone,
+                data.get(
+                    "city_from",
+                    ""
+                ),
+                data.get(
+                    "city_to",
+                    ""
+                ),
+                data.get(
+                    "vehicle_type",
+                    VEHICLE_PRIVATE
+                ),
+                int(clean_amount)
+            )            
 
         except Exception as exc:
             send_message(
