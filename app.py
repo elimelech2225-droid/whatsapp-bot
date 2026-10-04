@@ -1908,8 +1908,9 @@ def calculate_shipment_price(
 ):
     route_price = get_route_price(
         origin_city,
-        destination_city
-    )
+        destination_city,
+        vehicle_type
+    )    
 
     if route_price is None:
         return None
@@ -12260,7 +12261,8 @@ def save_route_price(
 
 def get_route_price(
     city_from,
-    city_to
+    city_to,
+    vehicle_type
 ):
     city_from = resolve_city(
         city_from
@@ -12270,24 +12272,32 @@ def get_route_price(
         city_to
     )
 
+    vehicle_type = clean_text(
+        vehicle_type
+    )
+
     with db() as conn:
         row = conn.execute(
             """
             SELECT *
             FROM route_prices
             WHERE
-                (
-                    city_from = ?
-                    AND city_to = ?
-                )
-                OR
-                (
-                    city_from = ?
-                    AND city_to = ?
+                vehicle_type = ?
+                AND (
+                    (
+                        city_from = ?
+                        AND city_to = ?
+                    )
+                    OR
+                    (
+                        city_from = ?
+                        AND city_to = ?
+                    )
                 )
             LIMIT 1
             """,
             (
+                vehicle_type,
                 city_from,
                 city_to,
                 city_to,
@@ -12305,7 +12315,8 @@ def get_route_price(
 def delete_route_price(
     phone,
     city_from,
-    city_to
+    city_to,
+    vehicle_type
 ):
     if not can_manage_prices(
         phone
@@ -12314,7 +12325,8 @@ def delete_route_price(
 
     row = get_route_price(
         city_from,
-        city_to
+        city_to,
+        vehicle_type
     )
 
     if not row:
@@ -12340,7 +12352,8 @@ def delete_route_price(
         row["id"],
         (
             f"{row['city_from']} -> "
-            f"{row['city_to']}"
+            f"{row['city_to']}; "
+            f"vehicle={vehicle_type}"
         )
     )
 
@@ -12540,18 +12553,22 @@ def handle_price_management_state(
             return True
 
         try:
-            route_id = save_route_price(
-                phone,
-                data.get(
-                    "city_from",
-                    ""
-                ),
-                data.get(
-                    "city_to",
-                    ""
-                ),
-                int(clean_amount)
-            )
+        route_id = save_route_price(
+            phone,
+            data.get(
+                "city_from",
+                ""
+            ),
+            data.get(
+                "city_to",
+                ""
+            ),
+            data.get(
+                "vehicle_type",
+                VEHICLE_PRIVATE
+            ),
+            int(clean_amount)
+        )            
 
         except Exception as exc:
             send_message(
@@ -12636,37 +12653,14 @@ def handle_price_management_state(
             text
         )
 
-        row = get_route_price(
-            city_from,
-            city_to
-        )
-
-        clear_session(
-            phone
-        )
-
-        if not row:
-            send_message(
-                phone,
-                (
-                    "❌ המסלול עדיין אינו "
-                    "קיים במחירון."
-                )
-            )
-            return True
-
-        send_message(
+        update_session_data(
             phone,
-            (
-                "💰 מחיר מסלול\n\n"
-                f"📍 {row['city_from']} ↔ "
-                f"{row['city_to']}\n"
-                f"💵 {row['price']} ₪"
-            )
+            "price_check_vehicle",
+            city_to=city_to
         )
 
-        return True
-
+        send_price_vehicle_choice(phone)
+        return True    
     # --------------------------------------------------------
     # מחיקה - מוצא
     # --------------------------------------------------------
@@ -13482,7 +13476,90 @@ def handle_price_city_actions(
             phone
         )
         return True
+    vehicle_map = {
+        "price_vehicle_private": VEHICLE_PRIVATE,
+        "price_vehicle_7_seats": VEHICLE_7_SEATS,
+        "price_vehicle_small": VEHICLE_SMALL_COMMERCIAL,
+        "price_vehicle_large": VEHICLE_LARGE_COMMERCIAL,
+    }
 
+    if action_id in vehicle_map:
+        session = get_session(phone)
+        state = session.get("state")
+        data = session.get("data", {})
+
+        if state not in (
+            "price_add_vehicle",
+            "price_check_vehicle",
+        ):
+            return False
+
+        vehicle_type = vehicle_map[action_id]
+
+        if state == "price_add_vehicle":
+            update_session_data(
+                phone,
+                "price_add_amount",
+                vehicle_type=vehicle_type
+            )
+
+            vehicle_label = VEHICLE_LABELS.get(
+                vehicle_type,
+                vehicle_type
+            )
+
+            send_message(
+                phone,
+                (
+                    f"🚗 סוג רכב: {vehicle_label}\n\n"
+                    "💰 שלח את מחיר המסלול בשקלים."
+                )
+            )
+
+            return True
+
+        if state == "price_check_vehicle":
+            city_from = data.get(
+                "city_from",
+                ""
+            )
+
+            city_to = data.get(
+                "city_to",
+                ""
+            )
+
+            row = get_route_price(
+                city_from,
+                city_to,
+                vehicle_type
+            )
+
+            clear_session(phone)
+
+            if not row:
+                send_message(
+                    phone,
+                    "❌ המסלול הזה עדיין אינו קיים במחירון לסוג הרכב שנבחר."
+                )
+                return True
+
+            vehicle_label = VEHICLE_LABELS.get(
+                vehicle_type,
+                vehicle_type
+            )
+
+            send_message(
+                phone,
+                (
+                    "💰 מחיר מסלול\n\n"
+                    f"📍 {row['city_from']} ↔ {row['city_to']}\n"
+                    f"🚗 {vehicle_label}\n"
+                    f"💵 {row['price']} ₪"
+                )
+            )
+
+            return True    
     if action_id == "price_check":
         start_price_check(
             phone
