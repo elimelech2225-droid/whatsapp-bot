@@ -8418,13 +8418,8 @@ def handle_new_shipment_state(
 
         send_message(
             phone,
-            (
-                f"📍 עיר מוצא: {origin_city}\n\n"
-                "🏠 מה כתובת האיסוף המלאה?\n\n"
-                "לדוגמה:\n"
-                "יפו 25 ירושלים"
-            )
-        )
+            "🏠 מה כתובת האיסוף המלאה?"
+        )        
 
         return True
 
