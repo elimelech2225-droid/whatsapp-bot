@@ -561,7 +561,16 @@ def init_db():
 
                 UNIQUE(city_from, city_to)
             );
-
+            CREATE TABLE IF NOT EXISTS vehicle_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                price_extra INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER DEFAULT 0,
+                updated_at INTEGER DEFAULT 0
+            );
 
             CREATE INDEX IF NOT EXISTS idx_route_prices_cities
             ON route_prices(
