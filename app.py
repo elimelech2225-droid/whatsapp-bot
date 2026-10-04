@@ -12119,53 +12119,37 @@ def save_route_price(
     phone,
     city_from,
     city_to,
+    vehicle_type,
     price
 ):
-    if not can_manage_prices(
-        phone
-    ):
+    if not can_manage_prices(phone):
         return False
 
-    city_from = resolve_city(
-        city_from
-    )
-
-    city_to = resolve_city(
-        city_to
-    )
+    city_from = resolve_city(city_from)
+    city_to = resolve_city(city_to)
+    vehicle_type = clean_text(vehicle_type)
 
     if not city_from:
-        raise ValueError(
-            "עיר מוצא אינה תקינה"
-        )
+        raise ValueError("עיר מוצא אינה תקינה")
 
     if not city_to:
-        raise ValueError(
-            "עיר יעד אינה תקינה"
-        )
+        raise ValueError("עיר יעד אינה תקינה")
 
     if city_from == city_to:
-        raise ValueError(
-            "עיר המוצא והיעד זהות"
-        )
+        raise ValueError("עיר המוצא והיעד זהות")
+
+    if not vehicle_type:
+        raise ValueError("סוג הרכב אינו תקין")
 
     try:
-        price = int(
-            price
-        )
+        price = int(price)
     except Exception:
-        raise ValueError(
-            "מחיר לא תקין"
-        )
+        raise ValueError("מחיר לא תקין")
 
     if price <= 0:
-        raise ValueError(
-            "המחיר חייב להיות גדול מאפס"
-        )
+        raise ValueError("המחיר חייב להיות גדול מאפס")
 
-    phone = normalize_phone(
-        phone
-    )
+    phone = normalize_phone(phone)
 
     with db() as conn:
         existing = conn.execute(
@@ -12173,18 +12157,22 @@ def save_route_price(
             SELECT *
             FROM route_prices
             WHERE
-                (
-                    city_from = ?
-                    AND city_to = ?
-                )
-                OR
-                (
-                    city_from = ?
-                    AND city_to = ?
+                vehicle_type = ?
+                AND (
+                    (
+                        city_from = ?
+                        AND city_to = ?
+                    )
+                    OR
+                    (
+                        city_from = ?
+                        AND city_to = ?
+                    )
                 )
             LIMIT 1
             """,
             (
+                vehicle_type,
                 city_from,
                 city_to,
                 city_to,
@@ -12199,6 +12187,7 @@ def save_route_price(
                 SET
                     city_from = ?,
                     city_to = ?,
+                    vehicle_type = ?,
                     price = ?,
                     updated_by = ?,
                     updated_at = ?
@@ -12207,6 +12196,7 @@ def save_route_price(
                 (
                     city_from,
                     city_to,
+                    vehicle_type,
                     price,
                     phone,
                     now_ts(),
@@ -12214,13 +12204,8 @@ def save_route_price(
                 )
             )
 
-            route_id = int(
-                existing["id"]
-            )
-
-            action_name = (
-                "UPDATE_ROUTE_PRICE"
-            )
+            route_id = int(existing["id"])
+            action_name = "UPDATE_ROUTE_PRICE"
 
         else:
             cursor = conn.execute(
@@ -12228,17 +12213,19 @@ def save_route_price(
                 INSERT INTO route_prices (
                     city_from,
                     city_to,
+                    vehicle_type,
                     price,
                     created_by,
                     updated_by,
                     created_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     city_from,
                     city_to,
+                    vehicle_type,
                     price,
                     phone,
                     phone,
@@ -12247,13 +12234,8 @@ def save_route_price(
                 )
             )
 
-            route_id = int(
-                cursor.lastrowid
-            )
-
-            action_name = (
-                "CREATE_ROUTE_PRICE"
-            )
+            route_id = int(cursor.lastrowid)
+            action_name = "CREATE_ROUTE_PRICE"
 
         conn.commit()
 
@@ -12263,8 +12245,9 @@ def save_route_price(
         "route_price",
         route_id,
         (
-            f"{city_from} -> "
-            f"{city_to} = {price}"
+            f"{city_from} -> {city_to}; "
+            f"vehicle={vehicle_type}; "
+            f"price={price}"
         )
     )
 
