@@ -2364,18 +2364,20 @@ def set_driver_available(
             UPDATE driver_profiles
             SET
                 is_available = ?,
-                available_city = ?
+                available_city = ?,
+                available_at = ?,
+                availability_reminder_sent = 0
             WHERE user_id = ?
             """,
             (
                 1 if is_available else 0,
-                city,
+                city if is_available else "",
+                now_ts() if is_available else 0,
                 user_id,
             )
         )
 
         conn.commit()
-
 
 # ============================================================
 # יצירה / עדכון משתמש
