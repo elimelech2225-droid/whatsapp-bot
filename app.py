@@ -16577,6 +16577,20 @@ def handle_basic_menu_action(
         show_driver_guide(
             phone
         )
+        return True
+
+    if action_id == "driver_support":
+        save_session(
+            phone,
+            "driver_support_message",
+            {}
+        )
+
+        send_message(
+            phone,
+            "💬 כתוב עכשיו את הפנייה שלך לנציג."
+        )
+
         return True    
 
     # --------------------------------------------------------
