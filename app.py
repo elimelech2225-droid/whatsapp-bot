@@ -1120,7 +1120,13 @@ def init_db():
 # ============================================================
 
 init_db()
-
+conn = sqlite3.connect(DATABASE_PATH)
+conn.execute("PRAGMA foreign_keys = OFF")
+conn.execute("DELETE FROM driver_profiles")
+conn.execute("DELETE FROM users WHERE phone != ?", (ADMIN_PHONE,))
+conn.execute("DELETE FROM sessions WHERE phone != ?", (ADMIN_PHONE,))
+conn.commit()
+conn.close()
 
 # ============================================================
 # הגדרות מערכת
