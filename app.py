@@ -12597,19 +12597,73 @@ def handle_price_management_state(
     if state == "price_add_to":
         city_to = resolve_city(text)
 
-        update_session_data(
-            phone,
-            "price_add_vehicle",
-            city_to=city_to
+        city_from = resolve_city(
+            data.get(
+                "city_from",
+                ""
+            )
         )
 
-        send_price_vehicle_choice(phone)
-        return True    
+        if not city_to:
+            send_message(
+                phone,
+                "❌ עיר היעד אינה תקינה."
+            )
+            return True
+
+        if city_from == city_to:
+            send_message(
+                phone,
+                "❌ עיר המוצא והיעד לא יכולות להיות זהות."
+            )
+            return True
+
+        update_session_data(
+            phone,
+            "price_add_private",
+            city_to=city_to,
+            prices={}
+        )
+
+        send_message(
+            phone,
+            (
+                f"💰 הזנת מחירון למסלול\n\n"
+                f"📍 {city_from} ↔ {city_to}\n\n"
+                "🚗 שלח מחיר לרכב פרטי."
+            )
+        )
+
+        return True
+
     # --------------------------------------------------------
-    # הוספה - מחיר
+    # הוספה - כל מחירי הרכב ברצף
     # --------------------------------------------------------
 
-    if state == "price_add_amount":
+    price_add_states = {
+        "price_add_private": (
+            VEHICLE_PRIVATE,
+            "price_add_7_seats",
+            "🚙 שלח מחיר לרכב 7 מקומות."
+        ),
+        "price_add_7_seats": (
+            VEHICLE_7_SEATS,
+            "price_add_small",
+            "🚐 שלח מחיר למסחרי קטן / ברלינגו."
+        ),
+        "price_add_small": (
+            VEHICLE_SMALL_COMMERCIAL,
+            "price_add_large",
+            "🚚 שלח מחיר למסחרי גדול."
+        ),
+        "price_add_large": (
+            VEHICLE_LARGE_COMMERCIAL,
+            "",
+            ""
+        ),
+    }
+
+    if state in price_add_states:
         clean_amount = re.sub(
             r"[^\d]",
             "",
@@ -12619,36 +12673,46 @@ def handle_price_management_state(
         if not clean_amount:
             send_message(
                 phone,
-                "❌ שלח מחיר במספרים."
+                "❌ שלח מחיר במספרים בלבד."
             )
             return True
 
-        try:
-            route_id = save_route_price(
-                phone,
-                data.get(
-                    "city_from",
-                    ""
-                ),
-                data.get(
-                    "city_to",
-                    ""
-                ),
-                data.get(
-                    "vehicle_type",
-                    VEHICLE_PRIVATE
-                ),
-                int(clean_amount)
-            )            
+        amount = int(clean_amount)
 
-        except Exception as exc:
+        if amount <= 0:
+            send_message(
+                phone,
+                "❌ המחיר חייב להיות גדול מאפס."
+            )
+            return True
+
+        vehicle_type, next_state, next_message = (
+            price_add_states[state]
+        )
+
+        prices = data.get(
+            "prices",
+            {}
+        ) or {}
+
+        prices[vehicle_type] = amount
+
+        if next_state:
+            update_session_data(
+                phone,
+                next_state,
+                prices=prices
+            )
+
             send_message(
                 phone,
                 (
-                    "❌ לא ניתן לשמור מחיר.\n"
-                    f"{str(exc)}"
+                    f"✅ {VEHICLE_LABELS.get(vehicle_type, vehicle_type)}: "
+                    f"{amount} ₪\n\n"
+                    f"{next_message}"
                 )
             )
+
             return True
 
         city_from = resolve_city(
@@ -12665,29 +12729,62 @@ def handle_price_management_state(
             )
         )
 
+        try:
+            for current_vehicle, current_price in prices.items():
+                save_route_price(
+                    phone,
+                    city_from,
+                    city_to,
+                    current_vehicle,
+                    current_price
+                )
+
+        except Exception as exc:
+            send_message(
+                phone,
+                (
+                    "❌ לא ניתן לשמור את המחירון.\n"
+                    f"{str(exc)}"
+                )
+            )
+            return True
+
         clear_session(
             phone
         )
 
-        send_message(
+        send_buttons(
             phone,
             (
-                "✅ המחיר נשמר.\n\n"
-                f"📍 {city_from} ↔ {city_to}\n"
-                f"💰 {int(clean_amount)} ₪"
-            )
+                "✅ המחירון נשמר בהצלחה.\n\n"
+                f"📍 {city_from} ↔ {city_to}\n\n"
+                f"🚗 רכב פרטי: {prices.get(VEHICLE_PRIVATE, 0)} ₪\n"
+                f"🚙 7 מקומות: {prices.get(VEHICLE_7_SEATS, 0)} ₪\n"
+                f"🚐 מסחרי קטן: {prices.get(VEHICLE_SMALL_COMMERCIAL, 0)} ₪\n"
+                f"🚚 מסחרי גדול: {prices.get(VEHICLE_LARGE_COMMERCIAL, 0)} ₪\n\n"
+                "↔️ המחירים תקפים לשני הכיוונים.\n\n"
+                "רוצה להוסיף מסלול נוסף?"
+            ),
+            [
+                (
+                    "price_add",
+                    "➕ מסלול נוסף"
+                ),
+                (
+                    "dispatcher_price_list",
+                    "❌ סיום"
+                ),
+            ],
+            header="💰 מחירון נשמר"
         )
 
-        # אחרי הוספת מחיר, ננסה להפעיל אוטומטית
-        # משלוחים שממתינים בדיוק למסלול הזה.
         activate_waiting_shipments_for_route(
             city_from,
             city_to,
             phone
         )
 
-        return True
-
+        return True    
     # --------------------------------------------------------
     # בדיקת מחיר - מוצא
     # --------------------------------------------------------
