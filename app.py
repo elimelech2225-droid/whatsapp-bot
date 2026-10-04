@@ -17476,6 +17476,14 @@ def run_system_maintenance():
             repr(exc)
         )
 
+    try:
+        maintain_driver_availability()
+    except Exception as exc:
+        print(
+            "DRIVER AVAILABILITY ERROR:",
+            repr(exc)
+        )
+
 
 # ============================================================
 # אתחול
