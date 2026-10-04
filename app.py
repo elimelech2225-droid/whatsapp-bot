@@ -13653,28 +13653,7 @@ def handle_price_city_actions(
 
         vehicle_type = vehicle_map[action_id]
 
-        if state == "price_add_vehicle":
-            update_session_data(
-                phone,
-                "price_add_amount",
-                vehicle_type=vehicle_type
-            )
-
-            vehicle_label = VEHICLE_LABELS.get(
-                vehicle_type,
-                vehicle_type
-            )
-
-            send_message(
-                phone,
-                (
-                    f"🚗 סוג רכב: {vehicle_label}\n\n"
-                    "💰 שלח את מחיר המסלול בשקלים."
-                )
-            )
-
-            return True
-
+        
         if state == "price_check_vehicle":
             city_from = data.get(
                 "city_from",
