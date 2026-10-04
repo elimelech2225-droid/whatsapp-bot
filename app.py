@@ -2379,6 +2379,82 @@ def set_driver_available(
 
         conn.commit()
 
+def maintain_driver_availability():
+    current_time = now_ts()
+
+    reminder_after = 11 * 60 * 60
+    expire_after = 12 * 60 * 60
+
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                d.user_id,
+                d.available_city,
+                d.available_at,
+                d.availability_reminder_sent,
+                u.phone
+            FROM driver_profiles d
+            JOIN users u
+                ON u.id = d.user_id
+            WHERE
+                d.is_available = 1
+                AND d.available_at > 0
+                AND u.status = ?
+            """,
+            (
+                USER_APPROVED,
+            )
+        ).fetchall()
+
+    for row in rows:
+        elapsed = (
+            current_time
+            - int(row["available_at"] or 0)
+        )
+
+        # אחרי 12 שעות - הזמינות מתאפסת
+        if elapsed >= expire_after:
+            set_driver_available(
+                row["user_id"],
+                False,
+                ""
+            )
+            continue
+
+        # אחרי 11 שעות - תזכורת חד-פעמית
+        if (
+            elapsed >= reminder_after
+            and not int(
+                row["availability_reminder_sent"]
+                or 0
+            )
+        ):
+            send_message(
+                row["phone"],
+                (
+                    "⏰ הזמינות שלך עומדת להסתיים בעוד שעה.\n\n"
+                    f"📍 אזור נוכחי: {row['available_city']}\n\n"
+                    "אם אתה עדיין פנוי, שלח שוב:\n"
+                    f"פ {row['available_city']}"
+                )
+            )
+
+            with db() as conn:
+                conn.execute(
+                    """
+                    UPDATE driver_profiles
+                    SET availability_reminder_sent = 1
+                    WHERE user_id = ?
+                    """,
+                    (
+                        row["user_id"],
+                    )
+                )
+                conn.commit()
+
+    return True
+
 # ============================================================
 # יצירה / עדכון משתמש
 # ============================================================
