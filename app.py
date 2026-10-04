@@ -5464,12 +5464,12 @@ def show_admin_vehicle_types(phone):
     with db() as conn:
         rows = conn.execute(
             """
-            SELECT id, name, price_extra
+            SELECT id, name
             FROM vehicle_types
             WHERE is_active = 1
             ORDER BY sort_order ASC, id ASC
             """
-        ).fetchall()
+        ).fetchall()        
 
     menu_rows = []
 
@@ -5478,9 +5478,9 @@ def show_admin_vehicle_types(phone):
             (
                 f"admin_vehicle_type_{row['id']}",
                 row["name"],
-                f"תוספת מחיר: ₪{row['price_extra']}",
+                "ניהול סוג הרכב",
             )
-        )
+        )    
 
     menu_rows.append(
         (
@@ -17004,27 +17004,7 @@ def handle_basic_menu_action(
             ]
         )
         return True
-    if action_id.startswith("admin_vehicle_price_"):
-        try:
-            vehicle_id = int(
-                action_id.replace("admin_vehicle_price_", "")
-            )
-        except ValueError:
-            return True
-
-        save_session(
-            phone,
-            "admin_vehicle_edit_price",
-            {"vehicle_id": vehicle_id}
-        )
-
-        send_message(
-            phone,
-            "💰 שלח עכשיו את תוספת המחיר החדשה בשקלים.\n"
-            "לדוגמה: 70\n\n"
-            "אם אין תוספת, שלח 0."
-        )
-        return True
+    
 
     if action_id.startswith("admin_vehicle_delete_"):
         try:
@@ -17308,62 +17288,31 @@ def handle_all_text_states(
             )
             return True
 
-        save_session(
-            phone,
-            "admin_vehicle_add_price",
-            {
-                "vehicle_name": vehicle_name
-            }
-        )
-
-        send_message(
-            phone,
-            f"🚗 סוג הרכב: *{vehicle_name}*\n\n"
-            "💰 עכשיו שלח את תוספת המחיר בשקלים.\n"
-            "לדוגמה: 50\n\n"
-            "אם אין תוספת מחיר, שלח 0."
-        )
-        return True
-    if state == "admin_vehicle_add_price":
-        session = get_session(phone)
-        vehicle_name = session.get("data", {}).get("vehicle_name")
-
-        try:
-            price_extra = int(text.strip())
-            if price_extra < 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            send_message(
-                phone,
-                "❌ יש לשלוח סכום תקין בשקלים.\n"
-                "לדוגמה: 50\n"
-                "או 0 אם אין תוספת."
-            )
-            return True
-
         code = f"vehicle_{now_ts()}"
 
         with db() as conn:
             sort_order = conn.execute(
-                "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM vehicle_types"
-            ).fetchone()["next_order"]            
+                """
+                SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order
+                FROM vehicle_types
+                """
+            ).fetchone()["next_order"]
+
             conn.execute(
                 """
                 INSERT INTO vehicle_types (
                     code,
                     name,
-                    price_extra,
                     sort_order,
                     is_active,
                     created_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, 1, ?, ?)
+                VALUES (?, ?, ?, 1, ?, ?)
                 """,
                 (
                     code,
                     vehicle_name,
-                    price_extra,
                     sort_order,
                     now_ts(),
                     now_ts(),
@@ -17375,53 +17324,12 @@ def handle_all_text_states(
 
         send_message(
             phone,
-            f"✅ סוג הרכב *{vehicle_name}* נוסף בהצלחה.\n"
-            f"💰 תוספת מחיר: ₪{price_extra}"
+            f"✅ סוג הרכב *{vehicle_name}* נוסף בהצלחה."
         )
 
         show_admin_vehicle_types(phone)
-        return True
-    if state == "admin_vehicle_edit_price":
-        session = get_session(phone)
-        vehicle_id = session.get("data", {}).get("vehicle_id")
-
-        try:
-            price_extra = int(text.strip())
-            if price_extra < 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            send_message(
-                phone,
-                "❌ יש לשלוח סכום תקין בשקלים.\n"
-                "לדוגמה: 70\n"
-                "או 0 אם אין תוספת."
-            )
-            return True
-
-        with db() as conn:
-            conn.execute(
-                """
-                UPDATE vehicle_types
-                SET price_extra = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    price_extra,
-                    now_ts(),
-                    vehicle_id,
-                )
-            )
-            conn.commit()
-
-        clear_session(phone)
-
-        send_message(
-            phone,
-            f"✅ תעריף סוג הרכב עודכן ל־₪{price_extra}."
-        )
-
-        show_admin_vehicle_types(phone)
-        return True        
+        return True    
+    
     if state == "driver_support_message":
         clear_session(phone)
 
