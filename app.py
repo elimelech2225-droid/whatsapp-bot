@@ -17347,7 +17347,7 @@ def handle_all_text_states(
         with db() as conn:
             sort_order = conn.execute(
                 "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM vehicle_types"
-            ).fetchone()["next_order"]
+            ).fetchone()["next_order"]            
             conn.execute(
                 """
                 INSERT INTO vehicle_types (
