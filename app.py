@@ -18550,6 +18550,13 @@ def run_system_maintenance():
             "DRIVER AVAILABILITY ERROR:",
             repr(exc)
         )
+    try:
+        maintain_unassigned_shipments()
+    except Exception as exc:
+        print(
+            "UNASSIGNED SHIPMENTS ERROR:",
+            repr(exc)
+        )        
 def maintenance_loop():
     while True:
         time.sleep(5 * 60)
