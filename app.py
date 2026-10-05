@@ -11772,6 +11772,71 @@ def handle_customer_shipment_actions(
     phone,
     action_id
 ):
+    # המשך פרסום לאחר תזכורת 4 שעות
+    if action_id.startswith(
+        "shipment_keep_open_"
+    ):
+        raw_id = action_id.replace(
+            "shipment_keep_open_",
+            "",
+            1
+        )
+
+        if raw_id.isdigit():
+            shipment_id = int(raw_id)
+
+            shipment = get_shipment(
+                shipment_id
+            )
+
+            user = get_user(
+                phone
+            )
+
+            if (
+                not shipment
+                or not user
+                or shipment["publisher_id"] != user["id"]
+            ):
+                return True
+
+            if shipment["status"] not in (
+                SHIP_NEW,
+                SHIP_OPEN,
+            ):
+                send_message(
+                    phone,
+                    "ℹ️ המשלוח כבר אינו פתוח לפרסום."
+                )
+                return True
+
+            with db() as conn:
+                conn.execute(
+                    """
+                    UPDATE shipments
+                    SET
+                        created_at = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        now_ts(),
+                        now_ts(),
+                        shipment_id,
+                    )
+                )
+                conn.commit()
+
+            send_message(
+                phone,
+                (
+                    "📢 הפרסום ממשיך.\n\n"
+                    "המשלוח ימשיך להיות פעיל "
+                    "והספירה התחילה מחדש."
+                )
+            )
+
+            return True    
     if action_id.startswith(
         "customer_shipment_"
     ):
