@@ -3898,7 +3898,89 @@ def cancel_shipment(
 
     return True
 
+# ============================================================
+# תזכורת וביטול אוטומטי למשלוחים שלא נתפסו
+# ============================================================
 
+def maintain_unassigned_shipments():
+    current_time = now_ts()
+
+    reminder_after = 4 * 60 * 60
+    cancel_after = 5 * 60 * 60
+
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                s.id,
+                s.publisher_id,
+                s.status,
+                s.created_at,
+                u.phone
+            FROM shipments s
+            JOIN users u
+                ON u.id = s.publisher_id
+            WHERE
+                s.status IN (?, ?)
+                AND s.created_at > 0
+            """,
+            (
+                SHIP_NEW,
+                SHIP_OPEN,
+            )
+        ).fetchall()
+
+    for row in rows:
+        elapsed = (
+            current_time
+            - int(row["created_at"] or 0)
+        )
+
+        # אחרי 5 שעות - ביטול אוטומטי
+        if elapsed >= cancel_after:
+            success = cancel_shipment(
+                row["id"],
+                "system",
+                "בוטל אוטומטית לאחר 5 שעות ללא שליח"
+            )
+
+            if success:
+                send_message(
+                    row["phone"],
+                    (
+                        "⏰ המשלוח בוטל אוטומטית.\n\n"
+                        "המשלוח נשאר ללא שליח במשך 5 שעות "
+                        "ולא התקבל אישור להמשך הפרסום."
+                    )
+                )
+
+            continue
+
+        # אחרי 4 שעות - שאלה אם להמשיך לפרסם
+        if elapsed >= reminder_after:
+            send_buttons(
+                row["phone"],
+                (
+                    "⏰ המשלוח שלך עדיין לא נתפס.\n\n"
+                    "עברו 4 שעות מאז פרסום המשלוח.\n"
+                    "האם להמשיך לפרסם אותו?\n\n"
+                    "אם לא תבחר באפשרות בתוך שעה, "
+                    "המשלוח יבוטל אוטומטית."
+                ),
+                [
+                    (
+                        f"shipment_keep_open_{row['id']}",
+                        "📢 המשך בפרסום"
+                    ),
+                    (
+                        f"customer_cancel_shipment_{row['id']}",
+                        "🗑️ בטל משלוח"
+                    ),
+                ],
+                header="שליחובוט"
+            )
+
+    return True
 # ============================================================
 # פנייה לנציג
 # ============================================================
