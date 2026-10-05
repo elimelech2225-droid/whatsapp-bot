@@ -12337,20 +12337,20 @@ def handle_management_shipment_actions(
             1
         )
 
-    if raw_id.isdigit():
-        shipment_id = int(raw_id)
+        if raw_id.isdigit():
+            shipment_id = int(raw_id)
 
-        if cancel_shipment(
-            shipment_id,
-            phone,
-            "בוטל על ידי מנהל/סדרן"
-        ):
-            send_message(
+            if cancel_shipment(
+                shipment_id,
                 phone,
-                "🗑️ המשלוח בוטל בהצלחה."
-            )
+                "בוטל על ידי מנהל/סדרן"
+            ):
+                send_message(
+                    phone,
+                    "🗑️ המשלוח בוטל בהצלחה."
+                )
 
-        return True    
+            return True    
     return False
 
 
