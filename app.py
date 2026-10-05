@@ -12133,6 +12133,17 @@ def show_management_shipment(
             )
         )
 
+    if shipment["status"] in (
+        SHIP_NEW,
+        SHIP_OPEN,
+        SHIP_NEEDS_PRICE,
+    ):
+        buttons.append(
+            (
+                f"admin_cancel_shipment_{shipment_id}",
+                "🗑️ בטל משלוח"
+            )
+        )    
     if shipment["status"] == SHIP_NEEDS_PRICE:
         buttons.append(
             (
@@ -12317,6 +12328,29 @@ def handle_management_shipment_actions(
                 int(raw_id)
             )
 
+    if action_id.startswith(
+        "admin_cancel_shipment_"
+    ):
+        raw_id = action_id.replace(
+            "admin_cancel_shipment_",
+            "",
+            1
+        )
+
+    if raw_id.isdigit():
+        shipment_id = int(raw_id)
+
+        if cancel_shipment(
+            shipment_id,
+            phone,
+            "בוטל על ידי מנהל/סדרן"
+        ):
+            send_message(
+                phone,
+                "🗑️ המשלוח בוטל בהצלחה."
+            )
+
+        return True    
     return False
 
 
