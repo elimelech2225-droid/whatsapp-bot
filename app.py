@@ -9548,17 +9548,7 @@ def distribute_shipment_to_drivers(
 
     sent = 0
 
-    for driver in drivers:
-        # אם מערכת המנויים פעילה,
-        # שליח רגיל חייב מנוי פעיל.
-        if (
-            driver["role"] == ROLE_DRIVER
-            and not user_has_active_subscription(
-                driver["phone"]
-            )
-        ):
-            continue
-
+    for driver in drivers:    
         try:
             result = send_shipment_to_driver(
                 driver["phone"],
@@ -9695,34 +9685,7 @@ def show_available_shipments_for_driver(
         )
         return
 
-    if (
-        user["role"] == ROLE_DRIVER
-        and not user_has_active_subscription(
-            phone
-        )
-    ):
-        send_buttons(
-            phone,
-            (
-                "💎 אין לך מנוי פעיל.\n\n"
-                "כדי לצפות ולקחת משלוחים "
-                "יש לחדש את המנוי."
-            ),
-            [
-                (
-                    "driver_subscription",
-                    "💎 חידוש מנוי"
-                ),
-                (
-                    "driver_menu",
-                    "↩️ חזרה"
-                ),
-            ],
-            header="המנוי אינו פעיל"
-        )
-
-        return
-
+    
     shipments = (
         get_available_shipments_for_driver(
             phone,
@@ -9874,14 +9837,25 @@ def start_driver_interest(
             phone
         )
     ):
-        send_message(
+        send_buttons(
             phone,
             (
-                "💎 נדרש מנוי פעיל "
-                "כדי לקחת משלוחים."
-            )
+                "💎 אין לך מנוי פעיל.\n\n"
+                "כדי להתעניין במשלוח ולקבל אפשרות "
+                "להיבחר על ידי המפרסם, יש להפעיל "
+                "או לחדש את המנוי.\n\n"
+                "📦 עדיין תוכל להמשיך לראות משלוחים "
+                "המתפרסמים באזור שבו אתה פנוי."
+            ),
+            [
+                (
+                    "driver_subscription",
+                    "💳 הפעלת / חידוש"
+                ),
+            ],
+            header="המנוי אינו פעיל"
         )
-        return True
+        return True    
 
     save_session(
         phone,
