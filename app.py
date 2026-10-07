@@ -9997,7 +9997,30 @@ def submit_driver_interest(
 
     if not user:
         return False
+    if (
+        user["role"] == ROLE_DRIVER
+        and not user_has_active_subscription(phone)
+    ):
+        clear_session(phone)
 
+        send_buttons(
+            phone,
+            (
+                "💎 אין לך מנוי פעיל.\n\n"
+                "כדי להתעניין במשלוח יש להפעיל "
+                "או לחדש את המנוי.\n\n"
+                "📦 תוכל להמשיך לראות ולקבל "
+                "משלוחים באזור שבו אתה פנוי."
+            ),
+            [
+                (
+                    "driver_subscription",
+                    "💳 הפעלת / חידוש"
+                ),
+            ],
+            header="המנוי אינו פעיל"
+        )
+        return True
     success = add_driver_interest(
         shipment_id,
         user["id"],
@@ -18076,14 +18099,35 @@ def handle_general_text(
                 city
             )
 
-            send_message(
-                phone,
-                (
-                    "🟢 סומנת כפנוי.\n"
-                    f"📍 אזור זמינות: {city}"
+            if user_has_active_subscription(phone):
+                send_message(
+                    phone,
+                    (
+                        "🟢 סומנת כפנוי.\n"
+                        f"📍 אזור זמינות: {city}"
+                    )
                 )
-            )
-
+            else:
+                send_buttons(
+                    phone,
+                    (
+                        "🟢 סומנת כפנוי.\n"
+                        f"📍 אזור זמינות: {city}\n\n"
+                        "💎 אין לך מנוי פעיל.\n"
+                        "אתה תמשיך לראות ולקבל משלוחים "
+                        "שמתפרסמים באזור שבו אתה פנוי.\n\n"
+                        "כדי להתעניין במשלוח ולקבל אפשרות "
+                        "להיבחר על ידי המפרסם, יש להפעיל "
+                        "או לחדש את המנוי."
+                    ),
+                    [
+                        (
+                            "driver_subscription",
+                            "💳 הפעלת / חידוש"
+                        ),
+                    ],
+                    header="המנוי אינו פעיל"
+                )            
             return True
 
     if normalized in (
