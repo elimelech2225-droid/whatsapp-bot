@@ -142,7 +142,7 @@ VEHICLE_LABELS = {
         "🚗 רכב פרטי",
 
     VEHICLE_7_SEATS:
-        "🚙 רכב 7 מקומות",
+        "🚙 רכב מרווח / סטיישן",
 
     VEHICLE_SMALL_COMMERCIAL:
         "🚐 מסחרי קטן / ברלינגו",
@@ -6995,9 +6995,9 @@ def send_driver_vehicle_choice(phone):
             ),
             (
                 "reg_vehicle_7_seats",
-                "🚙 7 מקומות",
-                "רכב 7 מקומות",
-            ),
+                "🚙 רכב מרווח / סטיישן",
+                "רכב מרווח המתאים למשלוחים גדולים יותר",
+            ),            
             (
                 "reg_vehicle_small_commercial",
                 "🚐 מסחרי קטן",
@@ -8154,7 +8154,14 @@ def send_shipment_vehicle_choice(phone):
     send_list(
         phone,
         "🚗 סוג רכב נדרש",
-        "איזה רכב מתאים למשלוח?",
+        (
+            "🚗 איזה רכב מתאים למשלוח?\n\n"
+            "⚠️ חשוב לדעת:\n"
+            "עליך לוודא שהמשלוח מתאים לסוג הרכב שתבחר "
+            "מבחינת גודל, מידות ומשקל, ושכל הפריטים "
+            "נכנסים לרכב בצורה בטוחה.\n\n"
+            "בחר את סוג הרכב המתאים:"
+        ),        
         [
             (
                 "shipment_vehicle_private",
@@ -8163,9 +8170,9 @@ def send_shipment_vehicle_choice(phone):
             ),
             (
                 "shipment_vehicle_7_seats",
-                "🚙 7 מקומות",
-                "למשלוח גדול יותר",
-            ),
+                "🚙 רכב מרווח / סטיישן",
+                "מתאים למשלוחים גדולים יותר מרכב פרטי",
+            ),            
             (
                 "shipment_vehicle_small",
                 "🚐 מסחרי קטן",
@@ -12646,9 +12653,9 @@ def send_price_vehicle_choice(phone):
             ),
             (
                 "price_vehicle_7_seats",
-                "🚙 7 מקומות",
-                "מחיר לרכב 7 מקומות",
-            ),
+                "🚙 רכב מרווח / סטיישן",
+                "מחיר לרכב מרווח / סטיישן",
+            ),            
             (
                 "price_vehicle_small",
                 "🚐 מסחרי קטן",
@@ -12822,7 +12829,7 @@ def handle_price_management_state(
         "price_add_private": (
             VEHICLE_PRIVATE,
             "price_add_7_seats",
-            "🚙 שלח מחיר לרכב 7 מקומות."
+            "🚙 שלח מחיר לרכב מרווח / סטיישן."
         ),
         "price_add_7_seats": (
             VEHICLE_7_SEATS,
@@ -12937,7 +12944,7 @@ def handle_price_management_state(
                 "✅ המחירון נשמר בהצלחה.\n\n"
                 f"📍 {city_from} ↔ {city_to}\n\n"
                 f"🚗 רכב פרטי: {prices.get(VEHICLE_PRIVATE, 0)} ₪\n"
-                f"🚙 7 מקומות: {prices.get(VEHICLE_7_SEATS, 0)} ₪\n"
+                f"🚙 רכב מרווח / סטיישן: {prices.get(VEHICLE_7_SEATS, 0)} ₪\n"
                 f"🚐 מסחרי קטן: {prices.get(VEHICLE_SMALL_COMMERCIAL, 0)} ₪\n"
                 f"🚚 מסחרי גדול: {prices.get(VEHICLE_LARGE_COMMERCIAL, 0)} ₪\n\n"
                 "↔️ המחירים תקפים לשני הכיוונים.\n\n"
@@ -14562,7 +14569,7 @@ def show_help_price_settings(phone):
             ),
             (
                 "help_price_7",
-                "🚙 7 מקומות",
+                "🚙 רכב מרווח / סטיישן",
                 (
                     f"{get_driver_help_extra(VEHICLE_7_SEATS)} ₪"
                 ),
