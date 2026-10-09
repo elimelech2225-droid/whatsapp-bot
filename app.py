@@ -147,8 +147,7 @@ VEHICLE_LABELS = {
     VEHICLE_SMALL_COMMERCIAL:
         "🚐 מסחרי קטן / ברלינגו",
 
-    VEHICLE_LARGE_COMMERCIAL:
-        "🚚 מסחרי גדול",
+    
 }
 
 
@@ -7003,11 +7002,7 @@ def send_driver_vehicle_choice(phone):
                 "🚐 מסחרי קטן",
                 "ברלינגו / קנגו וכדומה",
             ),
-            (
-                "reg_vehicle_large_commercial",
-                "🚚 מסחרי גדול",
-                "ויטו / טרנזיט וכדומה",
-            ),
+            
         ],
         button_text="בחר רכב",
         footer="שליחובוט • הרשמת שליח"
@@ -7388,8 +7383,7 @@ def handle_driver_registration_action(
         "reg_vehicle_small_commercial":
             VEHICLE_SMALL_COMMERCIAL,
 
-        "reg_vehicle_large_commercial":
-            VEHICLE_LARGE_COMMERCIAL,
+        
     }
 
     if action_id not in vehicle_map:
@@ -8178,11 +8172,7 @@ def send_shipment_vehicle_choice(phone):
                 "🚐 מסחרי קטן",
                 "ברלינגו / קנגו וכדומה",
             ),
-            (
-                "shipment_vehicle_large",
-                "🚚 מסחרי גדול",
-                "ויטו / טרנזיט וכדומה",
-            ),
+            
         ],
         button_text="בחר רכב",
         footer="שליחובוט • משלוח חדש"
@@ -8755,8 +8745,7 @@ def handle_new_shipment_action(
         "shipment_vehicle_small":
             VEHICLE_SMALL_COMMERCIAL,
 
-        "shipment_vehicle_large":
-            VEHICLE_LARGE_COMMERCIAL,
+       
     }
 
     if (
@@ -9317,7 +9306,7 @@ def driver_matches_shipment(
         VEHICLE_PRIVATE: 1,
         VEHICLE_7_SEATS: 2,
         VEHICLE_SMALL_COMMERCIAL: 3,
-        VEHICLE_LARGE_COMMERCIAL: 4,
+        
     }
 
     required_rank = vehicle_rank.get(
@@ -12661,11 +12650,7 @@ def send_price_vehicle_choice(phone):
                 "🚐 מסחרי קטן",
                 "מחיר למסחרי קטן",
             ),
-            (
-                "price_vehicle_large",
-                "🚚 מסחרי גדול",
-                "מחיר למסחרי גדול",
-            ),
+            
         ],
         button_text="בחר רכב",
         footer="שליחובוט • מחירון"
@@ -12838,16 +12823,10 @@ def handle_price_management_state(
         ),
         "price_add_small": (
             VEHICLE_SMALL_COMMERCIAL,
-            "price_add_large",
-            "🚚 שלח מחיר למסחרי גדול."
-        ),
-        "price_add_large": (
-            VEHICLE_LARGE_COMMERCIAL,
             "",
             ""
         ),
-    }
-
+    }    
     if state in price_add_states:
         clean_amount = re.sub(
             r"[^\d]",
@@ -12945,8 +12924,8 @@ def handle_price_management_state(
                 f"📍 {city_from} ↔ {city_to}\n\n"
                 f"🚗 רכב פרטי: {prices.get(VEHICLE_PRIVATE, 0)} ₪\n"
                 f"🚙 רכב מרווח / סטיישן: {prices.get(VEHICLE_7_SEATS, 0)} ₪\n"
-                f"🚐 מסחרי קטן: {prices.get(VEHICLE_SMALL_COMMERCIAL, 0)} ₪\n"
-                f"🚚 מסחרי גדול: {prices.get(VEHICLE_LARGE_COMMERCIAL, 0)} ₪\n\n"
+                f"🚐 מסחרי קטן: {prices.get(VEHICLE_SMALL_COMMERCIAL, 0)} ₪\n\n"
+                
                 "↔️ המחירים תקפים לשני הכיוונים.\n\n"
                 "רוצה להוסיף מסלול נוסף?"
             ),
@@ -13821,7 +13800,7 @@ def handle_price_city_actions(
         "price_vehicle_private": VEHICLE_PRIVATE,
         "price_vehicle_7_seats": VEHICLE_7_SEATS,
         "price_vehicle_small": VEHICLE_SMALL_COMMERCIAL,
-        "price_vehicle_large": VEHICLE_LARGE_COMMERCIAL,
+        
     }
 
     if action_id in vehicle_map:
@@ -14581,13 +14560,7 @@ def show_help_price_settings(phone):
                     f"{get_driver_help_extra(VEHICLE_SMALL_COMMERCIAL)} ₪"
                 ),
             ),
-            (
-                "help_price_large",
-                "🚚 מסחרי גדול",
-                (
-                    f"{get_driver_help_extra(VEHICLE_LARGE_COMMERCIAL)} ₪"
-                ),
-            ),
+            
         ],
         button_text="בחר",
         footer="שליחובוט • הגדרות"
@@ -15079,12 +15052,7 @@ def handle_admin_management_actions(
         )
         return True
 
-    if action_id == "help_price_large":
-        start_help_price_update(
-            phone,
-            VEHICLE_LARGE_COMMERCIAL
-        )
-        return True
+    
 
     if action_id == "admin_maintenance_drivers":
         start_maintenance_text_update(
