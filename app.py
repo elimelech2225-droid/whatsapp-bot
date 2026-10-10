@@ -9291,37 +9291,7 @@ def driver_matches_shipment(
     ):
         return False
 
-    required_vehicle = (
-        shipment["vehicle_type"]
-        or VEHICLE_PRIVATE
-    )
-
-    driver_vehicle = (
-        driver_profile["vehicle_type"]
-        or ""
-    )
-
-    # סדר גודל רכבים
-    vehicle_rank = {
-        VEHICLE_PRIVATE: 1,
-        VEHICLE_7_SEATS: 2,
-        VEHICLE_SMALL_COMMERCIAL: 3,
-        
-    }
-
-    required_rank = vehicle_rank.get(
-        required_vehicle,
-        1
-    )
-
-    driver_rank = vehicle_rank.get(
-        driver_vehicle,
-        0
-    )
-
-    if driver_rank < required_rank:
-        return False
-
+    
     return True
 
 
@@ -11107,7 +11077,12 @@ def show_customer_shipment(
                 "✅ הסתיים"
             )
         )
-
+        buttons.append(
+            (
+                f"customer_republish_shipment_{shipment_id}",
+                "🔄 החלפת שליח / המשך פרסום"
+            )
+        )
     buttons.append(
         (
             "customer_active_shipments",
