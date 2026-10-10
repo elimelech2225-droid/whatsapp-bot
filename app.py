@@ -17160,6 +17160,42 @@ def handle_basic_menu_action(
     phone,
     action_id
 ):
+    if action_id == "driver_edit_year":
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            return True
+
+        save_session(
+            phone,
+            "driver_edit_vehicle_year",
+            {}
+        )
+
+        send_message(
+            phone,
+            "📅 שלח את שנת הרכב החדשה.\n\n"
+            "לדוגמה: 2022"
+        )
+        return True   
+    if action_id == "driver_edit_description":
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            return True
+
+        save_session(
+            phone,
+            "driver_edit_vehicle_description",
+            {}
+        )
+
+        send_message(
+            phone,
+            "📝 שלח את תיאור הרכב החדש.\n\n"
+            "לדוגמה: טויוטה קורולה לבנה"
+        )
+        return True   
     if action_id == "driver_edit_type":
         user = get_user(phone)
 
@@ -17969,6 +18005,64 @@ def handle_all_text_states(
         )
 
         return True        
+    if state in (
+        "driver_edit_vehicle_year",
+        "driver_edit_vehicle_description"
+    ):
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            clear_session(phone)
+            return True
+
+        if state == "driver_edit_vehicle_year":
+            if not re.fullmatch(r"\d{4}", text.strip()):
+                send_message(
+                    phone,
+                    "❌ שלח שנת רכב ב-4 ספרות, לדוגמה: 2022"
+                )
+                return True
+
+            year = int(text.strip())
+
+            if year < 1980 or year > datetime.now().year + 1:
+                send_message(
+                    phone,
+                    "❌ שנת הרכב אינה תקינה. נסה שוב."
+                )
+                return True
+
+            field = "vehicle_year"
+            value = str(year)
+            success_message = "✅ שנת הרכב עודכנה בהצלחה."
+
+        else:
+            value = clean_text(text)
+
+            if len(value) < 2 or len(value) > 150:
+                send_message(
+                    phone,
+                    "❌ שלח תיאור רכב באורך 2 עד 150 תווים."
+                )
+                return True
+
+            field = "vehicle_description"
+            success_message = "✅ תיאור הרכב עודכן בהצלחה."
+
+        with db() as conn:
+            conn.execute(
+                f"UPDATE driver_profiles SET {field} = ? WHERE user_id = ?",
+                (value, user["id"])
+            )
+            conn.commit()
+
+        clear_session(phone)
+        send_message(phone, success_message)
+
+        return handle_basic_menu_action(
+            phone,
+            "driver_profile"
+        )    
     # הרשמת מפרסם
     if handle_customer_registration_state(
         phone,
