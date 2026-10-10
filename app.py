@@ -17160,6 +17160,60 @@ def handle_basic_menu_action(
     phone,
     action_id
 ):
+    if action_id == "driver_profile":
+        user = get_user(phone)
+
+        if not user:
+            route_user_to_menu(phone)
+            return True
+
+        profile = get_driver_profile(user["id"])
+
+        if not profile:
+            send_message(
+                phone,
+                "❌ לא נמצאו פרטי רכב בחשבון שלך."
+            )
+            return True
+
+        vehicle_type = profile["vehicle_type"] or ""
+        vehicle_label = VEHICLE_LABELS.get(
+            vehicle_type,
+            vehicle_type or "לא הוגדר"
+        )
+
+        rating_count = int(profile["rating_count"] or 0)
+        rating_sum = float(profile["rating_sum"] or 0)
+        rating = (
+            round(rating_sum / rating_count, 1)
+            if rating_count else 0
+        )
+
+        send_buttons(
+            phone,
+            (
+                "👤 *הפרופיל שלי*\n\n"
+                f"👤 שם: {user['full_name'] or '-'}\n"
+                f"🚗 סוג רכב: {vehicle_label}\n"
+                f"📅 שנת רכב: {profile['vehicle_year'] or '-'}\n"
+                f"📝 תיאור הרכב: {profile['vehicle_description'] or '-'}\n"
+                f"⭐ דירוג: {rating} ({rating_count} דירוגים)\n"
+                f"📦 משלוחים שבוצעו: {profile['completed_shipments'] or 0}"
+            ),
+            [
+                (
+                    "driver_edit_vehicle",
+                    "✏️ עריכת פרטי הרכב"
+                ),
+                (
+                    "main_menu",
+                    "⬅️ חזרה לתפריט"
+                ),
+            ],
+            header="פרופיל השליח"
+        )
+
+        return True   
     if action_id in (
         "menu",
         "main_menu",
