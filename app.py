@@ -9822,7 +9822,34 @@ def start_driver_interest(
             header="המנוי אינו פעיל"
         )
         return True    
+    with db() as conn:
+        previous_interest = conn.execute(
+            """
+            SELECT id, status
+            FROM shipment_interests
+            WHERE shipment_id = ? AND driver_id = ?
+            """,
+            (shipment_id, user["id"])
+        ).fetchone()
 
+    if previous_interest:
+        send_buttons(
+            phone,
+            "🔄 כבר התעניינת במשלוח הזה בעבר.\n\n"
+            "האם תרצה להתעניין בו שוב?",
+            [
+                (
+                    f"driver_interest_again_{shipment_id}",
+                    "✅ כן, מעוניין"
+                ),
+                (
+                    "driver_menu",
+                    "❌ לא, תודה"
+                ),
+            ],
+            header="התעניינות חוזרת"
+        )
+        return True
     save_session(
         phone,
         "driver_interest_eta",
@@ -10753,7 +10780,52 @@ def handle_shipment_driver_actions(
                 int(raw_id)
             )
             return True
+    # אישור התעניינות חוזרת במשלוח
+    if action_id.startswith("driver_interest_again_"):
+        raw_id = action_id.replace(
+            "driver_interest_again_", "", 1
+        )
 
+        if not raw_id.isdigit():
+            return True
+
+        shipment_id = int(raw_id)
+        user = get_user(phone)
+        shipment = get_shipment(shipment_id)
+
+        if not user or not shipment:
+            return True
+
+        if shipment["status"] not in (SHIP_NEW, SHIP_OPEN):
+            send_message(
+                phone,
+                "ℹ️ המשלוח כבר אינו זמין."
+            )
+            return True
+
+        if (
+            user["role"] == ROLE_DRIVER
+            and not user_has_active_subscription(phone)
+        ):
+            return start_driver_interest(phone, shipment_id)
+
+        save_session(
+            phone,
+            "driver_interest_eta",
+            {"shipment_id": shipment_id}
+        )
+
+        send_buttons(
+            phone,
+            "⏱️ תוך כמה זמן תוכל להגיע לנקודת האיסוף?",
+            [
+                ("driver_eta_15", "15 דקות"),
+                ("driver_eta_30", "30 דקות"),
+                ("driver_eta_other", "זמן אחר"),
+            ],
+            header="זמן הגעה"
+        )
+        return True
     # מעוניין
     if action_id.startswith(
         "driver_interest_"
@@ -11805,6 +11877,151 @@ def handle_customer_shipment_actions(
             )
 
             return True    
+    if action_id.startswith("customer_republish_confirm_"):
+        raw_id = action_id.replace(
+            "customer_republish_confirm_", "", 1
+        )
+
+        if not raw_id.isdigit():
+            return True
+
+        shipment_id = int(raw_id)
+        user = get_user(phone)
+
+        if not user:
+            return True
+
+        with db() as conn:
+            shipment = conn.execute(
+                "SELECT * FROM shipments WHERE id = ?",
+                (shipment_id,)
+            ).fetchone()
+
+            if not shipment or shipment["publisher_id"] != user["id"]:
+                send_message(phone, "❌ אין הרשאה לשנות משלוח זה.")
+                return True
+
+            if shipment["status"] != SHIP_ASSIGNED:
+                send_message(phone, "ℹ️ המשלוח כבר אינו משויך לשליח.")
+                return True
+
+            old_driver_id = shipment["assigned_driver_id"]
+
+            cursor = conn.execute(
+                """
+                UPDATE shipments
+                SET status = ?,
+                    assigned_driver_id = NULL,
+                    assigned_at = 0,
+                    created_at = ?,
+                    updated_at = ?
+                WHERE id = ? AND status = ?
+                """,
+                (
+                    SHIP_OPEN,
+                    now_ts(),
+                    now_ts(),
+                    shipment_id,
+                    SHIP_ASSIGNED
+                )
+            )
+
+            if cursor.rowcount != 1:
+                send_message(phone, "❌ לא ניתן לפתוח את המשלוח מחדש.")
+                return True
+
+            conn.execute(
+                """
+                UPDATE shipment_interests
+                SET status = ?, updated_at = ?
+                WHERE shipment_id = ?
+                """,
+                (
+                    INTEREST_REJECTED,
+                    now_ts(),
+                    shipment_id
+                )
+            )
+
+            conn.execute(
+                """
+                INSERT INTO shipment_status_log
+                (shipment_id, status, changed_by, note, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    shipment_id,
+                    SHIP_OPEN,
+                    phone,
+                    "בוטל שיבוץ השליח והמשלוח פורסם מחדש",
+                    now_ts()
+                )
+            )
+
+            conn.commit()
+
+        if old_driver_id:
+            old_driver = get_user_by_id(old_driver_id)
+
+            if old_driver:
+                send_message(
+                    old_driver["phone"],
+                    f"⚠️ השיבוץ שלך למשלוח #{shipment_id} בוטל "
+                    "על ידי המפרסם.\n\n"
+                    "המשלוח נפתח מחדש, ותוכל להתעניין בו שוב."
+                )
+
+        result = distribute_shipment_to_drivers(shipment_id)
+
+        send_message(
+            phone,
+            f"✅ השיבוץ הקודם בוטל והמשלוח נפתח מחדש.\n\n"
+            f"📦 משלוח #{shipment_id}\n"
+            f"📤 נשלח ל-{result['sent']} שליחים.\n\n"
+            "פרטי המשלוח והמחיר נשמרו."
+        )
+
+        return True    
+    if action_id.startswith("customer_republish_shipment_"):
+        raw_id = action_id.replace(
+            "customer_republish_shipment_", "", 1
+        )
+
+        if not raw_id.isdigit():
+            return True
+
+        shipment_id = int(raw_id)
+        shipment = get_shipment(shipment_id)
+        user = get_user(phone)
+
+        if not shipment or not user:
+            return True
+
+        if shipment["publisher_id"] != user["id"]:
+            send_message(phone, "❌ אין הרשאה לשנות משלוח זה.")
+            return True
+
+        if shipment["status"] != SHIP_ASSIGNED:
+            send_message(phone, "ℹ️ המשלוח אינו משויך כרגע לשליח.")
+            return True
+
+        send_buttons(
+            phone,
+            "🔄 האם לבטל את שיבוץ השליח הנוכחי "
+            "ולהפיץ את המשלוח מחדש לכל השליחים הפנויים?",
+            [
+                (
+                    f"customer_republish_confirm_{shipment_id}",
+                    "✅ כן, פרסם מחדש"
+                ),
+                (
+                    f"customer_shipment_{shipment_id}",
+                    "❌ חזרה"
+                ),
+            ],
+            header="אישור החלפת שליח"
+        )
+        return True   
     if action_id.startswith(
         "customer_shipment_"
     ):
