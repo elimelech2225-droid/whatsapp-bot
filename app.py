@@ -17160,6 +17160,107 @@ def handle_basic_menu_action(
     phone,
     action_id
 ):
+    if action_id == "driver_edit_type":
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            return True
+
+        send_list(
+            phone,
+            "🚗 שינוי סוג הרכב",
+            "בחר את סוג הרכב החדש שלך:",
+            [
+                (
+                    "driver_set_vehicle_private",
+                    "🚗 רכב פרטי",
+                    "רכב פרטי רגיל"
+                ),
+                (
+                    "driver_set_vehicle_station",
+                    "🚙 רכב מרווח / סטיישן",
+                    "רכב מרווח"
+                ),
+                (
+                    "driver_set_vehicle_small",
+                    "🚐 מסחרי קטן",
+                    "ברלינגו / קנגו"
+                ),
+            ],
+            button_text="בחר רכב"
+        )
+        return True
+
+    vehicle_changes = {
+        "driver_set_vehicle_private": VEHICLE_PRIVATE,
+        "driver_set_vehicle_station": VEHICLE_7_SEATS,
+        "driver_set_vehicle_small": VEHICLE_SMALL_COMMERCIAL,
+    }
+
+    if action_id in vehicle_changes:
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            return True
+
+        with db() as conn:
+            conn.execute(
+                """
+                UPDATE driver_profiles
+                SET vehicle_type = ?
+                WHERE user_id = ?
+                """,
+                (
+                    vehicle_changes[action_id],
+                    user["id"]
+                )
+            )
+            conn.commit()
+
+        send_message(
+            phone,
+            "✅ סוג הרכב עודכן בהצלחה."
+        )
+
+        return handle_basic_menu_action(
+            phone,
+            "driver_profile"
+        )    
+    if action_id == "driver_edit_vehicle":
+        user = get_user(phone)
+
+        if not user or user["role"] != ROLE_DRIVER:
+            return True
+
+        send_list(
+            phone,
+            "✏️ עריכת פרטי הרכב",
+            "מה תרצה לשנות?",
+            [
+                (
+                    "driver_edit_type",
+                    "🚗 סוג הרכב",
+                    "בחירת סוג רכב חדש"
+                ),
+                (
+                    "driver_edit_year",
+                    "📅 שנת הרכב",
+                    "עדכון שנת הייצור"
+                ),
+                (
+                    "driver_edit_description",
+                    "📝 תיאור הרכב",
+                    "עדכון דגם ותיאור הרכב"
+                ),
+                (
+                    "driver_profile",
+                    "⬅️ חזרה לפרופיל",
+                    "חזרה ללא שינוי"
+                ),
+            ],
+            button_text="בחר פרט"
+        )
+        return True    
     if action_id == "driver_profile":
         user = get_user(phone)
 
